@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="logo.png" alt="EASE Logo" width="300">
+    <img src="static/logo.png" alt="EASE Logo" width="300">
 
 
 ```

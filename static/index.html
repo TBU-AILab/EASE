@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EASE - Effortless Algorithmic Solution Evolution</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #121212;
+            color: #ffffff;
+            text-align: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .container {
+            max-width: 600px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 2;
+        }
+        img {
+            width: 150px;
+            height: auto;
+            margin-bottom: 20px;
+            filter: brightness(80%) contrast(90%);
+            opacity: 0.85;
+            transition: opacity 0.3s ease-in-out;
+            position: relative;
+        }
+        img::after {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            filter: blur(8px);
+            z-index: -1;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+        a {
+            display: inline-block;
+            text-decoration: none;
+            color: #4CAF50;
+            font-weight: bold;
+            margin: 5px 10px;
+            padding: 10px 20px;
+            border: 2px solid #4CAF50;
+            border-radius: 5px;
+            transition: all 0.3s ease-in-out;
+        }
+        a:hover {
+            background: #4CAF50;
+            color: white;
+        }
+
+        footer {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            z-index: 10; /* Ensure it stays above other elements */
+        }
+
+        footer a {
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+            color: #66ff99;
+        }
+
+
+        /* Background Animation */
+        .background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+        .particle {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background-color: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            opacity: 0.8;
+            animation: floatParticles 10s infinite linear;
+        }
+
+        @keyframes floatParticles {
+            0% {
+                transform: translateY(0px);
+                opacity: 0.5;
+            }
+            50% {
+                transform: translateY(-100px);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-200px);
+                opacity: 0;
+            }
+        }
+
+        /* Click Effect Particles */
+        .click-particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: rgba(76, 175, 80, 0.8);
+            border-radius: 50%;
+            opacity: 1;
+            animation: clickEffect 0.6s ease-out forwards;
+        }
+
+        @keyframes clickEffect {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Animation Layer -->
+    <div class="background"></div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <img src="/static/logo.png" alt="EASE Logo">
+        <h1>Welcome to EASE</h1>
+        <p>Effortless Algorithmic Solution Evolution</p>
+        <a href="https://github.com/TBU-AILab/EASE">GitHub Repository</a>
+        <a href="https://github.com/TBU-AILab/TODO">Frontend GitHub Repository</a>
+        <a href="/docs">API Documentation</a>
+    </div>
+
+    <!-- JavaScript for Animated Particles and Click Effect -->
+    <script>
+        const numParticles = 50;
+        const background = document.querySelector(".background");
+
+        // Create floating particles
+        for (let i = 0; i < numParticles; i++) {
+            let particle = document.createElement("div");
+            particle.classList.add("particle");
+
+            let size = Math.random() * 6 + 2;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+
+            particle.style.left = `${Math.random() * 100}vw`;
+            particle.style.top = `${Math.random() * 100}vh`;
+
+            let duration = Math.random() * 5 + 5;
+            particle.style.animationDuration = `${duration}s`;
+
+            background.appendChild(particle);
+        }
+
+        // Click effect to create glowing particles
+        document.addEventListener("click", (event) => {
+            for (let i = 0; i < 5; i++) { // Create 5 particles per click
+                let clickParticle = document.createElement("div");
+                clickParticle.classList.add("click-particle");
+
+                let size = Math.random() * 10 + 5;
+                clickParticle.style.width = `${size}px`;
+                clickParticle.style.height = `${size}px`;
+
+                let x = event.clientX;
+                let y = event.clientY;
+
+                clickParticle.style.left = `${x}px`;
+                clickParticle.style.top = `${y}px`;
+
+                document.body.appendChild(clickParticle);
+
+                // Remove the particle after animation
+                setTimeout(() => {
+                    clickParticle.remove();
+                }, 600);
+            }
+        });
+    </script>
+
+<footer>
+    <p>Brought to you by <a href="https://ailab.fai.utb.cz/" target="_blank">A.I.Lab</a></p>
+</footer>
+
+
+</body>
+</html>

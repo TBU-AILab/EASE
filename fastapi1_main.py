@@ -4,8 +4,9 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from typing import List, Any, Optional, Union, Dict
 from fopimt.task import Task, TaskConfig, TaskState, TaskInfo, TaskData
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from fopimt import Magic
 from fopimt.loader import Loader, ModulAPI, PackageType
@@ -68,6 +69,12 @@ def _get_task(task_id: str) -> Task:
 ###############################################
 ########## ENTRY POINTS
 ###############################################
+# Landing page
+# Mount static directory
+app.mount("/static", StaticFiles(directory="static"), name="static")
+@app.get("/", response_class=FileResponse)
+def serve_landing_page():
+    return "static/index.html"
 
 # POST
 # Create a new Task
@@ -166,10 +173,10 @@ def task_init(task_id: str, task_configuration: TaskConfig) -> TaskInfo:
 def task_duplicate(task_id: str, new_name: str) -> TaskInfo:
     task = _get_task(task_id)
     new_task = magic_instance.task_duplicate(task, new_name)
-    
+
     if new_task is None:
         raise HTTPException(status_code=500, detail=f"Unable to duplicate Task with the id {task_id}.", )
-    
+
     return new_task.get_info()
 
 
