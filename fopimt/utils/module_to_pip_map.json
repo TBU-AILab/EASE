@@ -1,0 +1,12 @@
+{
+    "skimage": "scikit-image",
+    "scikit-image": "scikit-image",
+    "cv2": "opencv-python",
+    "PIL": "pillow",
+    "numpy": "numpy",
+    "sklearn": "scikit-learn",
+    "scikit-learn": "scikit-learn",
+    "mtcnn": "mtcnn",
+    "dynaconf": "dynaconf",
+    "deepface": "deepface"
+}
