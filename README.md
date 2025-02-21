@@ -22,52 +22,78 @@
 - Extensible and modular architecture.
 - Designed for research, prototyping, and practical applications.
 
-## Installation
-```sh
-pip install -r requirements.txt
+## Project Structure
+
+```
+EASE/
+│── dev.Dockerfile
+│── Dockerfile
+│── docker-compose.yml
+│── docker-compose.override.yml
+│── out_task/  # Directory for tasks created by EASE
+│── requirements.txt
+│── fastapi_main.py
+│── fopimt/
 ```
 
-## Requirements
-List of dependencies:
-- Python 3.x
-- FastAPI
-- Pydantic
-- Other dependencies (to be specified)
+## Docker Setup
 
-## Usage
+This project uses Docker for containerization and includes separate configurations for development and production environments.
+
+### Dockerfiles
+
+- `Dockerfile`: Used for production. It sets up the required environment, installs dependencies, and runs the FastAPI application.
+- `dev.Dockerfile`: Used for development. It includes additional configurations such as `--reload` for live reloading and excludes watching the `out_task` directory to prevent unnecessary restarts.
+
+### Docker Compose
+
+- `docker-compose.yml`: Defines the base service configuration, specifying how the application should be built and run using the production `Dockerfile`.
+- `docker-compose.override.yml`: Overrides the base compose file for development. It ensures that the application is built using `dev.Dockerfile` instead.
+
+## Running the Application
+
+### Development Mode
+
+To run the application in development mode with live reloading:
+
 ```sh
-python main.py
+docker-compose up
 ```
 
-## Configuration
-Provide details about configuration files and settings here.
+This will use `docker-compose.override.yml` and build from `dev.Dockerfile`.
 
-## Deployment
-### Docker
+### Production Mode
+
+To run the application in production mode:
+
 ```sh
-docker build -t ease-framework .
-docker run -p 8000:8000 ease-framework
+docker-compose -f docker-compose.yml up -d
 ```
 
-### Manual Deployment
-Explain the manual deployment steps here.
+This runs the container in detached mode using `Dockerfile`.
 
 ## API Documentation
+
 EASE provides a REST API for interacting with the framework. The documentation is available via OpenAPI:
+
 ```
-http://localhost:8000/docs
+http://localhost:8086/docs
 ```
 
 ## Contributing
+
 Contributions are welcome! Please follow these steps:
+
 1. Fork the repository.
 2. Create a feature branch.
 3. Commit your changes.
 4. Submit a pull request.
 
 ## License
+
 Specify the license here.
 
 ## Contact
+
 For inquiries, please contact [Your Contact Information].
 
