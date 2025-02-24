@@ -4,14 +4,17 @@ from ..loader import Parameter, PrimitiveType
 from enum import Enum
 import time
 
+
 class LLMConnectorMock(LLMConnector):
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
         return {
-            'response': Parameter(short_name="response", type=PrimitiveType.enum, long_name='Response type', enum_options=[
-                'Meta: random search'
-            ], default='Meta: random search')
+            'response': Parameter(short_name="response", type=PrimitiveType.enum, long_name='Response type',
+                                  enum_options=[
+                                      'Meta: random search',
+                                      '2048: left and slow'
+                                  ], default='Meta: random search')
         }
 
     def _init_params(self):
@@ -59,7 +62,7 @@ import numpy as np
 def run(func, dim, bounds, max_evals):
     best_solution = None
     best_score = float('inf')
-    
+
     for i in range(max_evals):
         candidate_solution = [np.random.uniform(low, high) for low, high in bounds]
         candidate_score = func(candidate_solution)
@@ -67,8 +70,8 @@ def run(func, dim, bounds, max_evals):
         if candidate_score < best_score:
             best_score = candidate_score
             best_solution = candidate_solution
-                
-        
+
+
     return best_score
 ```"""
 
@@ -237,9 +240,22 @@ def assess_news(image, detector):
     return min(1.0, score)
 ```"""
 
+        slow_2048 = """```
+import numpy as np
+import time
+
+def move(grid: np.array, score: int) -> str:
+
+    time.sleep(10)
+
+    return 'left'
+```"""
+
         match self._response_type:
             case 'Meta: random search':
                 msg_text = meta_random_search
+            case '2048: left and slow':
+                msg_text = slow_2048
             case _:
                 msg_text = 'This is simple response.'
 
@@ -250,7 +266,6 @@ def assess_news(image, detector):
         )
         msg.set_tokens(10)  # funny number
         return msg
-
 
     def get_model(self) -> str:
         """
