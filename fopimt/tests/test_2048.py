@@ -24,15 +24,17 @@ def test_the_game(move) -> dict:
     run_time = end - start
 
     returndict['pass'] = True
-    returndict['reason'] = []
+    reason = []
 
     if direction != 'right':
         returndict['pass'] = False
-        returndict['reason'].append(f'Invalid move: {direction}')
+        reason.append(f'Invalid move: {direction}')
 
     if run_time > MAX_EVAL_TIME:
         returndict['pass'] = False
-        returndict['reason'].append(f"Too slow: {run_time}s, only {MAX_EVAL_TIME}s allowed for each move.")
+        reason.append(f"Too slow: {run_time}s, only {MAX_EVAL_TIME}s allowed for each move.")
+
+    returndict['reason'] = reason
 
     return returndict
 
