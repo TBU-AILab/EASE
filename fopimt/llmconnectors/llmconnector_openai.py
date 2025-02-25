@@ -19,7 +19,8 @@ class LLMConnectorOpenAI(LLMConnector):
     def __setstate__(self, state):
         self.__dict__.update(state)
         # Reinitialize the client after unpickling
-        self._client = OpenAI()
+        if self._token:
+            self._client = OpenAI(api_key=self._token)
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
@@ -41,8 +42,7 @@ class LLMConnectorOpenAI(LLMConnector):
 
         self._type = 'OpenAI'
         if self._token:
-            os.environ['OPENAI_API_KEY'] = self._token
-        self._client = OpenAI()
+            self._client = OpenAI(api_key=self._token)
 
     ####################################################################
     #########  Public functions
