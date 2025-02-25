@@ -74,7 +74,7 @@ def _get_task(task_id: str) -> Task:
 app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/", response_class=FileResponse)
 def serve_landing_page():
-    return "static/index.html"
+    return "index.html"
 
 # POST
 # Create a new Task
