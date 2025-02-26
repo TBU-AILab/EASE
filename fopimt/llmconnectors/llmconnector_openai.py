@@ -31,7 +31,7 @@ class LLMConnectorOpenAI(LLMConnector):
                 'chatgpt-4o-latest',
                 'gpt-4o-mini',
                 'o1',
-                'o1-mini'
+                'o1-mini',
                 'o3-mini'
                 #'gpt-4-turbo',
                 #'gpt-4',
