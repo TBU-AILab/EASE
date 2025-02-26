@@ -15,12 +15,12 @@ class EvaluatorPoster(Evaluator):
     def get_parameters(cls) -> dict[str, Parameter]:
         datasets = Resource.get_resources(ResourceType.DATA)
         return {
-            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.str,
+            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.markdown,
                                                long_name="Template for a feedback message",
                                                description="Feedback message for evaluation. Can use {keywords}",
                                                default=""
                                                ),
-            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.str,
+            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.markdown,
                                            long_name="Template for an initial message",
                                            description="Initial message for evaluation. Specific for each evaluator.",
                                            default="""Generate a Python algorithm that selects a subset of 5 images from a folder of TV show frames to be used as promotional posters. The tv show is a soap opera, so the algorithm should focus on the specific elements of soap operas.

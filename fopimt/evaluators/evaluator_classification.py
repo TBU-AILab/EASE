@@ -25,13 +25,13 @@ class EvaluatorClassification(Evaluator):
     def get_parameters(cls) -> dict[str, Parameter]:
         datasets = Resource.get_resources(ResourceType.CLASSIFICATION)
         return {
-            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.str,
+            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.markdown,
                                                long_name="Template for a feedback message",
                                                description="Feedback message for evaluation. Can use {keywords}",
                                                default="The metrics of the proposed model are:\n{accuracy}{recall}{"
                                                        "f1-score}{errors}"
                                                ),
-            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.str,
+            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.markdown,
                                            long_name="Template for an initial message",
                                            description="Initial message for evaluation. Specific for each evaluator.",
                                            default="Your task as an advanced AI is to innovate in the design of a classification algorithms. \n        You are encouraged to be inventive and experiment with various strategies, including adapting existing \n        algorithms or combining them to form new methodologies. Do not include any testing functions or statistical \n        tests, as these are conducted externally. Ensure that you adhere strictly to the provided structure: method \n        name and attributes are given. Focus on developing the [Algorithm body] of the \"predict\" method. Your \n        innovative solution should be fully functional within this framework, without requiring external libraries \n        other than numpy. Here is the template you need to fill followed by an example.\n\nTemplate:\n\nimport numpy as np\ndef predict(X_train, y_train, X_test):\n\n    [Algorithm body]\n\n    return predictions\n\nExample implementation of a kNN algorithm in the given template:\n\nimport numpy as np\ndef predict(X_train, y_train, X_test):\n\n    k = 5\n    predictions = []\n    for x in X_test:\n        distances = np.linalg.norm(X_train - x, axis=1)\n        k_indices = np.argsort(distances)[:k]\n        k_nearest_labels = y_train[k_indices]\n        prediction = np.bincount(k_nearest_labels).argmax()\n        predictions.append(prediction)\n\n    return predictions",

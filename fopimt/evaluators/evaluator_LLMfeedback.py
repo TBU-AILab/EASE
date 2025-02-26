@@ -15,7 +15,7 @@ class EvaluatorLlmFeedback(Evaluator):
     def get_parameters(cls) -> dict[str, Parameter]:
         llms = Loader((PackageType.LLMConnector,)).get_package(PackageType.LLMConnector).get_moduls()
         return {
-            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.str,
+            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.markdown,
                                                long_name="Template for a feedback message",
                                                description="Feedback message for evaluation. Can use {keywords}",
                                                default="Please rate the following output on a scale from 1 to "
@@ -27,7 +27,7 @@ class EvaluatorLlmFeedback(Evaluator):
                                                               "explanation}\nAdvice: {advice} Please fill in {value}, {"
                                                               "explanation} and {advice} fields."
                                                ),
-            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.str,
+            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.markdown,
                                            long_name="Template for an initial message",
                                            description="Initial message example.",
                                            default="Your task is to draw Mona Lisa-like picture.",

@@ -67,14 +67,14 @@ class Evaluator2048(Evaluator):
                                                "used to derive the statistics.",
                                    default=5
                                    ),
-            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.str,
+            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.markdown,
                                                long_name="Template for a feedback message",
                                                description="Feedback message for evaluation. Can use {keywords}",
                                                default="The metrics of the proposed solver are:\n{wins}{loses}{"
                                                        "errors}{avg_score}{max_score}{min_score}{avg_max_tile}{"
                                                        "avg_steps}"
                                                ),
-            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.str,
+            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.markdown,
                                            long_name="Template for an initial message",
                                            description="Initial message for evaluation. Specific for each evaluator.",
                                            default="""

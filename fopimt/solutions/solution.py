@@ -179,6 +179,7 @@ class Solution(Modul):
                 default="",
                 description="Prefix for generated solutions.",
                 type=PrimitiveType.str,
+                required=False
             )
         }
 

@@ -27,7 +27,7 @@ class PrimitiveType(Enum):
     bool = 'bool'
     bytes = 'bytes'
     enum = 'enum'
-
+    markdown = 'markdown'
 
 class Parameter(BaseModel):
     short_name: str
@@ -41,6 +41,7 @@ class Parameter(BaseModel):
     enum_long_names: Optional[list[str]] = None
     default: Optional[Any] = None
     readonly: Optional[bool] = False
+    required: Optional[bool] = True
 
 
 class ModulAPI(BaseModel):

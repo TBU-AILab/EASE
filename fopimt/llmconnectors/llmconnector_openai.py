@@ -28,10 +28,14 @@ class LLMConnectorOpenAI(LLMConnector):
             'token': Parameter(short_name="token", type=PrimitiveType.str),
             'model': Parameter(short_name="model", type=PrimitiveType.enum, long_name='LLM model', enum_options=[
                 'gpt-4o',
+                'chatgpt-4o-latest',
                 'gpt-4o-mini',
-                'gpt-4-turbo',
-                'gpt-4',
-                'gpt-3.5-turbo'
+                'o1',
+                'o1-mini'
+                'o3-mini'
+                #'gpt-4-turbo',
+                #'gpt-4',
+                #'gpt-3.5-turbo'
             ], default='gpt-4o-mini')
         }
 

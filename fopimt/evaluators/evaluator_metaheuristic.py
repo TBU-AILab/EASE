@@ -25,13 +25,13 @@ class EvaluatorMetaheuristic(Evaluator):
     def get_parameters(cls) -> dict[str, Parameter]:
         benchmarks = Resource.get_resources(ResourceType.METABENCHMARK)
         return {
-            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.str,
+            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.markdown,
                                                long_name="Template for a feedback message",
                                                description="Feedback message for evaluation. Can use {keywords}",
                                                default="The mean results of the tested functions are:\n{mean}\nand the "
                                                        "statistic result is:\n{stats}"
                                                ),
-            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.str,
+            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.markdown,
                                            long_name="Template for an initial message",
                                            description="Initial message for evaluation. Specific for each evaluator.",
                                            default='''Your task as an advanced AI is to innovate in the design of a single-objective 
@@ -83,7 +83,7 @@ def run(func, dim, bounds, max_evals):
                                    ),
 
             'stats_txt_base': Parameter(short_name="stats_txt_base",
-                                        type=PrimitiveType.str,
+                                        type=PrimitiveType.markdown,
                                         long_name="Text for base statistics",
                                         description="This text specifies how the statistics will be introduced in the "
                                                     "feedback.",
@@ -91,14 +91,14 @@ def run(func, dim, bounds, max_evals):
                                                 "current and best-so-far solution is the following:\n"
                                         ),
             'stats_txt_better_solution': Parameter(short_name="stats_txt_better_solution",
-                                                   type=PrimitiveType.str,
+                                                   type=PrimitiveType.markdown,
                                                    long_name="Text for better solution",
                                                    description="Text representation when a significantly better solution has been found.",
                                                    default="The current solution is significantly better on function {f} dim {"
                                                            "dim} with p-value={p_value}\n"
                                                    ),
             'stats_txt_worse_solution': Parameter(short_name="stats_txt_worse_solution",
-                                                  type=PrimitiveType.str,
+                                                  type=PrimitiveType.markdown,
                                                   long_name="Text for worse solution",
                                                   description="Text representation when a significantly worse "
                                                               "solution has been found.",
@@ -106,7 +106,7 @@ def run(func, dim, bounds, max_evals):
                                                           "function {f} dim {dim} with p-value={p_value}\n"
                                                   ),
             'stats_txt_equal_solution': Parameter(short_name="stats_txt_equal_solution",
-                                                  type=PrimitiveType.str,
+                                                  type=PrimitiveType.markdown,
                                                   long_name="Text for equal solution",
                                                   description="Text representation when an equally good solution has "
                                                               "been found.",

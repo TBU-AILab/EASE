@@ -18,7 +18,7 @@ class EvaluatorLlmFeedback(Evaluator):
         llms = Loader((PackageType.LLMConnector,)).get_package(PackageType.LLMConnector).get_moduls()
         datasets = Resource.get_resources(ResourceType.DATA)
         return {
-            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.str,
+            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.markdown,
                                                long_name="Template for a feedback message",
                                                description="Feedback message for evaluation. Can use {keywords}",
                                                default="You are a master python coder. Review the last proposed "
@@ -33,7 +33,7 @@ class EvaluatorLlmFeedback(Evaluator):
                                                        "explanation}\nAdvice: {advice} Please fill in {value}, {"
                                                        "explanation} and {advice} fields."
                                                ),
-            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.str,
+            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.markdown,
                                            long_name="Template for an initial message",
                                            description="Initial message example.",
                                            default="""Generate a Python algorithm that selects a subset of 5 images 
