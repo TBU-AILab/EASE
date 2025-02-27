@@ -76,6 +76,7 @@ class TaskInfo(BaseModel):
 
 
 class TaskData(BaseModel):
+    id: str | None  # uuid
     messages: list[MessageAPI]
     solutions: list[SolutionAPI]
 
@@ -295,6 +296,7 @@ class Task():
                         sols.append(sol.get_API())
 
         return TaskData(
+            id=self._id,
             messages=msgs,
             solutions=sols
         )

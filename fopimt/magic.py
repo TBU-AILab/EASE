@@ -64,18 +64,18 @@ class Magic:
     def get_loader(self) -> Loader:
         return self._loader
 
-    def get_task_info(self, uid: str) -> dict[str, TaskInfo]:
+    def get_task_info(self, uid: str) -> list[TaskInfo]:
         if uid is None or uid not in self._tasks:
-            out = dict()
+            out = []
             for _task in self._tasks.values():
-                out[_task.id] = _task.get_info()
+                out.append(_task.get_info())
             return out
-        return {uid: self._tasks[uid].get_info()}
+        return [self._tasks[uid].get_info()]
 
     # Gets messages and solutions newer than a specified date
     # TODO rework Message and Solution (both probably will be based on BaseModel, or at least define their DTOs in their own classes/files)
-    def get_new_data(self, date_from: str) -> dict[str, TaskData]:
-        out = dict()
+    def get_new_data(self, date_from: str) -> list[TaskData]:
+        out = []
         for task in self._tasks.values():
             if task.get_state() in [
                 TaskState.FINISH,
@@ -86,7 +86,7 @@ class Magic:
             ]:
                 data = task.get_task_data(date_from)
                 if len(data.solutions) != 0 or len(data.messages) != 0:
-                    out[task.get_id()] = data
+                    out.append(data)
 
         return out
 

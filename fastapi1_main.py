@@ -110,9 +110,9 @@ def task_info(task_id: str) -> TaskInfo:
 # GET
 # Get a list of ids of all Tasks in Core and their status code
 # id: Optional[str] = None  - Specified task id, if None or non-existing, all task statuses are returned
-# return: dict[str, int]    - dict of str(ID) of the Tasks and status codes
-@app.get("/task/status", response_model=dict[str, TaskInfo])
-def task_status(task_id: Optional[str] = None) -> dict[str, TaskInfo]:
+# return: list[TaskInfo]    - list of the TaskInfos
+@app.get("/task/status", response_model=list[TaskInfo])
+def task_status(task_id: Optional[str] = None) -> list[TaskInfo]:
     """
         Get the status of all tasks or a specific task.
 
@@ -186,12 +186,10 @@ def task_duplicate(task_id: str, new_name: str) -> TaskInfo:
 # dateFrom: str - Date from in str.# assuming it is in UTC format (ending with 'Z') "%Y-%m-%dT%H:%M:%S.%fZ"
 # return: TODO  - description
 @app.get("/task/data")
-def get_tasks_data(request: Request, dateFrom: str | None = None) -> dict[str, TaskData]:
+def get_tasks_data(request: Request, dateFrom: str | None = None) -> list[TaskData]:
     news = magic_instance.get_new_data(dateFrom)
 
-    for key in news.keys():
-        tdata = news[key]
-
+    for tdata in news:
         for sol in tdata.solutions:
             if 'url' in sol.metadata.keys():
                 sol.metadata['url'] = str(request.url_for("serve_image", filepath=sol.metadata['url']))
