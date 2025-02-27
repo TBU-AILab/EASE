@@ -23,6 +23,7 @@ class SolutionCodePython(Solution):
         plain = msg.get_content()
         state = 'TEXT'
         out = ""
+        lines_code = 0
         for line in plain.split('\n'):
             if line.startswith('```'):
                 if state == 'TEXT':
@@ -31,6 +32,7 @@ class SolutionCodePython(Solution):
                     state = 'TEXT'
                 continue
             if state == 'CODE':
+                lines_code += 1
                 out += line
                 out += '\n'
             if state == 'TEXT':
@@ -38,7 +40,10 @@ class SolutionCodePython(Solution):
                 out += line
                 out += '\n'
 
-        self._input = out
+        if lines_code == 0:
+            self._input = plain
+        else:
+            self._input = out
 
     @classmethod
     def get_short_name(cls) -> str:
