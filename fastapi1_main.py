@@ -201,10 +201,11 @@ def task_duplicate(task_id: str, new_name: str) -> TaskInfo:
 def get_tasks_data(request: Request, dateFrom: str | None = None) -> list[TaskData]:
     news = magic_instance.get_new_data(dateFrom)
 
+    base_url = str(request.base_url).rstrip('/')  # Ensures the correct base URL
     for tdata in news:
         for sol in tdata.solutions:
             if 'url' in sol.metadata.keys():
-                sol.metadata['url'] = str(request.url_for("serve_image", filepath=sol.metadata['url']))
+                sol.metadata['url'] = f"{base_url}/images/{sol.metadata['url']}"
 
     return news
 

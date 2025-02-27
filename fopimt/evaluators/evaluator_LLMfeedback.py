@@ -22,7 +22,7 @@ class EvaluatorLlmFeedback(Evaluator):
                                                               "10. 1 being the worst you've ever seen and 10 "
                                                               "being the best one. Also give an explanation of your "
                                                               "rating and potential advice for improvement. The "
-                                                              "template for the rating is the"
+                                                              "template for the rating is the "
                                                               "following:\nRating: {value}\nExplanation: {"
                                                               "explanation}\nAdvice: {advice} Please fill in {value}, {"
                                                               "explanation} and {advice} fields."
