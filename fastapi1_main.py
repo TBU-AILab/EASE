@@ -1,5 +1,6 @@
 import logging
 
+import os
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from typing import List, Any, Optional, Union, Dict
@@ -201,7 +202,9 @@ def task_duplicate(task_id: str, new_name: str) -> TaskInfo:
 def get_tasks_data(request: Request, dateFrom: str | None = None) -> list[TaskData]:
     news = magic_instance.get_new_data(dateFrom)
 
-    base_url = str(request.base_url).rstrip('/')  # Ensures the correct base URL
+    # Use PUBLIC_HOST if defined, otherwise use request.base_url
+    base_url = os.getenv("PUBLIC_HOST", str(request.base_url)).rstrip('/')
+
     for tdata in news:
         for sol in tdata.solutions:
             if 'url' in sol.metadata.keys():

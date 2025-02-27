@@ -7,3 +7,5 @@ services:
       - .:/app
     ports:
       - "8086:8086"
+    environment:
+      - PUBLIC_HOST=http://localhost
