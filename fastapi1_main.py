@@ -3,7 +3,7 @@ import logging
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from typing import List, Any, Optional, Union, Dict
-from fopimt.task import Task, TaskConfig, TaskState, TaskInfo, TaskData
+from fopimt.task import Task, TaskConfig, TaskState, TaskInfo, TaskData, TaskFull
 from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -97,6 +97,18 @@ def task_info() -> list[TaskInfo]:
     for task in tasks:
         task_info_list.append(task.get_info())
     return task_info_list
+
+# GET
+# Get list of all Tasks (includes TaskInfo, TaskData, TaskConfig)
+# return: list
+@app.get("/task/all/full")
+def task_full() -> list[TaskFull]:
+    tasks = magic_instance.task_get_all()
+    out = []
+    for task in tasks:
+        out.append(task.get_full())
+
+    return out
 
 # GET
 # Get info of a Task

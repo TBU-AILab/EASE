@@ -80,6 +80,11 @@ class TaskData(BaseModel):
     messages: list[MessageAPI]
     solutions: list[SolutionAPI]
 
+class TaskFull(BaseModel):
+    task_info: Optional[TaskInfo] = None
+    task_data: Optional[TaskData] = None
+    task_config: Optional[TaskConfig] = None
+
 
 class Task():
     @classmethod
@@ -313,6 +318,13 @@ class Task():
             iterations_invalid_consecutive=self._iteration_invalid_cons,
             incompatible=self._incompatible_modules,
             log=self._log_error
+        )
+
+    def get_full(self):
+        return TaskFull(
+            task_info=self.get_info(),
+            task_data=self.get_task_data("0001-01-01T00:00:00.000000Z"), #I want to load all messages
+            task_config=self._init_config
         )
 
     # TODO clean setters/getters
@@ -556,10 +568,12 @@ class Task():
     def id(self, value):
         self._id = value
 
+    def task_config(self) -> TaskConfig:
+        return self._init_config
+
     ####################################################################
     #########  Public functions
     ####################################################################
-
     def pickle_me(self) -> None:
         # Create the file path
         file_path = os.path.join(self._dir, 'task.pkl')
