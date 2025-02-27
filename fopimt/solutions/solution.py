@@ -83,6 +83,8 @@ class Solution(Modul):
 
     def export(self, dir: str, id: str) -> None:
         # export solution itself (code, text, ...)
+        if self._prefix is None:
+            self._prefix = ""
         file_name = self._prefix + id + self._suffix
         self._path = os.path.join(dir, file_name)
         file = open(self._path, "w", encoding="utf-8", newline="")
