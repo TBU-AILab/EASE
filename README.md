@@ -80,6 +80,10 @@ EASE provides a REST API for interacting with the framework. The documentation i
 http://localhost:8086/docs
 ```
 
+## Frontend Implementation
+
+For your convenience, we have also prepared a heavy-weight state aware frontend [frontEASE](https://github.com/TBU-AILab/frontEASE)
+<!--
 ## Contributing
 
 Contributions are welcome! Please follow these steps:
@@ -88,12 +92,12 @@ Contributions are welcome! Please follow these steps:
 2. Create a feature branch.
 3. Commit your changes.
 4. Submit a pull request.
-
+-->
 ## License
 
-Specify the license here.
+This project is licensed under the [MIT License](LICENSE).
 
 ## Contact
 
-For inquiries, please contact [Your Contact Information].
+For inquiries, please contact [ailab@fai.utb.cz](mailto:ailab@fai.utb.cz).
 
