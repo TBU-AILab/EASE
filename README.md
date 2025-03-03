@@ -1,6 +1,7 @@
-<div align="center">
-    <img src="static/logo.png" alt="EASE Logo" width="300">
+<!--<div align="center">
+    <img src="static/logo.png" alt="EASE Logo" width="300">-->
 
+<div align="center">
 
 ```
 ███████╗ █████╗ ███████╗███████╗
@@ -12,9 +13,17 @@
 ```
 </div>
 
+<div align="center">
+    <img src="static/EASE-dark.png" alt="EASE diagram" width="100%">
+</div>
+
 # 🎯 EASE - Effortless Algorithmic Solution Evolution
 
 🚀 **Effortless Algorithmic Solution Evolution** is a framework that leverages Large Language Models (LLMs) to generate solutions (algorithms, text, images, etc.) based on user-defined parameters. It provides a flexible and adaptive approach to automated problem-solving.
+
+### Disclaimer
+
+This is an open beta version of the framework.
 
 ## Features
 - Utilizes LLMs to generate various types of solutions.
