@@ -2,7 +2,7 @@ import logging
 
 import os
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket
 from typing import List, Any, Optional, Union, Dict
 from fopimt.task import Task, TaskConfig, TaskState, TaskInfo, TaskData, TaskFull
 from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
@@ -13,6 +13,10 @@ from fopimt import Magic
 from fopimt.loader import Loader, ModulAPI, PackageType
 
 import sentry_sdk
+
+import sys
+import asyncio
+from io import StringIO
 
 # How to run server:
 # uvicorn fastapi_main:app --reload --port 8086
@@ -26,6 +30,21 @@ import sentry_sdk
 # To run the docker in the background, use -d
 # docker compose up -d
 
+
+# Capture the standard output (stdout) and standard error (stderr)
+class ConsoleCapture:
+    def __init__(self):
+        self.output = StringIO()
+
+    def write(self, message):
+        self.output.write(message)
+        self.output.flush()
+
+    def flush(self):
+        pass
+
+    def get_value(self):
+        return self.output.getvalue()
 
 sentry_sdk.init(
     dsn="https://e9b23e443f8cee537da5d9a1875a4b96@o4508162086404096.ingest.de.sentry.io/4508170777329744",
@@ -59,6 +78,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+console_capture = ConsoleCapture()
+
+# Redirect stdout and stderr to our capture class
+sys.stdout = console_capture
+sys.stderr = console_capture
+
 magic_instance = Magic()
 
 def _get_task(task_id: str) -> Task:
@@ -68,8 +93,22 @@ def _get_task(task_id: str) -> Task:
     return task
 
 ###############################################
-########## ENTRY POINTS
+########## END POINTS
 ###############################################
+@app.websocket("/ws/logs")
+async def websocket_log_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    last_position = 0
+    try:
+        while True:
+            await asyncio.sleep(1)  # Adjust refresh rate
+            new_output = console_capture.get_value()[last_position:]
+            if new_output:
+                await websocket.send_text(new_output)
+                last_position += len(new_output)
+    except Exception as e:
+        logging.error(f"WebSocket error: {e}")
+
 # Landing page
 # Mount static directory
 app.mount("/static", StaticFiles(directory="static"), name="static")
