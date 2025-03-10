@@ -13,7 +13,6 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #121220;
             color: #ffffff;
             text-align: center;
             overflow: hidden;
@@ -95,13 +94,14 @@
 
         /* Background Animation */
         .background {
+            background-color: #000;
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
-            z-index: 1;
+            z-index: -1;
         }
         .particle {
             position: absolute;
@@ -163,17 +163,6 @@
             box-sizing: border-box; /* Ensures padding does not increase width */
         }
 
-        .container {
-            max-width: 600px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            position: relative;
-            z-index: 2;
-            margin-bottom: 20px; /* Adds spacing between main section and logs */
-        }
-
     </style>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -209,63 +198,64 @@
         <a href="https://github.com/TBU-AILab/EASE">Backend GitHub Repository</a>
         <a href="https://github.com/TBU-AILab/frontEASE">Frontend GitHub Repository</a>
         <a href="/docs">API Documentation</a>
+        <a href="/terminal">Web Terminal</a>
 
         <h2>EASE Output</h2>
         <pre id="log-content" style="max-height: 300px; overflow-y: auto; background: #000; color: #0f0; padding: 10px;"></pre>
     </div>
 
-    <!-- JavaScript for Animated Particles and Click Effect -->
-    <script>
-        const numParticles = 50;
-        const background = document.querySelector(".background");
-
-        // Create floating particles
-        for (let i = 0; i < numParticles; i++) {
-            let particle = document.createElement("div");
-            particle.classList.add("particle");
-
-            let size = Math.random() * 6 + 2;
-            particle.style.width = `${size}px`;
-            particle.style.height = `${size}px`;
-
-            particle.style.left = `${Math.random() * 100}vw`;
-            particle.style.top = `${Math.random() * 100}vh`;
-
-            let duration = Math.random() * 5 + 5;
-            particle.style.animationDuration = `${duration}s`;
-
-            background.appendChild(particle);
-        }
-
-        // Click effect to create glowing particles
-        document.addEventListener("click", (event) => {
-            for (let i = 0; i < 5; i++) { // Create 5 particles per click
-                let clickParticle = document.createElement("div");
-                clickParticle.classList.add("click-particle");
-
-                let size = Math.random() * 10 + 5;
-                clickParticle.style.width = `${size}px`;
-                clickParticle.style.height = `${size}px`;
-
-                let x = event.clientX;
-                let y = event.clientY;
-
-                clickParticle.style.left = `${x}px`;
-                clickParticle.style.top = `${y}px`;
-
-                document.body.appendChild(clickParticle);
-
-                // Remove the particle after animation
-                setTimeout(() => {
-                    clickParticle.remove();
-                }, 600);
-            }
-        });
-    </script>
-
 <footer>
     <p>Brought to you by <a href="https://ailab.fai.utb.cz/" target="_blank">A.I.Lab</a></p>
 </footer>
+
+<script>
+const numParticles = 50;
+    const background = document.querySelector(".background");
+
+    // Create floating particles
+    for (let i = 0; i < numParticles; i++) {
+        let particle = document.createElement("div");
+        particle.classList.add("particle");
+
+        let size = Math.random() * 6 + 2;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+
+        particle.style.left = `${Math.random() * 100}vw`;
+        particle.style.top = `${Math.random() * 100}vh`;
+
+        let duration = Math.random() * 5 + 5;
+        particle.style.animationDuration = `${duration}s`;
+
+        background.appendChild(particle);
+    }
+
+    // Click effect to create glowing particles
+    document.addEventListener("click", (event) => {
+        for (let i = 0; i < 5; i++) { // Create 5 particles per click
+            let clickParticle = document.createElement("div");
+            clickParticle.classList.add("click-particle");
+
+            let size = Math.random() * 10 + 5;
+            clickParticle.style.width = `${size}px`;
+            clickParticle.style.height = `${size}px`;
+
+            let x = event.clientX;
+            let y = event.clientY;
+
+            clickParticle.style.left = `${x}px`;
+            clickParticle.style.top = `${y}px`;
+
+            document.body.appendChild(clickParticle);
+
+            // Remove the particle after animation
+            setTimeout(() => {
+                clickParticle.remove();
+            }, 600);
+        }
+    });
+
+</script>
 
 
 </body>

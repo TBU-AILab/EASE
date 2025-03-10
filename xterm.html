@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EASE Terminal</title>
+
+    <!-- Include xterm.js -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
+
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+            max-width: 900px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 2;
+        }
+        .terminal-container {
+            font-family: Arial, sans-serif;
+            text-align: left;
+            width: 100%;
+            max-width: 900px;
+            height: 500px;
+            background: black;
+            border: 2px solid #444;
+            border-radius: 5px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+        a {
+            display: inline-block;
+            text-decoration: none;
+            color: #921DFF;
+            font-weight: bold;
+            margin: 5px 10px;
+            padding: 10px 20px;
+            border: 2px solid #921DFF;
+            border-radius: 5px;
+            transition: all 0.3s ease-in-out;
+        }
+        a:hover {
+            background: #921DFF;
+            color: white;
+        }
+
+        footer {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            z-index: 10; /* Ensure it stays above other elements */
+        }
+
+        footer a {
+            color: #921DFF;
+            text-decoration: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+            color: #66ff99;
+        }
+
+
+        /* Background Animation */
+        .background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+        .particle {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background-color: rgba(146, 29, 255, 0.8);
+            border-radius: 50%;
+            opacity: 0.8;
+            animation: floatParticles 10s infinite linear;
+        }
+
+        @keyframes floatParticles {
+            0% {
+                transform: translateY(0px);
+                opacity: 0.5;
+            }
+            50% {
+                transform: translateY(-100px);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-200px);
+                opacity: 0;
+            }
+        }
+
+    </style>
+
+</head>
+<body>
+    <!-- Background Animation Layer -->
+    <div class="background"></div>
+
+
+    <div class="container">
+        <img src="static/ease-logo.png" style="width: 20%" alt="EASE Logo">
+        <h2>Web Terminal</h2>
+        <div class="terminal-container" id="terminal"></div>
+        <a href="/">EASE Main page</a>
+    </div>
+
+    <script>
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const term = new Terminal({
+                cursorBlink: true,
+                cols: 100, // Ensures proper width
+                rows: 30,
+                convertEol: true, // Fixes newline issues
+                theme: {
+                    background: "#000000",
+                    foreground: "#0f0"
+                }
+            });
+
+            // Enable ANSI color parsing
+            const fitAddon = new FitAddon.FitAddon();
+            term.loadAddon(fitAddon);
+            term.open(document.getElementById("terminal"));
+            fitAddon.fit();
+
+            const sessionId = Math.random().toString(36).substring(2, 10);
+            const socket = new WebSocket("ws://" + window.location.host + "/ws/xterm/" + sessionId);
+
+            socket.onmessage = function (event) {
+                term.write(event.data.replace(/\r/g, "\n")); // Fixes weird line breaks
+            };
+
+            term.onData(data => {
+                socket.send(data);  // Send keyboard input to FastAPI
+            });
+
+            socket.onclose = function () {
+                term.writeln("\r\nConnection closed.");
+            };
+        });
+
+const numParticles = 50;
+    const background = document.querySelector(".background");
+
+    // Create floating particles
+    for (let i = 0; i < numParticles; i++) {
+        let particle = document.createElement("div");
+        particle.classList.add("particle");
+
+        let size = Math.random() * 6 + 2;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+
+        particle.style.left = `${Math.random() * 100}vw`;
+        particle.style.top = `${Math.random() * 100}vh`;
+
+        let duration = Math.random() * 5 + 5;
+        particle.style.animationDuration = `${duration}s`;
+
+        background.appendChild(particle);
+    }
+
+</script>
+
+<footer>
+    <p>Brought to you by <a href="https://ailab.fai.utb.cz/" target="_blank">A.I.Lab</a></p>
+</footer>
+
+</body>
+</html>

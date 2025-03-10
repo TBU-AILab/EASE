@@ -95,6 +95,43 @@ def _get_task(task_id: str) -> Task:
 ###############################################
 ########## END POINTS
 ###############################################
+
+@app.websocket("/ws/xterm/{session_id}")
+async def websocket_xterm(websocket: WebSocket, session_id: str):
+    """ WebSocket handler for an interactive shell session with xterm.js """
+    await websocket.accept()
+
+    process = await asyncio.create_subprocess_exec(
+        "/bin/bash", "-i",
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        env={**os.environ, "TERM": "xterm-256color"}  # Ensure full terminal emulation
+    )
+
+    async def read_stream(stream):
+        """ Continuously read from the shell output and send it to WebSocket """
+        while True:
+            data = await stream.read(1024)
+            if not data:
+                break
+            await websocket.send_text(data.decode("utf-8", errors="ignore"))
+
+    asyncio.create_task(read_stream(process.stdout))
+    asyncio.create_task(read_stream(process.stderr))
+
+    try:
+        while True:
+            command = await websocket.receive_text()
+            process.stdin.write(command.encode())
+            await process.stdin.drain()
+
+    except Exception as e:
+        await websocket.send_text(f"Error: {str(e)}")
+
+    finally:
+        await websocket.close()
+
 @app.websocket("/ws/logs")
 async def websocket_log_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -109,12 +146,17 @@ async def websocket_log_endpoint(websocket: WebSocket):
     except Exception as e:
         logging.error(f"WebSocket error: {e}")
 
+
 # Landing page
 # Mount static directory
 app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/", response_class=FileResponse)
 def serve_landing_page():
     return "index.html"
+
+@app.get("/terminal", response_class=FileResponse)
+def serve_terminal_page():
+    return "xterm.html"
 
 # POST
 # Create a new Task
