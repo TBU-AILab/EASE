@@ -48,7 +48,7 @@ class CEC2022(Modul):
     @staticmethod
     def dim10() -> list[dict]:
         """
-        Returns the filtered benchmark specification fit for EvaluatorMetaheuristic
+        Returns the filtered benchmark specification fit for EvaluatorMetaheuristic - 10D
         """
 
         dims = [10]
@@ -77,7 +77,7 @@ class CEC2022(Modul):
     @staticmethod
     def dim20() -> list[dict]:
         """
-        Returns the filtered benchmark specification fit for EvaluatorMetaheuristic
+        Returns the filtered benchmark specification fit for EvaluatorMetaheuristic - 20D
         """
 
         dims = [20]
