@@ -81,8 +81,8 @@ app.add_middleware(
 console_capture = ConsoleCapture()
 
 # Redirect stdout and stderr to our capture class
-sys.stdout = console_capture
-sys.stderr = console_capture
+#sys.stdout = console_capture
+#sys.stderr = console_capture
 
 magic_instance = Magic()
 
