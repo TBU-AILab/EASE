@@ -118,7 +118,7 @@ class EvaluatorClassification(Evaluator):
             for i in range(len(self._test['X'])):
                 if y_true[i] != y_pred[i]:
                     errors.append({
-                        'x': (self._test['X'][i]).tolist(),
+                        'x': self._test['X'][i],
                         't': y_true[i],
                         'y': y_pred[i]
                     })

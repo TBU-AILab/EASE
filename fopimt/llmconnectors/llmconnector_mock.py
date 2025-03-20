@@ -13,7 +13,8 @@ class LLMConnectorMock(LLMConnector):
             'response': Parameter(short_name="response", type=PrimitiveType.enum, long_name='Response type',
                                   enum_options=[
                                       'Meta: random search',
-                                      '2048: left and slow'
+                                      '2048: left and slow',
+                                      'ModernTV: video transitions'
                                   ], default='Meta: random search')
         }
 
@@ -251,11 +252,21 @@ def move(grid: np.array, score: int) -> str:
     return 'left'
 ```"""
 
+        transitions = """```
+import random
+
+def predict(X_train, y_train, X_test):
+
+    return random.choices([0, 1], k = len(X_test))
+```"""
+
         match self._response_type:
             case 'Meta: random search':
                 msg_text = meta_random_search
             case '2048: left and slow':
                 msg_text = slow_2048
+            case 'ModernTV: video transitions':
+                msg_text = transitions
             case _:
                 msg_text = 'This is simple response.'
 
