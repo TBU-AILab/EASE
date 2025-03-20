@@ -5,8 +5,8 @@ WORKDIR /app
 # Install pip packages 
 COPY ./requirements.txt /app/requirements.txt
 
-RUN apt-get update && apt-get -y install cmake & apt-get -y install ffmpeg
-RUN apt apt install -y libgl1-mesa-glx
+RUN apt-get update && apt-get -y install cmake
+RUN apt install -y libgl1-mesa-glx & apt -y install ffmpeg
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
 # Port is exposed in the docker-compose.yml file
