@@ -8,5 +8,6 @@
     "scikit-learn": "scikit-learn",
     "mtcnn": "mtcnn",
     "dynaconf": "dynaconf",
-    "deepface": "deepface"
+    "deepface": "deepface",
+    "xgboost": "xgboost"
 }

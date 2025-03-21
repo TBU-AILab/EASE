@@ -29,9 +29,10 @@ class LLMConnectorClaude(LLMConnector):
         return {
             'token': Parameter(short_name="token", type=PrimitiveType.str),
             'model': Parameter(short_name="model", type=PrimitiveType.enum, long_name='LLM model', enum_options=[
-                'claude-3-5-sonnet-20240620',
+                'claude-3-7-sonnet-20250219',
+                'claude-3-5-sonnet-20241022',
+                'claude-3-5-haiku-20241022'
                 'claude-3-opus-20240229',
-                'claude-3-sonnet-20240229',
                 'claude-3-haiku-20240307'
             ], default='claude-3-haiku-20240307')
         }
