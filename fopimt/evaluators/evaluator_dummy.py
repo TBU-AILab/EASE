@@ -21,6 +21,7 @@ class EvaluatorDummy(Evaluator):
         else:
             fitness = 0
         solution.set_fitness(fitness)
+        solution.add_metadata('OK', True)
 
         self._check_if_best(solution)
 
