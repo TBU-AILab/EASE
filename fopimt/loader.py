@@ -29,6 +29,7 @@ class PrimitiveType(Enum):
     enum = 'enum'
     markdown = 'markdown'
 
+
 class Parameter(BaseModel):
     short_name: str
     long_name: Optional[str] = None
@@ -43,6 +44,8 @@ class Parameter(BaseModel):
     readonly: Optional[bool] = False
     required: Optional[bool] = True
 
+class ParameterInstance(Parameter):
+    value: Any
 
 class ModulAPI(BaseModel):
     """

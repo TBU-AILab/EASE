@@ -28,7 +28,7 @@ from .stoppingconditions.stopping_condition import StoppingCondition
 from .solutions.solution import Solution, SolutionAPI
 from .analysis.analysis import Analysis
 from .stats.stat import Stat
-from .loader import Loader, PackageType
+from .loader import Loader, PackageType, ModulAPI, ParameterInstance
 from .utils.tools import get_zip_buffer as zip_it
 from .config_task import ConfigTask
 
@@ -109,6 +109,7 @@ class Task():
             _response = loader.get_modul_by_name(short_name=modul.short_name)
             if _response is not None:
                 _modul, _type = _response
+                self._init_config_modulAPI.append(loader.get_package(_type).get_modul(modul.short_name))
                 match _type:
                     case PackageType.LLMConnector:
                         self._spec_llm = _modul(parameters=modul.parameters)
@@ -227,6 +228,7 @@ class Task():
         self._incompatible_modules = []
         self._log_error = []
         self._init_config: TaskConfig = None # Original TaskConfig for easy duplication
+        self._init_config_modulAPI: list[ModulAPI] = [] # Saved ModulAPIs for Task synchronization on server start
         # Author of the Task #TODO redo to config
 
         # Task specifications
@@ -321,10 +323,34 @@ class Task():
         )
 
     def get_full(self):
+
+        config = copy.deepcopy(self._init_config)
+        for m in config.modules:
+            # TODO throw exception if nothing is found
+            modul = next(x for x in self._init_config_modulAPI if x.short_name == m.short_name)
+            for key, value in m.parameters.items():
+                par = modul.parameters[key]
+                m.parameters[key] = ParameterInstance(
+                    short_name=par.short_name,
+                    long_name=par.long_name,
+                    description=par.description,
+                    type=par.type,
+                    min_value=par.min_value,
+                    max_value=par.max_value,
+                    enum_options=par.enum_options,
+                    enum_descriptions=par.enum_descriptions,
+                    enum_long_names=par.enum_long_names,
+                    default=par.default,
+                    readonly=par.readonly,
+                    required=par.required,
+                    value=value
+                )
+
+
         return TaskFull(
             task_info=self.get_info(),
             task_data=self.get_task_data("0001-01-01T00:00:00.000000Z"), #I want to load all messages
-            task_config=self._init_config
+            task_config=config
         )
 
     # TODO clean setters/getters
