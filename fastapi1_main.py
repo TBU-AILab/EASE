@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from fopimt import Magic
 from fopimt.loader import Loader, ModulAPI, PackageType
+from fopimt.utils.package_manager import PythonPackage
 
 import sentry_sdk
 
@@ -103,6 +104,21 @@ def update_models():
         return {"status": "success", "message": "Models updated successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/system/pm/all")
+def system_pm_all() -> list[PythonPackage]:
+    return magic_instance.get_package_manager().get_packages()
+
+@app.post("/system/pm/add")
+def system_pm_add(packages: list[PythonPackage]) -> None:
+    try:
+        magic_instance.get_package_manager().add(packs=packages)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unable to install packages {packages}. Error: {e}", )
+
+@app.delete("/system/pm/delete")
+def system_pm_delete(packages: list[PythonPackage]) -> None:
+    magic_instance.get_package_manager().delete(packs=packages)
 
 @app.websocket("/ws/xterm/{session_id}")
 async def websocket_xterm(websocket: WebSocket, session_id: str):
