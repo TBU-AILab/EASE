@@ -3,6 +3,8 @@ from ..loader import Parameter, PrimitiveType
 from ..message import Message
 from enum import Enum
 import requests
+from ..utils.connector_utils import get_available_models
+
 
 """
 Requires connection via url to the llama model
@@ -10,45 +12,47 @@ Requires connection via url to the llama model
 Local installation:
 1. install Ollama from https://ollama.com/download
 2. run Ollama
-3. in the ollama command line: ollama pull llama3.1
+3. in the ollama command line: ollama pull model_name
 
 If run locally (default):
-host_url: "http://localhost:11434/api/chat" 
+host_url: "http://host.docker.internal:11434" 
 
 """
 
-class MetaModels(Enum):
-    LLAMA_31_8B = 'llama3.1'
-    LLAMA_31_70B = 'llama3.1:70b'
-
-
-class LLMConnectorMeta(LLMConnector):
+class LLMConnectorOllama(LLMConnector):
     """
-    LLM Connector for Meta models.
+    LLM Connector for Ollama models.
     :param host_url: URL to the llama server
     :param model: Model, set from Meta models.
     """
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
+
+        av_models = get_available_models(cls.get_short_name())
+
         return {
-            'host_url': Parameter(short_name='host_url', type=PrimitiveType.str, long_name='Host url', default="http://localhost:11434/api/chat"),
-            'model': Parameter(short_name="model", type=PrimitiveType.enum, long_name='LLM model', enum_options=[
-                'llama3.1',
-                'llama3.1:70b'
-            ], default='llama3.1')
+            'host_url': Parameter(short_name='host_url', type=PrimitiveType.str, long_name='Host url', default="http://host.docker.internal:11434"),
+            'model': Parameter(short_name="model", type=PrimitiveType.enum, long_name='LLM model', enum_options=av_models['model_names'], enum_descriptions=av_models['model_longnames'], default='llama3.1')
         }
 
     def _init_params(self):
 
         super()._init_params()
         self._model = self.parameters.get('model', self.get_parameters().get('model').default)
-        self._type = 'Meta'
-        self._url = self.parameters.get('host_url', self.get_parameters().get('host_url').default)
+        self._type = 'Ollama'
+        self._url = self.parameters.get('host_url', self.get_parameters().get('host_url').default) + "/api/chat"
 
     ####################################################################
     #########  Public functions
     ####################################################################
+    def get_models(self) -> list[str]:
+        """
+        Gets available models (online/offline).
+        Returns list of strings.
+        """
+        raise NotImplementedError("This method should be overridden by subclasses.")
+
     def send(self, context: list[Message]) -> Message:
 
         data = {
@@ -90,15 +94,15 @@ class LLMConnectorMeta(LLMConnector):
 
     @classmethod
     def get_short_name(cls) -> str:
-        return "llm.meta"
+        return "llm.ollama"
 
     @classmethod
     def get_long_name(cls) -> str:
-        return "Meta"
+        return "Ollama"
 
     @classmethod
     def get_description(cls) -> str:
-        return "Meta connector. Supports outputs: text or code."
+        return "Ollama connector. Supports outputs: text or code."
 
     @classmethod
     def get_tags(cls) -> dict:

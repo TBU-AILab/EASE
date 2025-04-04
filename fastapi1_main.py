@@ -5,6 +5,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request, WebSocket
 from typing import List, Any, Optional, Union, Dict
 from fopimt.task import Task, TaskConfig, TaskState, TaskInfo, TaskData, TaskFull
+from fopimt.utils.connector_utils import update_all_models
 from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -95,6 +96,13 @@ def _get_task(task_id: str) -> Task:
 ###############################################
 ########## END POINTS
 ###############################################
+@app.post("/update-models")
+def update_models():
+    try:
+        update_all_models()
+        return {"status": "success", "message": "Models updated successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.websocket("/ws/xterm/{session_id}")
 async def websocket_xterm(websocket: WebSocket, session_id: str):

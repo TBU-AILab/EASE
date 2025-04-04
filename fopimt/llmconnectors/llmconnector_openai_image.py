@@ -2,13 +2,7 @@ from .llmconnector import LLMConnector
 from ..loader import Parameter, PrimitiveType
 from ..message import Message
 from openai import OpenAI
-from enum import Enum
-import os
-
-
-class OpenAIImageModels(Enum):
-    GPT_DALLE_3 = 'dall-e-3'
-    GPT_DALLE_2 = 'dall-e-2'
+from ..utils.connector_utils import get_available_models
 
 
 class LLMConnectorOpenAIImage(LLMConnector):
@@ -33,12 +27,12 @@ class LLMConnectorOpenAIImage(LLMConnector):
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
+
+        av_models = get_available_models(cls.get_short_name())
+
         return {
             'token': Parameter(short_name="token", type=PrimitiveType.str),
-            'model': Parameter(short_name="model", type=PrimitiveType.enum, long_name='LLM model', enum_options=[
-                'dall-e-3',
-                'dall-e-2'
-            ], default='dall-e-2')
+            'model': Parameter(short_name="model", type=PrimitiveType.enum, long_name='LLM model', enum_options=av_models['model_names'], enum_descriptions=av_models['model_longnames'], default='dall-e-2')
         }
 
     def _init_params(self):

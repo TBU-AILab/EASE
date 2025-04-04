@@ -2,8 +2,7 @@ from .llmconnector import LLMConnector
 from ..loader import Parameter, PrimitiveType
 from ..message import Message
 from openai import OpenAI
-from enum import Enum
-import os
+from ..utils.connector_utils import get_available_models
 
 
 class LLMConnectorOpenAIvision(LLMConnector):
@@ -23,14 +22,12 @@ class LLMConnectorOpenAIvision(LLMConnector):
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
+
+        av_models = get_available_models(cls.get_short_name())
+
         return {
             'token': Parameter(short_name="token", type=PrimitiveType.str),
-            'model': Parameter(short_name="model", type=PrimitiveType.enum, long_name='LLM model', enum_options=[
-                'gpt-4o',
-                'gpt-4o-mini',
-                'gpt-4-turbo',
-                'o1'
-            ], default='gpt-4o-mini')
+            'model': Parameter(short_name="model", type=PrimitiveType.enum, long_name='LLM model', enum_options=av_models['model_names'], enum_descriptions=av_models['model_longnames'], default='gpt-4o-mini')
         }
 
     def _init_params(self):

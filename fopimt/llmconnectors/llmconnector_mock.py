@@ -1,21 +1,19 @@
 from ..message import Message
 from .llmconnector import LLMConnector
 from ..loader import Parameter, PrimitiveType
-from enum import Enum
-import time
+from ..utils.connector_utils import get_available_models
 
 
 class LLMConnectorMock(LLMConnector):
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
+
+        av_models = get_available_models(cls.get_short_name())
+
         return {
             'response': Parameter(short_name="response", type=PrimitiveType.enum, long_name='Response type',
-                                  enum_options=[
-                                      'Meta: random search',
-                                      '2048: left and slow',
-                                      'ModernTV: video transitions'
-                                  ], default='Meta: random search')
+                                  enum_options=av_models['model_names'], enum_descriptions=av_models['model_longnames'], default='Meta: random search')
         }
 
     def _init_params(self):
