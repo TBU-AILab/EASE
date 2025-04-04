@@ -37,6 +37,8 @@ media
 out_task/*
 !out_task/.gitkeep
 
+fopimt/utils/package_manager_dump.pkl
+
 # IntelliJ
 out/
 

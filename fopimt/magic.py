@@ -3,6 +3,7 @@ import os
 import logging
 from typing import Union
 
+from .utils.package_manager import PackageManager
 from .loader import Loader, Package, PackageType, ModulAPI
 from .task import Task, TaskState, TaskData, TaskInfo
 from .message_repeating import MessageRepeatingTypeEnum, MessageRepeating
@@ -40,6 +41,8 @@ class Magic:
         # App loader responsible for packages
         self._loader = Loader()
 
+        self._package_manager = PackageManager()
+
         # App instance setting, pool of all Tasks
         self._tasks: dict[str, Task] = {}  # all tasks (sync with DB)
 
@@ -63,6 +66,9 @@ class Magic:
 
     def get_loader(self) -> Loader:
         return self._loader
+
+    def get_package_manager(self) -> PackageManager:
+        return self._package_manager
 
     def get_task_info(self, uid: str) -> list[TaskInfo]:
         if uid is None or uid not in self._tasks:
