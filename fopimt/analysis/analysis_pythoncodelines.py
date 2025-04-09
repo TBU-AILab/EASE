@@ -1,4 +1,5 @@
 import copy
+import os.path
 
 from ..loader import Parameter
 from .analysis import Analysis
@@ -8,12 +9,12 @@ from ..solutions.solution import Solution
 class AnalysisPythonCodeLines(Analysis):
 
     def _init_params(self):
-        self._lines_history: list[int] = []
+        self._lines: int = 0
 
     ####################################################################
     #########  Public functions
     ####################################################################
-    def capture(self, solution: Solution) -> None:
+    def evaluate_analysis(self, solution: Solution) -> None:
         """
         Capture the state of the solution for analysis.
         :param solution: Instance of the Solution.
@@ -30,16 +31,19 @@ class AnalysisPythonCodeLines(Analysis):
                 continue
             if not linet.startswith('#'):
                 count += 1
-        self._lines_history.append(count)
+        self._lines = count
 
-    def pretty(self) -> str:
+    def export(self, path: str, id: str) -> None:
         """
-        Function returns string suitable for console text output.
+        Function exports string suitable for console text output.
         :return: String for print() function.
         """
-        out = "Code analysis: How many lines of code were generated each time?\n"
-        out += ' '.join(map(str, self._lines_history))
-        return out
+
+        out = "Code analysis: How many lines of code were generated?\n"
+        out += str(self._lines)
+        with open(os.path.join(path, id+"_"+self.get_short_name()+".txt"), "w", encoding="utf-8") as f:
+            f.write(out)
+
 
     @classmethod
     def get_short_name(cls) -> str:

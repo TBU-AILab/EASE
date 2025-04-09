@@ -8,20 +8,22 @@ class Analysis(Modul):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def capture(self, solution: Solution) -> None:
+    def evaluate_analysis(self, solution: Solution) -> None:
         """
-        Capture the state of the solution for analysis.
+        Analyse the Solution.
         :param solution: Instance of the Solution.
         :return: None
         """
         raise NotImplementedError("Function needs to be overridden by child class")
 
-    def pretty(self) -> str:
+    def export(self, path: str, id: str) -> None:
         """
-        Function returns string suitable for console text output.
-        :return: String for print() function.
+        Export the analyzed solution. The path must contain the name of the dir.
+        :param path: Dirname for the export.
+        :param id: Filename for the export.
+        :return: None
         """
-        raise NotImplementedError("Function needs to be overridden by child class")
+        raise NotImplementedError("Function needs to be implemented")
 
     ####################################################################
     #########  Private functions

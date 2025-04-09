@@ -224,6 +224,7 @@ class Task():
         self._dir: str = os.path.join('out_task')  # Path to main task directory
         self._dir_solution: str = ''
         self._dir_stat: str = ''
+        self._dir_anal: str = ''
         self._members: list[User] = []  # Additional members that can view and modify this task, can only be set by
         self._incompatible_modules = []
         self._log_error = []
@@ -518,6 +519,14 @@ class Task():
     def dir_stat(self):
         return self._dir_stat
 
+    @property
+    def dir_anal(self):
+        return self._dir_anal
+
+    @dir_anal.setter
+    def dir_anal(self, value):
+        self._dir_anal = value
+
     @dir_stat.setter
     def dir_stat(self, value):
         self._dir_stat = value
@@ -683,8 +692,10 @@ class Task():
         # create sub-folders and save path
         self._dir_solution = os.path.join(self._dir, 'solution')
         self._dir_stat = os.path.join(self._dir, 'stat')
+        self._dir_anal = os.path.join(self._dir, 'anal')
         os.mkdir(self._dir_solution)
         os.mkdir(self._dir_stat)
+        os.mkdir(self._dir_anal)
         return True
 
     def get_iteration_valid(self) -> int:
@@ -867,7 +878,8 @@ class Task():
             # 9) check for optional analysis
             if state == 'OK':
                 for anal in self._spec_analysis:
-                    anal.capture(solution)
+                    anal.evaluate_analysis(solution)
+                    anal.export(path=self._dir_anal, id='anal_' + str(self._iteration))
 
             # 10) evaluation, only if no ERROR
             if state == 'OK':

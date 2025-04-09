@@ -23,8 +23,8 @@ class Stat(Modul):
 
     def export(self, path: str) -> None:
         """
-        Export the evaluated statistics. The path must contain the name of the file.
-        :param path: Filename for the export.
+        Export the evaluated statistics. The path must contain the name of the dir for export.
+        :param path: Dirname for the export.
         :return: None
         """
         raise NotImplementedError("Function needs to be implemented")
