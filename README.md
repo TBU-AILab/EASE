@@ -15,6 +15,9 @@
 
 🚀 **Effortless Algorithmic Solution Evolution** is a framework that leverages Large Language Models (LLMs) to generate solutions (algorithms, text, images, etc.) based on user-defined parameters. It provides a flexible and adaptive approach to automated problem-solving.
 
+### Version
+0.1.0
+
 ### Disclaimer
 
 This is an open beta version of the framework.
