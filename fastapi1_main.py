@@ -2,7 +2,7 @@ import logging
 
 import os
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request, WebSocket
+from fastapi import FastAPI, HTTPException, Request, WebSocket, UploadFile, File
 from typing import List, Any, Optional, Union, Dict
 from fopimt.task import Task, TaskConfig, TaskState, TaskInfo, TaskData, TaskFull
 from fopimt.utils.connector_utils import update_all_models
@@ -97,6 +97,18 @@ def _get_task(task_id: str) -> Task:
 ###############################################
 ########## END POINTS
 ###############################################
+@app.post("/system/import")
+async def import_module(file: UploadFile = File(...)):
+    if not(file.filename.endswith(".py") or file.filename.endswith(".zip")):
+        raise HTTPException(status_code=400, detail="Only .py or .zip files are supported.")
+
+    try:
+        magic_instance.get_loader().import_module(file=file)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unable to import file {file.filename}. Error: {e}", )
+
+    return {"filename": file.filename, "message": "Import successful"}
+
 @app.post("/update-models")
 def update_models():
     try:

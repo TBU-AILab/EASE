@@ -1,11 +1,13 @@
+
 import os
 import logging
 import importlib.util
 from enum import Enum
+from pathlib import Path
 from typing import Any, Union, Type, Optional
 
+from fastapi import File, UploadFile
 from pydantic import BaseModel, Field
-
 
 class PackageType(Enum):
     """
@@ -98,6 +100,13 @@ class ModulAPI(BaseModel):
 Parameter.update_forward_refs()
 ModulAPI.update_forward_refs()
 
+REQUIRED_METHODS = [
+    "get_short_name",
+    "get_long_name",
+    "get_description",
+    "get_parameters",
+    "get_tags",
+]
 
 class Package:
     def __init__(self, name: str, directory: str, base_name: str, package_type: PackageType):
@@ -128,6 +137,12 @@ class Package:
         """
         return self._name
 
+    def get_directory(self) -> str:
+        return self._directory
+
+    def get_base_name(self) -> str:
+        return self._base_name
+
     def get_package_type(self) -> PackageType:
         """
         Returns type of the package.
@@ -155,6 +170,15 @@ class Package:
 
         return self._moduls_imported[short_name]
 
+    def register_class(self, path: str) -> None:
+        """
+        Registr custom (imported) class by its Path. Assuming it is stored in the correct Package.
+        Path is for filename (including .py) without directories.
+        Will raise Error if something fails.
+        """
+        self._load_module(path)
+        pass
+
     ####################################################################
     #########  Private functions
     ####################################################################
@@ -169,7 +193,7 @@ class Package:
         for c in self._classes:
             self._load_module(c)
 
-    def _load_module(self, path: str) -> Any:
+    def _load_module(self, path: str) -> None:
         package_name = self._app_name + '.' + self._directory
         module_name = os.path.splitext(path)[0]
         module = importlib.import_module(f'.{module_name}', package_name)
@@ -184,6 +208,12 @@ class Package:
                 description = getattr(modul_class, 'get_description')()
                 parameters = getattr(modul_class, 'get_parameters')()
                 tags = getattr(modul_class, 'get_tags')()
+
+                #check potential duplicity
+                if (short_name in self._moduls_imported.keys()) or (modul_class in self._moduls_imported.values()):
+                    logging.error(f"Duplicite short_name or modul_class: {short_name} : {modul_class}")
+                    raise SystemError(f"Duplicite short_name or modul_class: {short_name} : {modul_class}")
+
                 self._moduls.append(ModulAPI(short_name=short_name,
                                              long_name=long_name,
                                              description=description,
@@ -202,6 +232,109 @@ class Loader:
         It is also possible to add new custom class using this loader.\n
         Loader is also responsible for compatibility checks between different classes.\n
         """
+        self._init_packages(package_type_list_in)
+
+
+    ####################################################################
+    #########  Public functions
+    ####################################################################
+    def import_module(self, file: UploadFile) -> None:
+        """
+        Imports a module from an uploaded file (.py or .zip).
+
+        Parameters:
+            file (File): A file-like object to be imported. Only files with extensions
+                         '.py' and '.zip' are supported.
+
+        Behavior:
+            - If the uploaded file is a `.py`, it is treated as a standalone core module.
+              Its destination within the system's core will be determined by the filename
+              (e.g., 'evaluator_customEvaluator.py' will be imported as 'evaluators/evaluator_customEvaluator.py').
+
+            - If the uploaded file is a `.zip`, it must contain a specific internal
+              structure and metadata. The function will extract:
+                  - The core module(s)
+                  - Additional assets like benchmark definitions, classification data,
+                    or other task-specific resources
+                  - Metadata used to determine the module's destination and configuration
+
+        Raises:
+            Exception: If the file is invalid, has an unsupported format, or if any
+                       error occurs during processing (e.g., bad archive structure,
+                       missing metadata, or file read/write issues).
+        """
+        file_ext = Path(file.filename).suffix.lower()
+        if file_ext == ".py":
+            name_without_ext = file.filename.rsplit(".", 1)[0]  # remove extension first
+            parts = name_without_ext.rsplit("_", 1)
+
+            if len(parts) == 2:
+                head, _ = parts
+            else:
+                logging.error("Bad filename. Expect 'MODULE_NAME.py'")
+                raise NameError("Bad filename. Expect 'MODULE_NAME.py'")
+
+            # determine the modul location:
+            for package_type in PackageType:
+                target_package = self.get_package(package_type)
+                if target_package.get_base_name() == head:
+                    # Define file path
+                    temp_path = os.path.join(os.path.dirname(__file__), target_package.get_directory(), file.filename)
+
+                    try:
+                        # Save file to disk
+                        with open(temp_path, "wb") as f_out:
+                            f_out.write(file.file.read())
+
+                        # syntax check
+                        try:
+                            with open(temp_path, "r", encoding="utf-8") as f:
+                                source = f.read()
+                            compile(source, temp_path, "exec")
+                        except SyntaxError as e:
+                            logging.error(f"Syntax error in {temp_path}: {e}")
+                            raise SyntaxError(f"Syntax error in {temp_path}: {e}")
+
+                        # register to use for ModulAPI, Loader will be aware about this new Modul
+                        target_package.register_class(file.filename)
+
+                        # everything is perfect
+                        return
+
+                    except Exception as e:
+                        # Remove file if invalid
+                        if os.path.exists(temp_path):
+                            os.remove(temp_path)
+                        raise e
+
+
+            # Not found
+            logging.error(f"Invalid PackageType {head}.")
+            raise NameError(f"Invalid PackageType {head}.")
+
+
+        if file_ext == ".zip":
+            raise NotImplementedError("Function not supported yet.")
+
+
+    def get_package(self, package_type: PackageType) -> Package:
+        return self._packages[package_type]
+
+    def get_modul_by_name(self, short_name: str) -> (Any, PackageType):
+        for package in self._packages.values():
+            try:
+                return package.get_modul_imported(short_name), package.get_package_type()
+            except KeyError:
+                continue
+        return None
+
+
+
+    ####################################################################
+    #########  Private functions
+    ####################################################################
+
+    def _init_packages(self, package_type_list_in: tuple[PackageType] = tuple()):
         if len(package_type_list_in) == 0:
             package_type_list = PackageType
         else:
@@ -236,48 +369,5 @@ class Loader:
                 case _:
                     logging.error(f'Unexpected package type: {package_type}')
 
-    ####################################################################
-    #########  Public functions
-    ####################################################################
-    def get_package(self, package_type: PackageType) -> Package:
-        return self._packages[package_type]
 
-    def get_modul_by_name(self, short_name: str) -> (Any, PackageType):
-        for package in self._packages.values():
-            try:
-                return package.get_modul_imported(short_name), package.get_package_type()
-            except KeyError:
-                continue
-        return None
 
-    # @deprecated("Please use get_package()")
-    def get_package_analysis(self) -> Package:
-        return self._packages[PackageType.Analysis]
-
-    # @deprecated("Please use get_package()")
-    def get_package_evaluators(self) -> Package:
-        return self._packages[PackageType.Evaluator]
-
-    # @deprecated("Please use get_package()")
-    def get_package_llmconnectors(self) -> Package:
-        return self._packages[PackageType.LLMConnector]
-
-    # @deprecated("Please use get_package()")
-    def get_package_solutions(self) -> Package:
-        return self._packages[PackageType.Solution]
-
-    # @deprecated("Please use get_package()")
-    def get_package_stoppingconditions(self) -> Package:
-        return self._packages[PackageType.StoppingCondition]
-
-    # @deprecated("Please use get_package()")
-    def get_package_tests(self) -> Package:
-        return self._packages[PackageType.Test]
-
-    # @deprecated("Please use get_package()")
-    def get_package_stats(self) -> Package:
-        return self._packages[PackageType.Stat]
-
-    ####################################################################
-    #########  Private functions
-    ####################################################################
