@@ -386,6 +386,17 @@ def task_run(task_id: str) -> TaskInfo:
     task = _get_task(task_id)
     return task.get_info()
 
+# PATCH
+# Run Task Batch variant
+@app.patch("/task/batch/run")
+def task_run_batch(task_ids: list[str]) -> list[TaskInfo]:
+    out = []
+    for task_id in task_ids:
+        ret = magic_instance.task_run(task_id)
+        if ret is False:
+            logging.warning(f"Task [{task_id}] could not be run.")
+        out.append(_get_task(task_id).get_info())
+    return out
 
 # PATCH
 # Pause Task
@@ -400,6 +411,17 @@ def task_pause(task_id: str) -> TaskInfo:
     task = _get_task(task_id)
     return task.get_info()
 
+# PATCH
+# Pause Task Batch variant
+@app.patch("/task/batch/pause")
+def task_pause_batch(task_ids: list[str]) -> list[TaskInfo]:
+    out = []
+    for task_id in task_ids:
+        ret = magic_instance.task_pause(task_id)
+        if ret is False:
+            logging.warning(f"Task [{task_id}] could not be paused.")
+        out.append(_get_task(task_id).get_info())
+    return out
 
 # PATCH
 # Stop Task
@@ -414,6 +436,18 @@ def task_stop(task_id: str) -> TaskInfo:
     task = _get_task(task_id)
     return task.get_info()
 
+# PATCH
+# Stop Task Batch variant
+@app.patch("/task/batch/stop")
+def task_stop_batch(task_ids: list[str]) -> list[TaskInfo]:
+    out = []
+    for task_id in task_ids:
+        ret = magic_instance.task_stop(task_id)
+        if ret is False:
+            logging.warning(f"Task [{task_id}] could not be stopped.")
+        out.append(_get_task(task_id).get_info())
+    return out
+
 
 # DELETE
 # Delete Task. Only works for non-running tasks. Will essential rename the task folder, so it will be archived
@@ -425,6 +459,15 @@ def task_delete(task_id: str) -> bool:
     if not magic_instance.archive(task_id):
         return False
     return task.archive()
+
+# DELETE BATCH variant
+@app.delete("/task/batch/delete")
+def task_delete_batch(task_ids: list[str]) -> bool:
+    for task_id in task_ids:
+        task = _get_task(task_id)
+        if not magic_instance.archive(task_id):
+            return False
+        task.archive()
 
 @app.get("/images/{filepath:path}")
 async def serve_image(filepath: str):

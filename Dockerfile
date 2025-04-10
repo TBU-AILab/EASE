@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY ./requirements.txt /app/requirements.txt
 
-RUN apt-get update && apt-get -y install cmake & apt-get -y install ffmpeg
+RUN apt-get update && apt-get -y install cmake
 RUN apt apt install -y libgl1-mesa-glx
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
