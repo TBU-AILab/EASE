@@ -300,10 +300,12 @@ def task_init(task_id: str, task_configuration: TaskConfig) -> TaskInfo:
 # TODO: since create endpoint offers asigning custom id to a task,
 # I think this endpoint should offer it as well for consistency.
 @app.post("/task/{task_id}/duplicate")
-def task_duplicate(task_id: str, new_name: str, num: int) -> list[TaskInfo]:
+def task_duplicate(task_id: str, new_name: str | None, num: int) -> list[TaskInfo]:
     task = _get_task(task_id)
     out = []
     for i in range(num):
+        if new_name is None or new_name == "":
+            new_name = task.get_info().name
         new_task_name = new_name + '_' + str(i)
         new_task = magic_instance.task_duplicate(task, new_task_name)
 
