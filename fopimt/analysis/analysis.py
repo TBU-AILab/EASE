@@ -25,6 +25,11 @@ class Analysis(Modul):
         """
         raise NotImplementedError("Function needs to be implemented")
 
+    def get_feedback(self) -> str:
+        """
+        If needed. The child class may override this to get feedback back into loop.
+        """
+        return ""
     ####################################################################
     #########  Private functions
     ####################################################################

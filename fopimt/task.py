@@ -868,6 +868,8 @@ class Task():
                 self._spec_evaluator.evaluate(solution)
                 if self._spec_feedback_from_solution:
                     buffer_message.put(solution.get_feedback())
+                    for anal in self._spec_analysis:
+                        buffer_message.put(anal.get_feedback())
 
             # export metadata of evaluated solution
             if self._spec_save_to_disk:

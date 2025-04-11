@@ -65,6 +65,9 @@ class AnalysisLLM(Analysis):
         with open(os.path.join(path, id + "_" + self.get_short_name() + ".txt"), "w", encoding="utf-8") as f:
             f.write(out)
 
+    def get_feedback(self) -> str:
+        return str(self._feedback)
+
     @classmethod
     def get_short_name(cls) -> str:
         return "anal.llm"
