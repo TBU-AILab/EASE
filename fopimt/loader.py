@@ -1,4 +1,3 @@
-
 import os
 import logging
 import importlib.util
@@ -8,6 +7,7 @@ from typing import Any, Union, Type, Optional
 
 from fastapi import File, UploadFile
 from pydantic import BaseModel, Field
+
 
 class PackageType(Enum):
     """
@@ -45,9 +45,7 @@ class Parameter(BaseModel):
     default: Optional[Any] = None
     readonly: Optional[bool] = False
     required: Optional[bool] = True
-
-class ParameterInstance(Parameter):
-    value: Any
+    value: Optional[Any] = None
 
 class ModulAPI(BaseModel):
     """
@@ -100,13 +98,10 @@ class ModulAPI(BaseModel):
 Parameter.update_forward_refs()
 ModulAPI.update_forward_refs()
 
-REQUIRED_METHODS = [
-    "get_short_name",
-    "get_long_name",
-    "get_description",
-    "get_parameters",
-    "get_tags",
-]
+
+# class ModulAPIInstance(ModulAPI):
+#     parameters: dict[str, ParameterInstance]
+
 
 class Package:
     def __init__(self, name: str, directory: str, base_name: str, package_type: PackageType):
@@ -209,7 +204,7 @@ class Package:
                 parameters = getattr(modul_class, 'get_parameters')()
                 tags = getattr(modul_class, 'get_tags')()
 
-                #check potential duplicity
+                # check potential duplicity
                 if (short_name in self._moduls_imported.keys()) or (modul_class in self._moduls_imported.values()):
                     logging.error(f"Duplicite short_name or modul_class: {short_name} : {modul_class}")
                     raise SystemError(f"Duplicite short_name or modul_class: {short_name} : {modul_class}")
@@ -233,7 +228,6 @@ class Loader:
         Loader is also responsible for compatibility checks between different classes.\n
         """
         self._init_packages(package_type_list_in)
-
 
     ####################################################################
     #########  Public functions
@@ -307,15 +301,12 @@ class Loader:
                             os.remove(temp_path)
                         raise e
 
-
             # Not found
             logging.error(f"Invalid PackageType {head}.")
             raise NameError(f"Invalid PackageType {head}.")
 
-
         if file_ext == ".zip":
             raise NotImplementedError("Function not supported yet.")
-
 
     def get_package(self, package_type: PackageType) -> Package:
         return self._packages[package_type]
@@ -327,8 +318,6 @@ class Loader:
             except KeyError:
                 continue
         return None
-
-
 
     ####################################################################
     #########  Private functions
@@ -368,6 +357,3 @@ class Loader:
 
                 case _:
                     logging.error(f'Unexpected package type: {package_type}')
-
-
-

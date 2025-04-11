@@ -28,7 +28,7 @@ from .stoppingconditions.stopping_condition import StoppingCondition
 from .solutions.solution import Solution, SolutionAPI
 from .analysis.analysis import Analysis
 from .stats.stat import Stat
-from .loader import Loader, PackageType, ModulAPI, ParameterInstance
+from .loader import Loader, PackageType, ModulAPI
 from .utils.tools import get_zip_buffer as zip_it
 from .config_task import ConfigTask
 
@@ -83,7 +83,7 @@ class TaskData(BaseModel):
 class TaskFull(BaseModel):
     task_info: Optional[TaskInfo] = None
     task_data: Optional[TaskData] = None
-    task_config: Optional[TaskConfig] = None
+    task_modules: Optional[list[ModulAPI]] = None
 
 
 class Task():
@@ -324,34 +324,16 @@ class Task():
         )
 
     def get_full(self):
-
-        config = copy.deepcopy(self._init_config)
-        for m in config.modules:
-            # TODO throw exception if nothing is found
-            modul = next(x for x in self._init_config_modulAPI if x.short_name == m.short_name)
-            for key, value in m.parameters.items():
-                par = modul.parameters[key]
-                m.parameters[key] = ParameterInstance(
-                    short_name=par.short_name,
-                    long_name=par.long_name,
-                    description=par.description,
-                    type=par.type,
-                    min_value=par.min_value,
-                    max_value=par.max_value,
-                    enum_options=par.enum_options,
-                    enum_descriptions=par.enum_descriptions,
-                    enum_long_names=par.enum_long_names,
-                    default=par.default,
-                    readonly=par.readonly,
-                    required=par.required,
-                    value=value
-                )
-
+        modules = copy.deepcopy(self._init_config_modulAPI)
+        for module in modules:
+            modul_with_value = next(x for x in self._init_config.modules if x.short_name == module.short_name)
+            for key in module.parameters.keys():
+                module.parameters[key].value = modul_with_value.parameters[key]
 
         return TaskFull(
             task_info=self.get_info(),
             task_data=self.get_task_data("0001-01-01T00:00:00.000000Z"), #I want to load all messages
-            task_config=config
+            task_modules=modules
         )
 
     # TODO clean setters/getters
