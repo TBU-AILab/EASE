@@ -476,6 +476,7 @@ def task_delete_batch(task_ids: list[str]) -> bool:
         if not magic_instance.archive(task_id):
             return False
         task.archive()
+    return True
 
 @app.get("/images/{filepath:path}")
 async def serve_image(filepath: str):
