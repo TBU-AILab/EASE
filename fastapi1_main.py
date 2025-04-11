@@ -395,9 +395,10 @@ def task_run(task_id: str) -> TaskInfo:
 
 # PATCH
 # Run Task Batch variant
-@app.patch("/task/batch/run")
+@app.patch("/batch/run")
 def task_run_batch(task_ids: list[str]) -> list[TaskInfo]:
     out = []
+    print(task_ids)
     for task_id in task_ids:
         ret = magic_instance.task_run(task_id)
         if ret is False:
@@ -420,7 +421,7 @@ def task_pause(task_id: str) -> TaskInfo:
 
 # PATCH
 # Pause Task Batch variant
-@app.patch("/task/batch/pause")
+@app.patch("/batch/pause")
 def task_pause_batch(task_ids: list[str]) -> list[TaskInfo]:
     out = []
     for task_id in task_ids:
@@ -445,7 +446,7 @@ def task_stop(task_id: str) -> TaskInfo:
 
 # PATCH
 # Stop Task Batch variant
-@app.patch("/task/batch/stop")
+@app.patch("/batch/stop")
 def task_stop_batch(task_ids: list[str]) -> list[TaskInfo]:
     out = []
     for task_id in task_ids:
@@ -468,7 +469,7 @@ def task_delete(task_id: str) -> bool:
     return task.archive()
 
 # DELETE BATCH variant
-@app.delete("/task/batch/delete")
+@app.delete("/batch/delete")
 def task_delete_batch(task_ids: list[str]) -> bool:
     for task_id in task_ids:
         task = _get_task(task_id)
