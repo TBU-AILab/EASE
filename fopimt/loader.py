@@ -30,6 +30,7 @@ class PrimitiveType(Enum):
     bytes = 'bytes'
     enum = 'enum'
     markdown = 'markdown'
+    list = 'list'
 
 
 class Parameter(BaseModel):
@@ -104,7 +105,7 @@ ModulAPI.update_forward_refs()
 
 
 class Package:
-    def __init__(self, name: str, directory: str, base_name: str, package_type: PackageType):
+    def __init__(self, name: str, directory: str, base_name: str, package_type: PackageType, ignored_modules: list[str] = list()):
         """
         Low-level Package Class\n
         Describe the package name and location. Contains the classes inside the package.\n
@@ -117,6 +118,7 @@ class Package:
         self._directory: str = directory
         self._base_name: str = base_name
         self._package_type: PackageType = package_type
+        self._ignored_modules = ignored_modules
         self._classes: list = []
         self._moduls: list[ModulAPI] = []
         self._moduls_imported: dict[str, Type[Any]] = dict()
@@ -199,6 +201,9 @@ class Package:
             if str(n).startswith(self._package_type.name):
                 modul_class = getattr(module, n)
                 short_name = getattr(modul_class, 'get_short_name')()
+                # Check for recursive import (i.e. Multi-LLM connector)
+                if short_name in self._ignored_modules:
+                    continue
                 long_name = getattr(modul_class, 'get_long_name')()
                 description = getattr(modul_class, 'get_description')()
                 parameters = getattr(modul_class, 'get_parameters')()
@@ -221,13 +226,13 @@ class Package:
 
 
 class Loader:
-    def __init__(self, package_type_list_in: tuple[PackageType] = tuple()):
+    def __init__(self, package_type_list_in: tuple[PackageType] = tuple(), ignored_modules: list[str] = []):
         """
         Class responsible for loading the classes (LLMConnectors, StoppingConditions, Evaluators, ...)\n
         It is also possible to add new custom class using this loader.\n
         Loader is also responsible for compatibility checks between different classes.\n
         """
-        self._init_packages(package_type_list_in)
+        self._init_packages(package_type_list_in, ignored_modules)
 
     ####################################################################
     #########  Public functions
@@ -323,7 +328,7 @@ class Loader:
     #########  Private functions
     ####################################################################
 
-    def _init_packages(self, package_type_list_in: tuple[PackageType] = tuple()):
+    def _init_packages(self, package_type_list_in: tuple[PackageType] = tuple(), ignored_modules: list[str] = list()):
         if len(package_type_list_in) == 0:
             package_type_list = PackageType
         else:
@@ -334,7 +339,7 @@ class Loader:
             match package_type:
                 case PackageType.LLMConnector:
                     self._packages[package_type] = Package('LLM connectors', 'llmconnectors', 'llmconnector',
-                                                           PackageType.LLMConnector)
+                                                           PackageType.LLMConnector, ignored_modules)
                 case PackageType.Analysis:
                     self._packages[package_type] = Package('Analysis', 'analysis', 'analysis',
                                                            PackageType.Analysis)

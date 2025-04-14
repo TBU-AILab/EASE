@@ -20,6 +20,7 @@ class AnalysisLLM(Analysis):
                                     ),
 
             'llm': Parameter(short_name='llm', type=PrimitiveType.enum,
+                             long_name='LLM', description='LLM connector',
                              enum_options=llms),
         }
 

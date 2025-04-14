@@ -13,6 +13,7 @@
     {
       "url": "http://host.docker.internal:11434",
       "models": [
+        "deepseek-coder-v2:16b",
         "deepseek-r1:latest",
         "llama3.1:latest"
       ]
