@@ -332,7 +332,8 @@ def get_tasks_data(request: Request, dateFrom: str | None = None) -> list[TaskDa
     for tdata in news:
         for sol in tdata.solutions:
             if 'url' in sol.metadata.keys():
-                sol.metadata['url'] = f"{base_url}/images/{sol.metadata['url']}"
+                # sol.metadata['url'] = f"{base_url}/images/{sol.metadata['url']}"
+                sol.metadata['url'] = f"images/{sol.metadata['url']}"
 
     return news
 
