@@ -940,8 +940,8 @@ class Task():
             return False
         if self._max_context_size is None:
             return False
-        if self._spec_system_message is None:
-            return False
+        # if self._spec_system_message is None:
+        #     return False
         if self._spec_init_message is None:
             return False
 
