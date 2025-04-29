@@ -31,6 +31,7 @@ class PrimitiveType(Enum):
     enum = 'enum'
     markdown = 'markdown'
     list = 'list'
+    time = 'time'
 
 
 class Parameter(BaseModel):

@@ -588,6 +588,8 @@ class Task():
     def task_config(self) -> TaskConfig:
         return self._init_config
 
+
+
     ####################################################################
     #########  Public functions
     ####################################################################
@@ -693,6 +695,12 @@ class Task():
         :return: int
         """
         return self._iteration_invalid_cons
+
+    def get_time(self) -> int:
+        start = self._date.get_task_history()[-1].get_start()
+        end = datetime.now(timezone.utc)
+        duration = end - start
+        return duration.seconds
 
     ####################################################################
     #########  Private functions
