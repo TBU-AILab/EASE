@@ -84,6 +84,7 @@ class TaskFull(BaseModel):
     task_info: Optional[TaskInfo] = None
     task_data: Optional[TaskData] = None
     task_modules: Optional[list[ModulAPI]] = None
+    task_config: Optional[TaskConfig] = None
 
 
 class Task():
@@ -333,7 +334,8 @@ class Task():
         return TaskFull(
             task_info=self.get_info(),
             task_data=self.get_task_data("0001-01-01T00:00:00.000000Z"), #I want to load all messages
-            task_modules=modules
+            task_modules=modules,
+            task_config=self.task_config()
         )
 
     # TODO clean setters/getters
