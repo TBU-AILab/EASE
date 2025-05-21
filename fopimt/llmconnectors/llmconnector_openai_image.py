@@ -52,7 +52,6 @@ class LLMConnectorOpenAIImage(LLMConnector):
             model=self.get_model(),
             prompt=self._extract_messages(context),
             size='1024x1024',
-            quality='standard',
             response_format='b64_json',
             n=1,
         )
