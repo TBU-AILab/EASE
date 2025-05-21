@@ -28,7 +28,7 @@ from .stoppingconditions.stopping_condition import StoppingCondition
 from .solutions.solution import Solution, SolutionAPI
 from .analysis.analysis import Analysis
 from .stats.stat import Stat
-from .loader import Loader, PackageType, ModulAPI
+from .loader import Loader, PackageType, ModulAPI, Parameter, PrimitiveType
 from .utils.tools import get_zip_buffer as zip_it
 from .config_task import ConfigTask
 
@@ -326,10 +326,16 @@ class Task():
 
     def get_full(self):
         modules = copy.deepcopy(self._init_config_modulAPI)
+        # for module in modules:
+        #     modul_with_value = next(x for x in self._init_config.modules if x.short_name == module.short_name)
+        #     for key in module.parameters.keys():
+        #         module.parameters[key].value = modul_with_value.parameters[key]
         for module in modules:
             modul_with_value = next(x for x in self._init_config.modules if x.short_name == module.short_name)
-            for key in module.parameters.keys():
-                module.parameters[key].value = modul_with_value.parameters[key]
+            for key, param in module.parameters.items():
+                input_value = modul_with_value.parameters.get(key)
+                if input_value is not None:
+                    self._fill_parameter_values(param, input_value)
 
         return TaskFull(
             task_info=self.get_info(),
@@ -337,6 +343,42 @@ class Task():
             task_modules=modules,
             task_config=self.task_config()
         )
+
+    def _fill_parameter_values(self, param: Parameter, input_value: Any) -> None:
+        if param.type == PrimitiveType.list and isinstance(input_value, list):
+            for item, value_item in zip(param.default or [], input_value):
+                if isinstance(item, dict) and isinstance(value_item, dict):
+                    for k, v in item.items():
+                        if isinstance(v, Parameter):
+                            self._fill_parameter_values(v, value_item.get(k))
+        elif param.type == PrimitiveType.enum:
+            if isinstance(input_value, str):
+                # najít odpovídající objekt podle short_name
+                if param.enum_options:
+                    match = next((opt for opt in param.enum_options
+                                  if isinstance(opt, ModulAPI) and opt.short_name == input_value), None)
+                    param.value = match or input_value
+                else:
+                    param.value = input_value
+            elif isinstance(input_value, dict):
+                if 'short_name' in input_value and 'parameters' in input_value:
+                    matched = next((opt for opt in param.enum_options
+                                    if isinstance(opt, ModulAPI) and opt.short_name == input_value['short_name']), None)
+                    if matched:
+                        # deep copy parametrů hodnot
+                        for sub_key, sub_param in matched.parameters.items():
+                            if sub_key in input_value['parameters']:
+                                self._fill_parameter_values(sub_param, input_value['parameters'][sub_key])
+                        param.value = matched
+                    else:
+                        param.value = input_value  # fallback
+                else:
+                    param.value = input_value
+            else:
+                param.value = input_value
+        else:
+            param.value = input_value
+
 
     # TODO clean setters/getters
     @property
