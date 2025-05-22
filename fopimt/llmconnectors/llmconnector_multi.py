@@ -96,7 +96,7 @@ class LLMConnectorMulti(LLMConnector):
     def get_tags(cls) -> dict:
         return {
             'input': set(),
-            'output': {'text'}
+            'output': set()
         }
 
     def send(self, context) -> Message:

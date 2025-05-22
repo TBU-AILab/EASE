@@ -224,7 +224,12 @@ def task_full() -> list[TaskFull]:
     tasks = magic_instance.task_get_all()
     out = []
     for task in tasks:
-        out.append(task.get_full())
+        full_task = task.get_full()
+        # sols = full_task['task_data']['solutions']
+        for sol in full_task.task_data.solutions:
+            if 'url' in sol.metadata.keys():
+                sol.metadata['url'] = f"images/{sol.metadata['url']}"
+        out.append(full_task)
 
     return out
 
@@ -307,7 +312,10 @@ def task_duplicate(task_id: str, new_name: str | None, num: int) -> list[TaskInf
         if new_name is None or new_name == "":
             new_name = task.get_info().name
         new_task_name = new_name + '_' + str(i)
-        new_task = magic_instance.task_duplicate(task, new_task_name)
+        try:
+            new_task = magic_instance.task_duplicate(task, new_task_name)
+        except AttributeError as e:
+            raise HTTPException(status_code=500, detail=repr(e), )
 
         if new_task is None:
             raise HTTPException(status_code=500, detail=f"Unable to duplicate Task with the id {task_id}.", )

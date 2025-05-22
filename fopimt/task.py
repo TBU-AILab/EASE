@@ -147,10 +147,15 @@ class Task():
                                                       model_encoding=model, msgs=task_config.repeated_message.msgs,
                                                       weights=tuple(task_config.repeated_message.weights))
 
-        # Chceck if the task can be sucessfuly initialized
+        # Check if the task can be sucessfuly initialized
         if not self.is_init():
-            logging.error("Task:run: Task is not completely defined.")
-            raise AttributeError("There was an error during task initialization. Perhaps some task data are missing.")
+            if len(self.get_incompatible_modules()) > 0:
+                logging.error(
+                    f"Task:run: Selected task modules are not compatible. Incompatible modules: {self.get_incompatible_modules()}")
+                raise AttributeError(f"Task:run: Selected task modules are not compatible. Incompatible modules: {self.get_incompatible_modules()}")
+            else:
+                logging.error("Task:run: Task is not completely defined.")
+                raise AttributeError("Task:run: Task is not completely defined.")
 
         self._init_config = task_config
         self.pickle_me()
@@ -324,7 +329,7 @@ class Task():
             log=self._log_error
         )
 
-    def get_full(self):
+    def get_full(self) -> TaskFull:
         modules = copy.deepcopy(self._init_config_modulAPI)
         # for module in modules:
         #     modul_with_value = next(x for x in self._init_config.modules if x.short_name == module.short_name)
@@ -631,6 +636,9 @@ class Task():
 
     def task_config(self) -> TaskConfig:
         return self._init_config
+
+    def get_incompatible_modules(self) -> list:
+        return self._incompatible_modules
 
 
 
@@ -1021,6 +1029,8 @@ class Task():
                 if len(tags_out & tags_in) < 1:
                     self._incompatible_modules.append([parent.get_short_name(), child.get_short_name()])
                     self._state = TaskState.BREAK
-            pass
+
+        if len(self._incompatible_modules) > 0:
+            return False
 
         return True
