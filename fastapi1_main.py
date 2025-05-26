@@ -2,7 +2,7 @@ import logging
 
 import os
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request, WebSocket, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request, WebSocket, UploadFile, File, Query
 from typing import List, Any, Optional, Union, Dict
 from fopimt.task import Task, TaskConfig, TaskState, TaskInfo, TaskData, TaskFull
 from fopimt.utils.connector_utils import update_all_models
@@ -221,11 +221,12 @@ def task_info() -> list[TaskInfo]:
 # return: list
 @app.get("/task/all/full")
 def task_full() -> list[TaskFull]:
+
     tasks = magic_instance.task_get_all()
+
     out = []
     for task in tasks:
         full_task = task.get_full()
-        # sols = full_task['task_data']['solutions']
         for sol in full_task.task_data.solutions:
             if 'url' in sol.metadata.keys():
                 sol.metadata['url'] = f"images/{sol.metadata['url']}"
@@ -247,7 +248,7 @@ def task_info(task_id: str) -> TaskInfo:
 # id: Optional[str] = None  - Specified task id, if None or non-existing, all task statuses are returned
 # return: list[TaskInfo]    - list of the TaskInfos
 @app.get("/task/status", response_model=list[TaskInfo])
-def task_status(task_id: Optional[str] = None) -> list[TaskInfo]:
+def task_status(task_ids: Optional[List[str]] = Query(None)) -> list[TaskInfo]:
     """
         Get the status of all tasks or a specific task.
 
@@ -262,7 +263,7 @@ def task_status(task_id: Optional[str] = None) -> list[TaskInfo]:
         - `4` (FINISH): Task has completed successfully.
         - `5` (BREAK): Task is interrupted or broken.
         """
-    return magic_instance.get_task_info(task_id)
+    return magic_instance.get_tasks_info(task_ids)
 
 
 # GET
@@ -331,11 +332,14 @@ def task_duplicate(task_id: str, new_name: str | None, num: int) -> list[TaskInf
 # dateFrom: str - Date from in str.# assuming it is in UTC format (ending with 'Z') "%Y-%m-%dT%H:%M:%S.%fZ"
 # return: TODO  - description
 @app.get("/task/data")
-def get_tasks_data(request: Request, dateFrom: str | None = None) -> list[TaskData]:
+def get_tasks_data(request: Request, dateFrom: str | None = None, task_ids: Optional[List[str]] = Query(None)) -> list[TaskData]:
     news = magic_instance.get_new_data(dateFrom)
 
+    if task_ids:
+        news = [t for t in news if t.id in task_ids]
+
     # Use PUBLIC_HOST if defined, otherwise use request.base_url
-    base_url = os.getenv("PUBLIC_HOST", str(request.base_url)).rstrip('/')
+    # base_url = os.getenv("PUBLIC_HOST", str(request.base_url)).rstrip('/')
 
     for tdata in news:
         for sol in tdata.solutions:

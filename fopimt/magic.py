@@ -78,6 +78,19 @@ class Magic:
             return out
         return [self._tasks[uid].get_info()]
 
+    def get_tasks_info(self, uids: list[str]) -> list[TaskInfo]:
+        if uids is None or uids == []:
+            out = []
+            for _task in self._tasks.values():
+                out.append(_task.get_info())
+            return out
+        else:
+            out = []
+            for uid in uids:
+                if uid in self._tasks:
+                    out.append(self._tasks[uid].get_info())
+            return out
+
     # Gets messages and solutions newer than a specified date
     # TODO rework Message and Solution (both probably will be based on BaseModel, or at least define their DTOs in their own classes/files)
     def get_new_data(self, date_from: str) -> list[TaskData]:
