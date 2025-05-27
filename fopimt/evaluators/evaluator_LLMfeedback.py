@@ -73,10 +73,7 @@ class EvaluatorLlmFeedback(Evaluator):
         solution.add_metadata(name="feedback", value=feedback)
 
         # Evaluation of the fitness and fitness setting
-        if self._best is not None:
-            fitness = self._extract_rating(feedback)
-        else:
-            fitness = 0
+        fitness = self._extract_rating(feedback)
         solution.set_fitness(fitness)
 
         self._check_if_best(solution)
