@@ -28,7 +28,7 @@ class EvaluatorMetaheuristic(Evaluator):
             'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.markdown,
                                                long_name="Template for a feedback message",
                                                description="Feedback message for evaluation. Can use {keywords}",
-                                               default="The mean results of the tested functions are:\n{mean}\nand the "
+                                               default="The mean results of the tested functions are:\n{mean}\n\nBest-so-far solution:\n{best_solution}\n\nand the "
                                                        "statistic result is:\n{stats}"
                                                ),
             'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.markdown,
@@ -73,7 +73,7 @@ def run(func, dim, bounds, max_evals):
 
             'keywords': Parameter(short_name="keywords", type=PrimitiveType.enum, long_name='Feedback keywords',
                                   description="Feedback keyword-based sentences",
-                                  enum_options=['min', 'max', 'mean', 'median', 'std', 'metadata'],
+                                  enum_options=['min', 'max', 'mean', 'median', 'std', 'metadata', 'best_solution'],
                                   readonly=True),
 
             'benchmark': Parameter(short_name="benchmark", type=PrimitiveType.enum,
@@ -135,8 +135,10 @@ def run(func, dim, bounds, max_evals):
         """
         if self._best is not None:
             fitness = self._best.get_fitness() + 1
+            best_sol_text = self._best.get_input()
         else:
             fitness = 0
+            best_sol_text = "No best solution yet."
         solution.set_fitness(fitness)
 
         local_scope = {}
@@ -189,6 +191,8 @@ def run(func, dim, bounds, max_evals):
 
             solution.add_metadata('results', df_results)
             solution.add_metadata('exceptions', exceptions)
+
+
             self._keys = {
                 'min': min_txt,
                 'max': max_txt,
@@ -196,7 +200,8 @@ def run(func, dim, bounds, max_evals):
                 'median': median_txt,
                 'std': std_txt,
                 'metadata': df_results,
-                'stats': 'not enough data'
+                'stats': 'not enough data',
+                'best_solution': best_sol_text
             }
 
             self._check_if_best(solution)
@@ -386,9 +391,11 @@ def run(func, dim, bounds, max_evals):
                         f=key[0], dim=key[1], p_value=p_value)
 
         self._keys['stats'] = stats_txt
+
         # non-negative score means better solution
         solution.set_fitness(score)
         if score >= 0:
             self._best = copy.deepcopy(solution)
+            self._keys['best_solution'] = self._best.get_input()
             return True
         return False
