@@ -109,6 +109,17 @@ async def import_module(file: UploadFile = File(...)):
 
     return {"filename": file.filename, "message": "Import successful"}
 
+@app.delete("/system/delete")
+async def delete_module(short_name: str):
+    """
+    DELETE - delete system (imported) modules
+    """
+    try:
+        magic_instance.get_loader().delete_module(short_name=short_name)
+        return {"status": "success", "message": "Modul deleted successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/update-models")
 def update_models():
     try:

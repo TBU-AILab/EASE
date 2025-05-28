@@ -177,6 +177,16 @@ class Package:
         self._load_module(path)
         pass
 
+    def unregister_class(self, short_name: str) -> None:
+        del self._moduls_imported[short_name]
+        modul = None
+        for modul in self._moduls:
+            if modul.short_name == short_name:
+                break
+        if modul is not None:
+            self._moduls.remove(modul)
+        pass
+
     ####################################################################
     #########  Private functions
     ####################################################################
@@ -238,6 +248,40 @@ class Loader:
     ####################################################################
     #########  Public functions
     ####################################################################
+    def delete_module(self, short_name) -> None:
+        """
+        Deletes (imported) module by short_name
+
+        Parameters:
+            short_name (str): Unique indentifier of a Module.
+
+        Behavior:
+            TODO
+
+        Raises:
+            Exception: The Module with specified short_name does not exists.
+        """
+        for package_type in PackageType:
+            target_package = self.get_package(package_type)
+            for modul in target_package.get_moduls():
+                if modul.short_name == short_name:
+                    logging.info(f"Loader: Delete modul: found {short_name}.")
+                    modul_imported = target_package.get_modul_imported(short_name=short_name)
+                    # Define file path
+                    file_path = os.path.join(os.path.dirname(__file__), target_package.get_directory(),
+                                             str(str(modul_imported).split('.')[2]) + '.py'
+                                             )
+                    try:
+                        os.remove(file_path)
+                        target_package.unregister_class(short_name=short_name)
+                    except Exception as e:
+                        logging.error(f"Loader:Delete modul: Error: {e}")
+                        raise e
+
+
+
+
+
     def import_module(self, file: UploadFile) -> None:
         """
         Imports a module from an uploaded file (.py or .zip).
