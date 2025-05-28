@@ -109,7 +109,7 @@ async def import_module(file: UploadFile = File(...)):
 
     return {"filename": file.filename, "message": "Import successful"}
 
-@app.delete("/system/delete")
+@app.delete("/system/delete/{short_name}")
 async def delete_module(short_name: str):
     """
     DELETE - delete system (imported) modules
