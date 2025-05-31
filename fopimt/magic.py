@@ -215,6 +215,7 @@ class Magic:
         logging.info(f"Duplicating task with ID:{orig_task.id} to new task with name:{new_name}.")
         new_task = self.task_create()
         new_task.initialize(self._loader, orig_task._init_config)
+        new_task._init_config.name = new_name
         new_task._name = new_name
         return new_task
 
