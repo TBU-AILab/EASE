@@ -44,15 +44,15 @@ def _evaluate_found_points(points: np.ndarray):
         return -1
 
 
-class EvaluatorHeilbronn11(Evaluator):
+class EvaluatorHeilbronn(Evaluator):
     '''
-    Evaluator for heilbronn 11 algorithms. The algorithm must be Python code and follow predefined structure.
+    Evaluator for heilbronn N algorithms. The algorithm must be Python code and follow predefined structure.
 
     def run(fitness_func, check_inside_triangle_func, max_time):
     """
     Parameters:
-        - fitness_func: function that accepts an np.ndarray of shape (11, 2) and returns a float
-        - check_inside_triangle_func: function that accepts an np.ndarray of shape (11, 2) and returns True/False
+        - fitness_func: function that accepts an np.ndarray of shape (N, 2) and returns a float
+        - check_inside_triangle_func: function that accepts an np.ndarray of shape (N, 2) and returns True/False
         - max_time: time limit for the search in seconds
 
     Goal:
@@ -73,22 +73,22 @@ class EvaluatorHeilbronn11(Evaluator):
             'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.markdown,
                                                long_name="Template for a feedback message",
                                                description="Feedback message for evaluation. Can use {keywords}",
-                                               default="The best result found by the current solution is:\n{max}\n\nBest-so-far solution:\n{best_solution}\n\nand the "
-                                                       "best result is:\n{best_max}"
+                                               default="The result found by the current solution is:\n{max}\n\nBest-so-far solution:\n{best_solution}\n\nand the "
+                                                       "best result is:\n{best_max}\nwith coordinates:\n{best_coordinates}"
                                                ),
             'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.markdown,
                                            long_name="Template for an initial message",
                                            description="Initial message for evaluation. Specific for each evaluator.",
-                                           default='''Your task as an advanced AI is to design a novel optimization algorithm for the **Heilbronn triangle problem** with $n = 11$ points. The objective is to **maximize a given fitness function**, typically representing the **minimum distance between any pair of 11 points** placed **inside or on the boundary of a triangle** defined by vertices $(0, 0), (1, 0), (0.5, \sqrt{3}/2)$.
+                                           default='''Your task as an advanced AI is to design a solving algorithm for the **Heilbronn triangle problem** with $n = 11$ points. The objective is to **maximize area of the smallest triangle formed by these points** placed **inside or on the boundary of a triangle** defined by vertices $(0, 0), (1, 0), (0.5, \sqrt{3}/2)$.
 
-You are encouraged to innovate: create a new metaheuristic or adapt and hybridize existing approaches. Do **not** include testing functions, visualization, or statistical analysis — these are handled externally. The optimization process must work by repeatedly generating and improving configurations of 11 two-dimensional points under geometric constraints.
+You are encouraged to innovate: create a new algorithm or adapt and hybridize existing approaches. Do **not** include testing functions, visualization, or statistical analysis — these are handled externally.
 
-Focus exclusively on filling the `[Algorithm body]` section of the following `run` method template. You must return the best found configuration (`coordinates`) and its corresponding fitness value. The fitness is externally defined and passed into the function. The geometric constraint is checked via `check_inside_triangle_func`, which returns `True` only if all 11 points are valid.
+Focus exclusively on filling the `[Algorithm body]` section of the following `run` method template. You must return the best found configuration (`coordinates`) and its corresponding fitness value. The fitness is externally defined and passed into the function. The geometric constraint is checked via `check_inside_triangle_func`, which returns `True` only if all points are valid.
 
 Your algorithm must:
 
 * Operate within a strict time limit (`max_time`, in seconds).
-* Use no external libraries (e.g., scikit-learn, DEAP).
+* Use no external libraries.
 * Be fully self-contained and compatible with the template interface.
 * Generate valid solutions inside the triangle (use the constraint check function).
 * Efficiently search the space to **maximize the fitness function**.
@@ -97,16 +97,16 @@ Your algorithm must:
 Here is the method header and template you need to complete:
 
 ```
-def run(fitness_func, check_inside_triangle_func, max_time):
-    """
-    Parameters:
-        - fitness_func: function that accepts an np.ndarray of shape (11, 2) and returns a float
-        - check_inside_triangle_func: function that accepts an np.ndarray of shape (11, 2) and returns True/False
-        - max_time: time limit for the search in seconds
-    
-    Goal:
-        - maximization of the fitness
-    """
+def run(n, fitness_func, check_inside_triangle_func, max_time):
+"""
+Parameters:
+    - fitness_func: function that accepts an np.ndarray of shape (n, 2) and returns a float
+    - check_inside_triangle_func: function that accepts an np.ndarray of shape (n, 2) and returns True/False
+    - max_time: time limit for the search in seconds
+
+Goal:
+    - maximization of the fitness
+"""
 
     [Algorithm body]
 
@@ -120,14 +120,14 @@ Example implementation of a random search algorithm in the given template:
 import numpy as np
 import time
 
-def run(fitness_func, check_inside_triangle_func, max_time):
+def run(n, fitness_func, check_inside_triangle_func, max_time):
     start_time = time.time()
     best_coordinates = None
-    best_fitness = -np.inf
+    best_fitness = -1
 
     while time.time() - start_time < max_time:
-        # Generate 11 random 2D points in bounding box of triangle: x ∈ [0,1], y ∈ [0, sqrt(3)/2]
-        candidates = np.random.rand(11, 2)
+        # Generate n random 2D points in bounding box of triangle: x ∈ [0,1], y ∈ [0, sqrt(3)/2]
+        candidates = np.random.rand(n, 2)
         candidates[:, 1] *= np.sqrt(3) / 2  # scale y to triangle height
 
         if check_inside_triangle_func(candidates):
@@ -141,16 +141,22 @@ def run(fitness_func, check_inside_triangle_func, max_time):
 
             'keywords': Parameter(short_name="keywords", type=PrimitiveType.enum, long_name='Feedback keywords',
                                   description="Feedback keyword-based sentences",
-                                  enum_options=['max', 'coordinates', 'best_max', 'best_solution'],
+                                  enum_options=['max', 'coordinates', 'best_max', 'best_coordinates', 'best_solution'],
                                   readonly=True),
             'time_constraint': Parameter(short_name="time_constraint", type=PrimitiveType.time, long_name='Time limit for evaluation',
                                   description="Time constraint in seconds specifying the maximum runtime of the generated algorithm",
-                                  min_value=0, max_value=31536000, default=60)
+                                  min_value=0, max_value=31536000, default=60, required=True),
+            'point_count': Parameter(short_name="point_count", type=PrimitiveType.int,
+                                         long_name='Number of points to place (n)',
+                                         description="How many points should be placed inside of the triangle - parameter n.",
+                                         min_value=5, max_value=30, default=11, required=True)
         }
 
     def _init_params(self):
         super()._init_params()
         self.time_constraint = self.parameters.get('time_constraint', self.get_parameters().get('time_constraint').default)
+        self.n = self.parameters.get('point_count',
+                                                   self.get_parameters().get('point_count').default)
 
 
 
@@ -195,7 +201,7 @@ def run(fitness_func, check_inside_triangle_func, max_time):
                         logging.error("Test:Meta:", repr(e))
 
             algorithm = combined_scope['run']
-            coordinates, fitness = algorithm(_evaluate_found_points, _check_inside_triangle, self.time_constraint)
+            coordinates, fitness = algorithm(self.n, _evaluate_found_points, _check_inside_triangle, self.time_constraint)
             solution.set_fitness(fitness)
 
             solution.add_metadata('results', {'coordinates': coordinates, 'fitness': fitness})
@@ -206,6 +212,7 @@ def run(fitness_func, check_inside_triangle_func, max_time):
                 'max': fitness,
                 'best_max': self._best.get_metadata().get('results').get('fitness'),
                 'coordinates': coordinates,
+                'best_coordinates': self._best.get_metadata().get('results').get('coordinates'),
                 'best_solution': best_sol_text
             }
 
@@ -213,7 +220,7 @@ def run(fitness_func, check_inside_triangle_func, max_time):
             solution.set_feedback(feedback)
 
         except Exception as e:
-            logging.error('Evaluator:Heilbronn-11: Error during Task evaluation: ' + repr(e))
+            logging.error('Evaluator:Heilbronn: Error during Task evaluation: ' + repr(e))
             raise e
 
         return fitness
@@ -224,11 +231,11 @@ def run(fitness_func, check_inside_triangle_func, max_time):
 
     @classmethod
     def get_long_name(cls) -> str:
-        return "Heilbronn-11"
+        return "Heilbronn Triangles"
 
     @classmethod
     def get_description(cls) -> str:
-        return "Evaluator for algorithms solving Heilbronn 11. Assuming generated Python code with " \
+        return "Evaluator for algorithms solving Heilbronn Triangles. Assuming generated Python code with " \
                "template code of the runner."
 
     @classmethod

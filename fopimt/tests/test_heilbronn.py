@@ -8,19 +8,16 @@ import itertools
 
 MAX_EVAL_TIME = 10
 
-class TestHeilbronn11(Test):
+class TestHeilbronn(Test):
     """
-    This class serves for 2048 solver testing.
-    Tests common issues with 2048 solvers:
-    - Invalid moves
-    - Time constraint
+    This class serves for Heilbronn algorithm testing.
     """
 
     def _init_params(self):
         super()._init_params()
         # Default messages are used only when the test passes
-        self._error_msg = "Test:Heilbronn-11: OK"
-        self._user_msg = "Test:Heilbronn-11: OK"
+        self._error_msg = "Test:Heilbronn: OK"
+        self._user_msg = "Test:Heilbronn: OK"
 
     @classmethod
     def get_short_name(cls) -> str:
@@ -29,11 +26,11 @@ class TestHeilbronn11(Test):
 
     @classmethod
     def get_long_name(cls) -> str:
-        return "Heilbronn-11 test"
+        return "Heilbronn Triangle test"
 
     @classmethod
     def get_description(cls) -> str:
-        return "This class serves for Heilbronn-11 solver testing. Tests common issues with solutions:\n" \
+        return "This class serves for Heilbronn Triangle solver testing. Tests common issues with solutions:\n" \
                                      "- Unhandled time constraint\n" \
                                      "- Solution outside specified triangle\n"
 
@@ -67,7 +64,7 @@ class TestHeilbronn11(Test):
             exec(solution.get_input(), exec_globals, local_scope)
         except Exception as e:
             self._test_result = False
-            self._error_msg = self._user_msg = f"Test:Heilbronn-11: Algorithm could not be checked due to the following error: {repr(e)}"
+            self._error_msg = self._user_msg = f"Test:Heilbronn: Algorithm could not be checked due to the following error: {repr(e)}"
             return self._test_result
 
         try:
@@ -81,25 +78,25 @@ class TestHeilbronn11(Test):
                     try:
                         value.__globals__.update(combined_scope)  # Update its global scope
                     except Exception as e:
-                        logging.error("Test:Heilbronn-11:", repr(e))
+                        logging.error("Test:Heilbronn:", repr(e))
 
             algorithm = combined_scope['run']
 
             start_time = time.time()
-            coordinates, _ = algorithm(_evaluate_found_points, _check_inside_triangle, MAX_EVAL_TIME)
+            coordinates, _ = algorithm(11, _evaluate_found_points, _check_inside_triangle, MAX_EVAL_TIME)
             end_time = time.time()
 
             if end_time - start_time > (MAX_EVAL_TIME+1):
-                self._error_msg = self._user_msg = f'Test:Heilbronn-11: Generated algorithm violated the time constraint ({MAX_EVAL_TIME} +1 (for orchestration)s), evaluation time was: {end_time - start_time}s'
+                self._error_msg = self._user_msg = f'Test:Heilbronn: Generated algorithm violated the time constraint ({MAX_EVAL_TIME} +1 (for orchestration)s), evaluation time was: {end_time - start_time}s'
                 self._test_result = False
 
             if not _check_inside_triangle(coordinates):
-                self._error_msg = self._user_msg = 'Test:Heilbronn-11: Generated algorithm violated the triangle constraint.'
+                self._error_msg = self._user_msg = 'Test:Heilbronn: Generated algorithm violated the triangle constraint.'
                 self._test_result = False
 
         except Exception as e:
             self._test_result = False
-            self._error_msg = self._user_msg = (f"Test:Heilbronn-11: Algorithm could not be checked due to the "
+            self._error_msg = self._user_msg = (f"Test:Heilbronn: Algorithm could not be checked due to the "
                                                 f"following error: {repr(e)}")
         return self._test_result
 
