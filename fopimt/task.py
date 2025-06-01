@@ -111,21 +111,23 @@ class Task():
             if _response is not None:
                 _modul, _type = _response
                 self._init_config_modulAPI.append(loader.get_package(_type).get_modul(modul.short_name))
+                instance = _modul(parameters=modul.parameters)
+
                 match _type:
                     case PackageType.LLMConnector:
-                        self._spec_llm = _modul(parameters=modul.parameters)
+                        self._spec_llm = instance
                     case PackageType.Evaluator:
-                        self._spec_evaluator = _modul(parameters=modul.parameters)
+                        self._spec_evaluator = instance
                     case PackageType.Solution:
-                        self._spec_solution = _modul(parameters=modul.parameters)
+                        self._spec_solution = instance
                     case PackageType.Test:
-                        self._spec_test.append(_modul(parameters=modul.parameters))
+                        self._replace_or_append(self._spec_test, instance)
                     case PackageType.Analysis:
-                        self._spec_analysis.append(_modul(parameters=modul.parameters))
+                        self._replace_or_append(self._spec_analysis, instance)
                     case PackageType.StoppingCondition:
-                        self._spec_cond.append(_modul(parameters=modul.parameters))
+                        self._replace_or_append(self._spec_cond, instance)
                     case PackageType.Stat:
-                        self._spec_stat.append(_modul(parameters=modul.parameters))
+                        self._replace_or_append(self._spec_stat, instance)
 
         model = self._spec_llm.get_model() if self._spec_llm is not None else 'gpt-4o'
 
@@ -160,6 +162,12 @@ class Task():
         self._init_config = task_config
         self.pickle_me()
 
+    def _replace_or_append(self, collection: list, new_instance):
+        for i, existing in enumerate(collection):
+            if type(existing) == type(new_instance):
+                collection[i] = new_instance
+                return
+        collection.append(new_instance)
 
     # A class method to create an empty Task
     @classmethod
