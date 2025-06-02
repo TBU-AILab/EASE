@@ -106,6 +106,8 @@ class Task():
             self._spec_feedback_from_solution = task_config.feedback_from_solution
 
         # Moduls
+        self._clear_modules()
+
         for modul in task_config.modules:
             _response = loader.get_modul_by_name(short_name=modul.short_name)
             if _response is not None:
@@ -121,13 +123,13 @@ class Task():
                     case PackageType.Solution:
                         self._spec_solution = instance
                     case PackageType.Test:
-                        self._replace_or_append(self._spec_test, instance)
+                        self._spec_test.append(instance)
                     case PackageType.Analysis:
-                        self._replace_or_append(self._spec_analysis, instance)
+                        self._spec_analysis.append(instance)
                     case PackageType.StoppingCondition:
-                        self._replace_or_append(self._spec_cond, instance)
+                        self._spec_cond.append(instance)
                     case PackageType.Stat:
-                        self._replace_or_append(self._spec_stat, instance)
+                        self._spec_stat.append(instance)
 
         model = self._spec_llm.get_model() if self._spec_llm is not None else 'gpt-4o'
 
@@ -161,6 +163,18 @@ class Task():
 
         self._init_config = task_config
         self.pickle_me()
+
+    def _clear_modules(self):
+        # Single modules
+        self._spec_llm = None
+        self._spec_evaluator = None
+        self._spec_solution = None
+
+        # Multi modules
+        self._spec_test = []
+        self._spec_analysis = []
+        self._spec_cond = []
+        self._spec_stat = []
 
     def _replace_or_append(self, collection: list, new_instance):
         for i, existing in enumerate(collection):
