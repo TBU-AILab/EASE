@@ -110,7 +110,7 @@ class StatHexagon(Stat):
         best = {}
         i = 0
         for solution in solutions:
-            i =+ 1
+            i += 1
             if solution.get_metadata():
                 if solution.get_metadata().get('results'):
                     if solution.get_metadata().get('results').get('outer_hex_side_length'):
