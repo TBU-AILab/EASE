@@ -207,7 +207,7 @@ class EvaluatorHexagon(Evaluator):
             'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.markdown,
                                                long_name="Template for a feedback message",
                                                description="Feedback message for evaluation. Can use {keywords}",
-                                               default="The result found by the current solution is: {outer_hex_side_length}\nBest-so-far solution: {best_solution}\nand the best result is: {best_outer_hex_side_length}\n"
+                                               default="Is the found result viable? {viable}\nThe result found by the current solution is: {outer_hex_side_length}\nBest-so-far solution: {best_solution}\nand the best result is: {best_outer_hex_side_length}\n"
                                                ),
             'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.markdown,
                                            long_name="Template for an initial message",
@@ -259,7 +259,8 @@ Avoid any form of testing or logging. Only return the best valid configuration y
                 'outer_hex_center',
                 'outer_hex_side_length',
                 'outer_hex_angle_degrees',
-                'best_solution'],
+                'best_solution',
+                'viable'],
                                   readonly=True),
             'time_constraint': Parameter(short_name="time_constraint", type=PrimitiveType.time, long_name='Time limit for evaluation',
                                   description="Time constraint in seconds specifying the maximum runtime of the generated algorithm",
@@ -316,9 +317,15 @@ Avoid any form of testing or logging. Only return the best valid configuration y
 
             algorithm = combined_scope['algorithm']
             inner_hex_data, outer_hex_center, outer_hex_side_length, outer_hex_angle_degrees = algorithm(self.n, verify_construction, self.time_constraint)
-            solution.set_fitness(outer_hex_side_length)
+            if verify_construction(inner_hex_data, outer_hex_center, outer_hex_side_length, outer_hex_angle_degrees):
+                viable = True
+                fitness = outer_hex_angle_degrees
+            else:
+                viable = False
+                fitness = sys.float_info.max
+            solution.set_fitness(fitness)
 
-            solution.add_metadata('results', {'inner_hex_data': inner_hex_data, 'outer_hex_center': outer_hex_center, "outer_hex_side_length": outer_hex_side_length, "outer_hex_angle_degrees": outer_hex_angle_degrees})
+            solution.add_metadata('results', {'inner_hex_data': inner_hex_data, 'outer_hex_center': outer_hex_center, "outer_hex_side_length": outer_hex_side_length, "outer_hex_angle_degrees": outer_hex_angle_degrees, 'viable': viable})
 
             self._check_if_best(solution)
 
@@ -332,7 +339,8 @@ Avoid any form of testing or logging. Only return the best valid configuration y
                 'outer_hex_center': solution.get_metadata().get('results').get('outer_hex_center'),
                 "outer_hex_side_length": solution.get_metadata().get('results').get('outer_hex_side_length'),
                 "outer_hex_angle_degrees": solution.get_metadata().get('results').get('outer_hex_angle_degrees'),
-                'best_solution': self._best.get_input()
+                'best_solution': self._best.get_input(),
+                'viable': viable
             }
 
             feedback = self.get_feedback_msg_template().format(**self._keys)
