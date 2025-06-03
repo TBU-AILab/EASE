@@ -104,25 +104,42 @@ class StatHexagon(Stat):
     ####################################################################
     def evaluate_statistic(self, solutions: list[Solution]):
 
+        self._data = {}
+
         best_fitness = sys.float_info.max
+        best = {}
+        i = 0
         for solution in solutions:
+            i =+ 1
             if solution.get_metadata():
                 if solution.get_metadata().get('results'):
                     if solution.get_metadata().get('results').get('outer_hex_side_length'):
+                        self._data[str(i)] = {
+                            'inner_hex_data': solution.get_metadata().get('results').get('inner_hex_data'),
+                            'outer_hex_center': solution.get_metadata().get('results').get('outer_hex_center'),
+                            'outer_hex_side_length': solution.get_metadata().get('results').get(
+                                'outer_hex_side_length'),
+                            'outer_hex_angle_degrees': solution.get_metadata().get('results').get(
+                                'outer_hex_angle_degrees')
+                        }
                         if solution.get_metadata().get('results').get('outer_hex_side_length') <= best_fitness:
-                            self._data = {
-                                'inner_hex_dat': solution.get_metadata().get('results').get('inner_hex_dat'),
-                                'outer_hex_center': solution.get_metadata().get('results').get('outer_hex_center'),
-                                'outer_hex_side_length': solution.get_metadata().get('results').get('outer_hex_side_length'),
-                                'outer_hex_angle_degrees': solution.get_metadata().get('results').get('outer_hex_angle_degrees')
-                            }
                             best_fitness = solution.get_metadata().get('results').get('outer_hex_side_length')
+                            self._data['best'] = {
+                            'inner_hex_data': solution.get_metadata().get('results').get('inner_hex_data'),
+                            'outer_hex_center': solution.get_metadata().get('results').get('outer_hex_center'),
+                            'outer_hex_side_length': solution.get_metadata().get('results').get(
+                                'outer_hex_side_length'),
+                            'outer_hex_angle_degrees': solution.get_metadata().get('results').get(
+                                'outer_hex_angle_degrees')
+                        }
+
 
 
     def export(self, path: str):
 
         if self._data:
-            plot_construction(self._data['inner_hex_dat'], self._data['outer_hex_center'], self._data['outer_hex_side_length'], self._data['outer_hex_angle_degrees'], os.path.join(path, "stat_" + self.get_short_name() + ".png"))
+            for key, value in self._data.items():
+                plot_construction(value['inner_hex_data'], value['outer_hex_center'], value['outer_hex_side_length'], value['outer_hex_angle_degrees'], os.path.join(path, "stat_" + self.get_short_name() + "_" + key + ".png"))
 
     @classmethod
     def get_short_name(cls) -> str:

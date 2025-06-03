@@ -319,7 +319,7 @@ Avoid any form of testing or logging. Only return the best valid configuration y
             inner_hex_data, outer_hex_center, outer_hex_side_length, outer_hex_angle_degrees = algorithm(self.n, verify_construction, self.time_constraint)
             if verify_construction(inner_hex_data, outer_hex_center, outer_hex_side_length, outer_hex_angle_degrees):
                 viable = True
-                fitness = outer_hex_angle_degrees
+                fitness = outer_hex_side_length
             else:
                 viable = False
                 fitness = sys.float_info.max
