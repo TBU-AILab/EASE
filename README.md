@@ -22,6 +22,31 @@
 
 This is an open beta version of the framework.
 
+📄 Publication
+
+The concepts and design of the EASE framework are described in detail in the following paper:
+
+Solve it with EASE
+- Adam Viktorin, Tomas Kadavy, Jozef Kovac, Michal Pluhacek, Roman Senkerik
+- arXiv preprint, 2025
+- [https://arxiv.org/abs/2509.18108](https://arxiv.org/abs/2509.18108)
+
+If you use frontEASE or the EASE framework in your research, please consider citing this paper:
+
+<details> <summary>BibTeX</summary>
+@misc{viktorin2025solveease,
+      title={Solve it with EASE}, 
+      author={Adam Viktorin and Tomas Kadavy and Jozef Kovac and Michal Pluhacek and Roman Senkerik},
+      year={2025},
+      eprint={2509.18108},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2509.18108}, 
+}
+
+</details>
+
+
 ## Features
 - Utilizes LLMs to generate various types of solutions.
 - Supports user-defined constraints and parameters.
