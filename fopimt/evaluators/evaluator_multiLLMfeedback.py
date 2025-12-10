@@ -26,7 +26,6 @@ class EvaluatorLlmFeedback(Evaluator):
                                                        enum_options=llms, required=True),
                                   }
                               ]),
-
         }
 
         return param_dict
