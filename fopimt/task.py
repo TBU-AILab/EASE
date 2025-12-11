@@ -87,6 +87,10 @@ class TaskFull(BaseModel):
     task_config: Optional[TaskConfig] = None
 
 
+class TaskInitializationException(Exception):
+    def __init__(self, messages: list[str]):
+        self.messages = messages
+
 class Task():
     @classmethod
     def pickle_rick(cls, task_folder: str):
@@ -156,10 +160,11 @@ class Task():
             if len(self.get_incompatible_modules()) > 0:
                 logging.error(
                     f"Task:run: Selected task modules are not compatible. Incompatible modules: {self.get_incompatible_modules()}")
-                raise AttributeError(f"Task:run: Selected task modules are not compatible. Incompatible modules: {self.get_incompatible_modules()}")
+                msgs = [f"Selected incompatible module: {item}" for item in self.get_incompatible_modules()]
+                raise TaskInitializationException(msgs)
             else:
                 logging.error("Task:run: Task is not completely defined.")
-                raise AttributeError("Task:run: Task is not completely defined.")
+                raise TaskInitializationException(["Task:run: Task is not completely defined."])
 
         self._init_config = task_config
         self.pickle_me()
