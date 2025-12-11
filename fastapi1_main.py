@@ -2,6 +2,9 @@ import logging
 
 import os
 import uvicorn
+
+from pydantic import BaseModel
+
 from fastapi import FastAPI, HTTPException, Request, WebSocket, UploadFile, File, Query
 from typing import List, Any, Optional, Union, Dict
 from fopimt.task import Task, TaskConfig, TaskState, TaskInfo, TaskData, TaskFull
@@ -19,6 +22,7 @@ import sentry_sdk
 import sys
 import asyncio
 from io import StringIO
+
 
 # How to run server:
 # uvicorn fastapi_main:app --reload --port 8086
@@ -47,6 +51,7 @@ class ConsoleCapture:
 
     def get_value(self):
         return self.output.getvalue()
+
 
 sentry_sdk.init(
     dsn="https://e9b23e443f8cee537da5d9a1875a4b96@o4508162086404096.ingest.de.sentry.io/4508170777329744",
@@ -83,10 +88,11 @@ app.add_middleware(
 console_capture = ConsoleCapture()
 
 # Redirect stdout and stderr to our capture class
-#sys.stdout = console_capture
-#sys.stderr = console_capture
+# sys.stdout = console_capture
+# sys.stderr = console_capture
 
 magic_instance = Magic()
+
 
 def _get_task(task_id: str) -> Task:
     task = magic_instance.task_get(task_id)
@@ -94,12 +100,22 @@ def _get_task(task_id: str) -> Task:
         raise HTTPException(status_code=404, detail=f"Task with the id {task_id} not exists.", )
     return task
 
+
+###############################################
+########## API DTOs
+###############################################
+
+# class HTTPError(BaseModel):
+#     status_code: int
+#     msgs: list[str]  # List of related error messages
+
+
 ###############################################
 ########## END POINTS
 ###############################################
 @app.post("/system/import")
 async def import_module(file: UploadFile = File(...)):
-    if not(file.filename.endswith(".py") or file.filename.endswith(".zip")):
+    if not (file.filename.endswith(".py") or file.filename.endswith(".zip")):
         raise HTTPException(status_code=400, detail="Only .py or .zip files are supported.")
 
     try:
@@ -108,6 +124,7 @@ async def import_module(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Unable to import file {file.filename}. Error: {e}", )
 
     return {"filename": file.filename, "message": "Import successful"}
+
 
 @app.delete("/system/delete/{short_name}")
 async def delete_module(short_name: str):
@@ -120,6 +137,7 @@ async def delete_module(short_name: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/update-models")
 def update_models():
     try:
@@ -128,9 +146,11 @@ def update_models():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/system/pm/all")
 def system_pm_all() -> list[PythonPackage]:
     return magic_instance.get_package_manager().get_packages()
+
 
 @app.post("/system/pm/add")
 def system_pm_add(packages: list[PythonPackage]) -> None:
@@ -139,9 +159,11 @@ def system_pm_add(packages: list[PythonPackage]) -> None:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unable to install packages {packages}. Error: {e}", )
 
+
 @app.delete("/system/pm/delete")
 def system_pm_delete(packages: list[PythonPackage]) -> None:
     magic_instance.get_package_manager().delete(packs=packages)
+
 
 @app.websocket("/ws/xterm/{session_id}")
 async def websocket_xterm(websocket: WebSocket, session_id: str):
@@ -179,6 +201,7 @@ async def websocket_xterm(websocket: WebSocket, session_id: str):
     finally:
         await websocket.close()
 
+
 @app.websocket("/ws/logs")
 async def websocket_log_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -197,13 +220,17 @@ async def websocket_log_endpoint(websocket: WebSocket):
 # Landing page
 # Mount static directory
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
 @app.get("/", response_class=FileResponse)
 def serve_landing_page():
     return "index.html"
 
+
 @app.get("/terminal", response_class=FileResponse)
 def serve_terminal_page():
     return "xterm.html"
+
 
 # POST
 # Create a new Task
@@ -216,6 +243,7 @@ def task_create(task_id: Optional[str] = None) -> TaskInfo:
         raise HTTPException(status_code=406, detail=f"Unable to create Task with the id {task_id}.", )
     return _task.get_info()
 
+
 # GET
 # Get info of all Tasks
 # return: list[TaskInfo]  - Info of all existing tasks
@@ -227,12 +255,12 @@ def task_info() -> list[TaskInfo]:
         task_info_list.append(task.get_info())
     return task_info_list
 
+
 # GET
 # Get list of all Tasks (includes TaskInfo, TaskData, TaskConfig)
 # return: list
 @app.get("/task/all/full")
 def task_full() -> list[TaskFull]:
-
     tasks = magic_instance.task_get_all()
 
     out = []
@@ -245,6 +273,7 @@ def task_full() -> list[TaskFull]:
 
     return out
 
+
 # GET
 # Get info of a Task
 # task_id: str      - ID of the new Task, if empty string (None), Core will generate one
@@ -253,6 +282,7 @@ def task_full() -> list[TaskFull]:
 def task_info(task_id: str) -> TaskInfo:
     task = _get_task(task_id)
     return task.get_info()
+
 
 # GET
 # Get a list of ids of all Tasks in Core and their status code
@@ -289,16 +319,17 @@ def task_options(task_id: str, task_configuration: TaskConfig) -> list[ModulAPI]
         out += magic_instance.get_loader().get_package(_type).get_moduls()
     return out
 
+
 # GET
 # Get a list of all Modul options for generic Task
 # return: list[Modul]    - List of all possible moduls with their type identified
 @app.get("/task/options")
 def task_options_new() -> list[ModulAPI]:
-
     out = []
     for _type in PackageType:
         out += magic_instance.get_loader().get_package(_type).get_moduls()
     return out
+
 
 # PUT
 # Serves for initialization of the task
@@ -309,8 +340,11 @@ def task_init(task_id: str, task_configuration: TaskConfig) -> TaskInfo:
     try:
         task.initialize(loader=magic_instance.get_loader(), task_config=task_configuration)
     except Exception as e:
-        raise HTTPException(status_code=406, detail=f"Unable to initialize Task with the id {task_id}. Error: {e}", )
+        print(type(e))
+        print(e)
+        raise HTTPException(status_code=422, detail=list(e.args))
     return task.get_info()
+
 
 # POST
 # Serves for duplication of the task
@@ -343,7 +377,8 @@ def task_duplicate(task_id: str, new_name: str | None, num: int) -> list[TaskInf
 # dateFrom: str - Date from in str.# assuming it is in UTC format (ending with 'Z') "%Y-%m-%dT%H:%M:%S.%fZ"
 # return: TODO  - description
 @app.get("/task/data")
-def get_tasks_data(request: Request, dateFrom: str | None = None, task_ids: Optional[List[str]] = Query(None)) -> list[TaskData]:
+def get_tasks_data(request: Request, dateFrom: str | None = None, task_ids: Optional[List[str]] = Query(None)) -> list[
+    TaskData]:
     news = magic_instance.get_new_data(dateFrom)
 
     if task_ids:
@@ -360,6 +395,7 @@ def get_tasks_data(request: Request, dateFrom: str | None = None, task_ids: Opti
 
     return news
 
+
 # GET
 # Get Task solution by its message id.
 # task_id: str      - ID of the Task
@@ -367,7 +403,6 @@ def get_tasks_data(request: Request, dateFrom: str | None = None, task_ids: Opti
 # return: StreamingResponse
 @app.get("/task/{task_id}/solution/{message_id}/download")
 def task_get_solution(task_id: str, message_id: str) -> StreamingResponse:
-
     buffer = _get_task(task_id).get_solution(message_id)
     if buffer is None:
         raise HTTPException(status_code=500, detail=f"Could not create zip buffer for Task [{task_id}].")
@@ -385,7 +420,6 @@ def task_get_solution(task_id: str, message_id: str) -> StreamingResponse:
 # return: StreamingResponse
 @app.get("/task/{task_id}/download")
 def task_get_all(task_id: str) -> StreamingResponse:
-
     buffer = _get_task(task_id).get_all()
     if buffer is None:
         raise HTTPException(status_code=500, detail=f"Could not create zip buffer for Task [{task_id}].")
@@ -417,6 +451,7 @@ def task_run(task_id: str) -> TaskInfo:
     task = _get_task(task_id)
     return task.get_info()
 
+
 # PATCH
 # Run Task Batch variant
 @app.patch("/batch/run")
@@ -429,6 +464,7 @@ def task_run_batch(task_ids: list[str]) -> list[TaskInfo]:
             logging.warning(f"Task [{task_id}] could not be run.")
         out.append(_get_task(task_id).get_info())
     return out
+
 
 # PATCH
 # Pause Task
@@ -443,6 +479,7 @@ def task_pause(task_id: str) -> TaskInfo:
     task = _get_task(task_id)
     return task.get_info()
 
+
 # PATCH
 # Pause Task Batch variant
 @app.patch("/batch/pause")
@@ -455,18 +492,20 @@ def task_pause_batch(task_ids: list[str]) -> list[TaskInfo]:
         out.append(_get_task(task_id).get_info())
     return out
 
+
 # PATCH
 # Stop Task
 # task_id: str  - ID of the Task
 # return: bool  - True if stop of the Task was OK
 @app.patch("/task/{task_id}/stop")
 def task_stop(task_id: str) -> TaskInfo:
-    #TODO test - not working
+    # TODO test - not working
     ret = magic_instance.task_stop(task_id)
     if ret is False:
         logging.warning(f"Task [{task_id}] could not be stopped.")
     task = _get_task(task_id)
     return task.get_info()
+
 
 # PATCH
 # Stop Task Batch variant
@@ -492,6 +531,7 @@ def task_delete(task_id: str) -> bool:
         return False
     return task.archive()
 
+
 # DELETE BATCH variant
 @app.delete("/batch/delete")
 def task_delete_batch(task_ids: list[str]) -> bool:
@@ -502,10 +542,11 @@ def task_delete_batch(task_ids: list[str]) -> bool:
         task.archive()
     return True
 
+
 @app.get("/images/{filepath:path}")
 async def serve_image(filepath: str):
     return FileResponse(filepath)
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8086) #loop="asyncio" for debug with wsl
+    uvicorn.run(app, host="0.0.0.0", port=8086)  # loop="asyncio" for debug with wsl
