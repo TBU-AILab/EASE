@@ -63,7 +63,12 @@ class EvaluatorClassification(Evaluator):
         self._train = self._dataset['train_data']
         self._test = self._dataset['test_data']
 
-        # # Limit for number of reported errors for the feedback
+        if "val_data" in self._dataset.keys():
+            self._val = self._dataset['val_data']
+        else:
+            self._val = {}
+
+        # Limit for number of reported errors for the feedback
         self._error_limit = self.parameters.get('error_limit', self.get_parameters().get('error_limit').default)
         self._rnd = np.random.default_rng()
 
@@ -80,6 +85,8 @@ class EvaluatorClassification(Evaluator):
         Evaluation function. Returns quality of solution as float number.
         Arguments:
             solution: Solution  -- Solution that will be evaluated.
+
+        TODO: Add validation set
         """
 
         fitness = 0
@@ -114,6 +121,7 @@ class EvaluatorClassification(Evaluator):
 
             y_pred = predict(self._train['X'], self._train['y'], self._test['X'])
             y_true = self._test['y']
+
 
             for i in range(len(self._test['X'])):
                 if y_true[i] != y_pred[i]:

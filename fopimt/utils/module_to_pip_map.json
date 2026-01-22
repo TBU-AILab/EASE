@@ -9,5 +9,6 @@
     "mtcnn": "mtcnn",
     "dynaconf": "dynaconf",
     "deepface": "deepface",
-    "xgboost": "xgboost"
+    "xgboost": "xgboost",
+    "ffmpeg": "ffmpeg"
 }

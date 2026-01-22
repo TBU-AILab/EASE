@@ -250,12 +250,109 @@ def move(grid: np.array, score: int) -> str:
     return 'left'
 ```"""
 
-        transitions = """```
+        planet_wars_nothing = """```
+import random
+import math
+
+def get_action(state: dict) -> dict or None:
+
+    # Get planets from the state
+    planets = get_planets(state)
+
+    # Filter our planets and enemy planets
+    our_planets = [p for p in planets if p.get('owner') == 1]  # Assuming player ID is 1
+    enemy_planets = [p for p in planets if p.get('owner') != 1]
+
+    # If we don't have any planets, do nothing
+    if not our_planets:
+        return None
+
+    # Find the best target planet to attack (heuristic: choose the enemy planet with the most ships)
+    best_target = min(enemy_planets, key=lambda p: p.get('ships', 0), default=None)
+
+    # If there's no good target, do nothing
+    if not best_target:
+        return None
+
+    # Calculate the number of ships to send based on our available resources (heuristic: 1/4 of total ships)
+    source = min(our_planets, key=lambda p: p.get('ships', 0), default=None)
+    if source and source['ships'] >= 4:
+        ships_to_send = 4
+    else:
+        return None
+
+    # Return the action
+    return {
+        'source': source['id'],
+        'target': best_target['id'],
+        'ships': ships_to_send,
+    }
+
+
+def get_planets(state: dict) -> list or None:
+    return state.get('planets', [])
+```"""
+
+        transitions_rnd = """```
+import os
 import random
 
 def predict(X_train, y_train, X_test):
 
+    def file_exists(path: str) -> bool:
+        return os.path.isfile(path)
+
+    for x in X_test:
+        if file_exists(x):
+            print(f"File {x} is OK")
+        else:
+            print(f"File {x} is NOT OK")
+
     return random.choices([0, 1], k = len(X_test))
+```"""
+
+        transitions_def = """```
+import random
+import ffmpeg
+import cv2
+import tensorflow as tf
+import xgboost
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from imblearn.over_sampling import SMOTE
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+
+def predict(X_train, y_train, X_test):
+    # Resample minority class using SMOTE
+    smote = SMOTE(random_state=42)
+    X_resampled, y_resampled = smote.fit_resample(np.array([cv2.imread(file) for file in X_train]), np.array(y_train))
+
+    # Convert video frames to features
+    train_features = []
+    test_features = []
+    for file in X_resampled:
+        frames = [cv2.resize(frame, (224, 224)) for frame in ffmpeg.probe(file)['streams'][0]['frames']]
+        feature = np.mean([np.array(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)).flatten() for frame in frames], axis=0)
+        train_features.append(feature)
+    for file in X_test:
+        frames = [cv2.resize(frame, (224, 224)) for frame in ffmpeg.probe(file)['streams'][0]['frames']]
+        feature = np.mean([np.array(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)).flatten() for frame in frames], axis=0)
+        test_features.append(feature)
+
+    # Reshape to fit XGBoost input format
+    train_array = np.array(train_features).reshape(-1, 224*224)
+    test_array = np.array(test_features).reshape(-1, 224*224)
+
+    # Train XGBoost model with class weighting
+    xgb_model = xgboost.XGBClassifier(scale_pos_weight=len(y_train)-np.sum(y_train)/len(y_train))
+    xgb_model.fit(train_array, y_resampled)
+
+    # Make predictions on test data
+    prediction = xgb_model.predict(test_array)
+    
+    return prediction
 ```"""
 
         match self._response_type:
@@ -264,7 +361,9 @@ def predict(X_train, y_train, X_test):
             case '2048: left and slow':
                 msg_text = slow_2048
             case 'ModernTV: video transitions':
-                msg_text = transitions
+                msg_text = transitions_rnd
+            case 'PlanetWars: Do nothing agent':
+                msg_text = planet_wars_nothing
             case _:
                 msg_text = 'This is simple response.'
 
