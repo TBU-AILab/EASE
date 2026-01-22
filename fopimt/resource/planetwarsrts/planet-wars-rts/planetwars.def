@@ -1,0 +1,37 @@
+Bootstrap: docker
+From: gradle:8.4.0-jdk20
+
+%files
+    . /build
+
+%environment
+    export JAVA_HOME=/opt/java/openjdk
+    export PATH=$JAVA_HOME/bin:$PATH
+
+%post
+    echo "+++ POST: Starting container build at $(date) +++"
+    echo "+++ Host: $(hostname) +++"
+    echo "+++ Current directory: $(pwd) +++"
+
+    mkdir -p /build
+    cd /build || (echo "Failed to enter /build!" && exit 1)
+
+    echo "+++ POST: Listing Kotlin source files in /build/app/src/main/kotlin +++"
+    find app/src/main/kotlin -name '*.kt' | tee /tmp/kotlin_files.txt
+    echo "+++ Found $(wc -l < /tmp/kotlin_files.txt) Kotlin files +++"
+
+    echo "+++ POST: Running Gradle :app:shadowJar task (fat JAR build) +++"
+    gradle --no-daemon \
+           --info \
+           -Dorg.gradle.workers.max=1 \
+           -Dkotlin.compiler.execution.strategy="in-process" \
+           :app:shadowJar || (echo "Shadow JAR build failed!" && exit 1)
+
+    echo "+++ POST: Copying fat JAR to /app +++"
+    mkdir -p /app
+    cp /build/app/build/libs/client-server*.jar /app/app.jar || (echo "Fat JAR not found!" && exit 1)
+
+    echo "+++ POST: Build complete at $(date) +++"
+
+%runscript
+    exec java -jar /app/app.jar

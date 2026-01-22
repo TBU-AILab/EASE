@@ -1,0 +1,18 @@
+{
+  "winner": "B",
+  "score_a": 0.0,
+  "score_b": 23.87661665591633,
+  "ticks": 822,
+  "seed": 43,
+  "meta": {
+    "ships_player1": 0.0,
+    "ships_player2": 23.87661665591633,
+    "leader": "Player2",
+    "n_actions": 43,
+    "n_failed_actions": 0,
+    "n_updates": 822,
+    "max_ticks": 2000,
+    "num_planets": 10,
+    "agent_a_exceptions": 0
+  }
+}
