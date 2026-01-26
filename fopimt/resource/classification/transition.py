@@ -86,7 +86,7 @@ class TransitionDetectionDataset(Modul):
         return {
             "train_data": {"X": train["data"], "y": train["target"]},
             "test_data": {"X": test["data"], "y": test["target"]},
-            "val_data": {"X": val["data"], "y": val["data"]},
+            "val_data": {"X": val["data"], "y": val["target"]},
         }
 
 
