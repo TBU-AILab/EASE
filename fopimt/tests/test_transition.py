@@ -75,13 +75,32 @@ class TestTransition(Test):
                     except Exception as e:
                         logging.error("Test:Transition:", repr(e))
 
+            extract_features = combined_scope['extract_features']
+            train = combined_scope['train']
             predict = combined_scope['predict']
 
-            X_train = [["/data/ModernTV/Nickelodeon/2024-11-21/1732146475-0023-00864936-00315942.ts"]]
-            y_train = [[1]]
-            X_test = [["/data/ModernTV/Nickelodeon/2024-11-21/1732146475-0023-00864936-00315942.ts"]]
+            X_train = ["/data/ModernTV/Nickelodeon/2024-11-21/1732146475-0023-00864936-00315942.ts"]
+            y_train = [1]
+            X_test = "/data/ModernTV/Nickelodeon/2024-11-21/1732146475-0023-00864936-00315942.ts"
 
-            y_pred = predict(X_train, y_train, X_test)
+            trained_model = None
+            try:
+                trained_model = train(X_train, y_train, extract_features)
+            except Exception as e:
+                self._test_result = False
+                self._error_msg = self._user_msg = (f"Test:Transition: Model training failed. Solution could not be "
+                                                    f"checked due to the"
+                                                    f"following error: {repr(e)}")
+
+            if trained_model:
+                try:
+                    predict(trained_model, extract_features, X_test)
+                except Exception as e:
+                    self._test_result = False
+                    self._error_msg = self._user_msg = (
+                        f"Test:Transition: Prediction on test sample failed. Solution could not be "
+                        f"checked due to the"
+                        f"following error: {repr(e)}")
 
         except Exception as e:
             self._test_result = False

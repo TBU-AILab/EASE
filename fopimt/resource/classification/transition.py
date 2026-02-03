@@ -29,13 +29,26 @@ class TransitionDetectionDataset(Modul):
         return "Transition detection dataset from ModernTV project"
 
     @staticmethod
+    def sample() -> dict:
+        """
+        Returns sample of Transition prediction dataset.
+        """
+        full = TransitionDetectionDataset.full()
+
+        return {
+            "train_data": {"X": full["train_data"]['X'][:10], "y": full["train_data"]['y'][:10]},
+            "test_data": {"X": full["test_data"]['X'][:5], "y": full["test_data"]['y'][:5]},
+            "val_data": {"X": full["val_data"]['X'][:3], "y": full["val_data"]['y'][:3]},
+        }
+
+    @staticmethod
     def full() -> dict:
         """
         Returns full Transition prediction dataset.
         """
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-        samples_csv = Path(os.path.join(BASE_DIR, "transition_data", "samples.csv"))
-        splits_json = Path(os.path.join(BASE_DIR, "transition_data", "splits.json"))
+        samples_csv = Path(os.path.join(BASE_DIR, "transition_data", "samples3.csv"))
+        splits_json = Path(os.path.join(BASE_DIR, "transition_data", "splits3.json"))
 
         def _build_split(sampless: dict, ids: list[int]) -> Dict[str, List]:
             data: List[str] = []
@@ -89,6 +102,17 @@ class TransitionDetectionDataset(Modul):
             "val_data": {"X": val["data"], "y": val["target"]},
         }
 
+    @staticmethod
+    def full_no_val() -> dict:
+        """
+        Returns sample of Transition prediction dataset.
+        """
+        full = TransitionDetectionDataset.full()
+
+        return {
+            "train_data": full["train_data"],
+            "test_data": full["test_data"]
+        }
 
 
 
