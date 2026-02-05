@@ -307,15 +307,16 @@ def task_status(task_ids: Optional[List[str]] = Query(None)) -> list[TaskInfo]:
     return magic_instance.get_tasks_info(task_ids)
 
 
-# POST
+# GET
 # Get a list of all Modul options for Task with specified ID
 # id: str   - Specified task id
 # task_configuration: TaskConfig    - configuration of the Task, specified by FrontEnd
 # return: list[Modul]    - List of all possible moduls with their type identified,
 # based on the current configuration of the Task in FrontEnd
 # TBA
-@app.post("/task/{task_id}/options")
-def task_options(task_id: str, task_configuration: TaskConfig) -> list[ModulAPI]:
+@app.get("/task/{task_id}/options")
+#def task_options(task_id: str, task_configuration: TaskConfig) -> list[ModulAPI]:
+def task_options(task_id: str) -> list[ModulAPI]:
     task = _get_task(task_id)
     out = []
     for _type in PackageType:
