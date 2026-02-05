@@ -9,7 +9,7 @@ from ..loader import Parameter, PrimitiveType, Loader, PackageType
 import re
 
 
-class EvaluatorLlmFeedback(Evaluator):
+class EvaluatorMultiLlmFeedback(Evaluator):
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
@@ -26,6 +26,18 @@ class EvaluatorLlmFeedback(Evaluator):
                                                        enum_options=llms, required=True),
                                   }
                               ]),
+
+            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.markdown,
+                                               long_name="Template for a feedback message",
+                                               description="Feedback message for evaluation. Can use {keywords}",
+                                               default='{llm_name}:\n{llm_feedback}\n\n"'),
+            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.markdown,
+                                           long_name="Template for an initial message",
+                                           description="Initial message for evaluation. Specific for each evaluator.",
+                                           default="You are a LLM Harry.", readonly=True),
+
+            'keywords': Parameter(short_name="keywords", type=PrimitiveType.enum, long_name='Feedback keywords',
+                                  description="Feedback keyword-based sentences", enum_options=['llm_name', 'llm_feedback'], readonly=True)
         }
 
         return param_dict
@@ -62,7 +74,12 @@ class EvaluatorLlmFeedback(Evaluator):
 
             # set the feedback from LLM to solution feedback
             single_feedback = msg_response.get_content()
-            feedback += f"{llm.get_short_name()}:\n{single_feedback}\n\n"
+
+            keys = {
+                'llm_name': llm.get_short_name(),
+                'llm_feedback': single_feedback
+            }
+            feedback += self.get_feedback_msg_template().format(**keys)
 
         solution.set_feedback(feedback)
         solution.add_metadata(name="feedback", value=feedback)

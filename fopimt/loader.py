@@ -390,7 +390,7 @@ class Loader:
                                                            PackageType.Analysis)
                 case PackageType.Evaluator:
                     self._packages[package_type] = Package('Evaluators', 'evaluators', 'evaluator',
-                                                           PackageType.Evaluator)
+                                                           PackageType.Evaluator, ignored_modules)
                 case PackageType.Solution:
                     self._packages[package_type] = Package('Solutions', 'solutions', 'solution',
                                                            PackageType.Solution)

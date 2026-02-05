@@ -307,11 +307,14 @@ def task_status(task_ids: Optional[List[str]] = Query(None)) -> list[TaskInfo]:
     return magic_instance.get_tasks_info(task_ids)
 
 
-# GET
+# POST
 # Get a list of all Modul options for Task with specified ID
 # id: str   - Specified task id
-# return: list[Modul]    - List of all possible moduls with their type identified
-@app.get("/task/{task_id}/options")
+# task_configuration: TaskConfig    - configuration of the Task, specified by FrontEnd
+# return: list[Modul]    - List of all possible moduls with their type identified,
+# based on the current configuration of the Task in FrontEnd
+# TBA
+@app.post("/task/{task_id}/options")
 def task_options(task_id: str, task_configuration: TaskConfig) -> list[ModulAPI]:
     task = _get_task(task_id)
     out = []
@@ -334,13 +337,13 @@ def task_options_new() -> list[ModulAPI]:
 # PUT
 # Serves for initialization of the task
 # Once the task is fully initialized (all required characteristics), state of the task changes to INIT
+
 @app.put("/task/{task_id}")
 def task_init(task_id: str, task_configuration: TaskConfig) -> TaskInfo:
     task = _get_task(task_id)
     try:
         task.initialize(loader=magic_instance.get_loader(), task_config=task_configuration)
     except Exception as e:
-        print(type(e))
         print(e)
         raise HTTPException(status_code=422, detail=list(e.args))
     return task.get_info()
