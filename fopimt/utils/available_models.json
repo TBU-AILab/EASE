@@ -52,7 +52,7 @@
       ]
     }
   ],
-  "llm.claude": [
+  "llm.anthropic": [
     {
       "url": "https://api.anthropic.com/v1/models",
       "models": [
@@ -60,6 +60,17 @@
         "claude-3-5-sonnet-20241022",
         "claude-3-5-haiku-20241022claude-3-opus-20240229",
         "claude-3-haiku-20240307"
+      ]
+    }
+  ],
+  "llm.google": [
+    {
+      "url": "https://ai.google.dev/gemini-api/docs/models",
+      "models": [
+        "gemini-3-pro-preview",
+        "gemini-3-flash-preview",
+        "gemini-2.5-flash",
+        "gemini-2.5-pro"
       ]
     }
   ]

@@ -5,9 +5,9 @@ from ..utils.connector_utils import get_available_models
 import anthropic
 
 
-class LLMConnectorClaude(LLMConnector):
+class LLMConnectorAnthropic(LLMConnector):
     """
-    LLM Connector class for Claude models.
+    LLM Connector class for Anthropic models.
     :param token: Token|ID used for the LLM connector API.
     :param model: Specified model of the LLM.
     """
@@ -39,7 +39,7 @@ class LLMConnectorClaude(LLMConnector):
         self._token = self.parameters.get('token', '')  # Access token, ID
         self._model = self.parameters.get('model', self.get_parameters().get('model').default)
 
-        self._type = 'Claude'  # Type of LLM (OpenAI, Meta, Google, ...)
+        self._type = 'Anthropic'  # Type of LLM (OpenAI, Meta, Google, ...)
         self._system_msg = ''
         self._client = anthropic.Anthropic(api_key=self._token)
 
@@ -68,12 +68,12 @@ class LLMConnectorClaude(LLMConnector):
         return 'assistant'
 
     def send(self, context) -> Message:
-
+        msgs = self._extract_messages(context)
         message = self._client.messages.create(
             max_tokens=4096,
+            messages=msgs,
             system=self._system_msg,
-            messages=self._extract_messages(context),
-            model=self._model,
+            model=self._model
         )
         response = message.to_dict()
         if 'content' in response:
@@ -100,15 +100,15 @@ class LLMConnectorClaude(LLMConnector):
 
     @classmethod
     def get_short_name(cls) -> str:
-        return "llm.claude"
+        return "llm.anthropic"
 
     @classmethod
     def get_long_name(cls) -> str:
-        return "Claude LLM connector"
+        return "Anthropic LLM connector"
 
     @classmethod
     def get_description(cls) -> str:
-        return "Connector for Claude LLM family of models."
+        return "Connector for Anthropic LLM family of models."
 
     @classmethod
     def get_tags(cls) -> dict:
