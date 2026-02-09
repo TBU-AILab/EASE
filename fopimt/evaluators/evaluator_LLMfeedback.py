@@ -16,8 +16,8 @@ class EvaluatorLlmFeedback(Evaluator):
         llms = Loader((PackageType.LLMConnector,)).get_package(PackageType.LLMConnector).get_moduls()
         return {
             'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.markdown,
-                                               long_name="Template for a feedback message",
-                                               description="Feedback message for evaluation. Can use {keywords}",
+                                               long_name="Instructions for LLM evaluation",
+                                               description="Instructions for LLM evaluation [User message].",
                                                default="Please rate the following output on a scale from 1 to "
                                                               "10. 1 being the worst you've ever seen and 10 "
                                                               "being the best one. Also give an explanation of your "

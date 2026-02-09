@@ -8,6 +8,7 @@ from ..message import Message
 from ..loader import Parameter, PrimitiveType, Loader, PackageType
 import re
 
+from pprint import pprint
 
 class EvaluatorMultiLlmFeedback(Evaluator):
 
@@ -16,16 +17,30 @@ class EvaluatorMultiLlmFeedback(Evaluator):
         llms = Loader((PackageType.LLMConnector,)).get_package(PackageType.LLMConnector).get_moduls()
 
         param_dict = {
-            'llms': Parameter(short_name='llms', long_name='LLM connectors', description='A list of LLM connectors '
-                                                                                         'with weights.',
+            'llms': Parameter(short_name='llms', long_name='LLM connectors', description='A list of LLM connectors.',
                               type=PrimitiveType.list, required=True,
                               default=[
                                   {
+                                      'alias': Parameter(short_name='alias', type=PrimitiveType.str,
+                                                         long_name='Name',
+                                                         description='Name alias for the llm if you want to specify it (e.g. Alice, Bob).',
+                                                         required=False),
                                       'llm': Parameter(short_name='llm', type=PrimitiveType.enum,
                                                        long_name='LLM', description='LLM connector',
                                                        enum_options=llms, required=True),
+                                      'instruction': Parameter(short_name='instruction', type=PrimitiveType.markdown,
+                                                               long_name='Instructions for LLM evaluation',
+                                                               description='Instructions for LLM evaluation [User prompt]. If left empty, general instructions will be used.',
+                                                               required=False),
                                   }
                               ]),
+
+            'llm_instruction': Parameter(short_name="llm_instruction", type=PrimitiveType.markdown,
+                                         long_name="General instructions for LLM",
+                                         description="Instructions for LLM evaluation [User prompt].",
+                                         default='Rate this solution on a scale of 0 to 10 (0 the worst, 10 the best).',
+                                         required=False
+                                         ),
 
             'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.markdown,
                                                long_name="Template for a feedback message",
@@ -37,7 +52,8 @@ class EvaluatorMultiLlmFeedback(Evaluator):
                                            default="You are a LLM Harry.", readonly=True),
 
             'keywords': Parameter(short_name="keywords", type=PrimitiveType.enum, long_name='Feedback keywords',
-                                  description="Feedback keyword-based sentences", enum_options=['llm_name', 'llm_feedback'], readonly=True)
+                                  description="Feedback keyword-based sentences",
+                                  enum_options=['llm_name', 'llm_shortname', 'llm_feedback'], readonly=True)
         }
 
         return param_dict
@@ -46,10 +62,29 @@ class EvaluatorMultiLlmFeedback(Evaluator):
         super()._init_params()
         self._llms = []
         for llm in self.parameters.get('llms', []):
-            self._llms.append(
-                Loader().get_package(PackageType.LLMConnector).get_modul_imported(llm['llm']['short_name'])(
-                    llm['llm']['parameters']))
 
+            if 'instruction' not in llm.keys() or llm['instruction'] is None or llm['instruction'] == '':
+                instruction = self.parameters.get('llm_instruction', self.get_parameters().get('llm_instruction').default)
+            else:
+                instruction = llm['instruction']
+
+            if 'alias' not in llm.keys() or llm['alias'] is None or llm['alias'] == '':
+                alias = llm['llm']['short_name']
+            else:
+                alias = llm['alias']
+
+            _llm = Loader().get_package(PackageType.LLMConnector).get_modul_imported(llm['llm']['short_name'])(
+                llm['llm']['parameters'])
+
+            self._llms.append(
+                {
+                    'llm': _llm,
+                    'instruction': instruction,
+                    'alias': alias
+                }
+            )
+
+            pprint(self._llms)
 
     ####################################################################
     #########  Public functions
@@ -65,18 +100,19 @@ class EvaluatorMultiLlmFeedback(Evaluator):
         feedback = ""
         for llm in self._llms:
             if 'image' in solution.get_tags()['output']:
-                msg = Message(role=llm.get_role_user(), message="Rate this image on a scale of 0 to 10 (0 the worst, 10 the best).")
+                msg = Message(role=llm['llm'].get_role_user(), message=llm['instruction'])
                 msg.set_metadata(label='image', data=data)
             else:
-                msg = Message(role=llm.get_role_user(), message=f"Rate this solution on a scale of 0 to 10 (0 the worst, 10 the best).\n{data}")
+                msg = Message(role=llm['llm'].get_role_user(), message=llm['instruction'] + f"\n{data}")
 
-            msg_response = llm.send([msg])
+            msg_response = llm['llm'].send([msg])
 
             # set the feedback from LLM to solution feedback
             single_feedback = msg_response.get_content()
 
             keys = {
-                'llm_name': llm.get_short_name(),
+                'llm_name': llm['alias'],
+                'llm_shortname': llm['llm'].get_short_name(),
                 'llm_feedback': single_feedback
             }
             feedback += self.get_feedback_msg_template().format(**keys)
@@ -91,7 +127,6 @@ class EvaluatorMultiLlmFeedback(Evaluator):
         self._check_if_best(solution)
 
         return fitness
-
 
     @classmethod
     def get_short_name(cls) -> str:

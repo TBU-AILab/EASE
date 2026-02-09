@@ -74,7 +74,7 @@ class Evaluator(Modul):
         """
         return self._init_msg_template
 
-    def get_feedback_msg_template(self) -> str:
+    def get_feedback_msg_template(self) -> str | None:
         """
         Returns Template feedback message.
         :return:
