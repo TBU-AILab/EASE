@@ -1,5 +1,6 @@
 import numpy as np
 import logging
+from datetime import timedelta, datetime
 
 
 class MaxEvalException(Exception):
@@ -7,6 +8,11 @@ class MaxEvalException(Exception):
     def __init__(self, a, f):
         self.text = f'Algorithm {a.__module__} tried to exceed maximum number of evaluations on function = {f}.'
 
+
+class MaxTimeException(Exception):
+
+    def __init__(self, a, f):
+        self.text = f'Algorithm {a.__module__} tried to exceed maximum time of evaluations on function = {f}.'
 
 class DimException(Exception):
 
@@ -16,8 +22,10 @@ class DimException(Exception):
 
 class Runner():
 
-    def __init__(self, alg, func, dim, bounds, max_evals):
+    def __init__(self, alg, func, dim, bounds, max_evals, max_time):
 
+        self._max_time = timedelta(seconds=max_time)
+        self._time_start = datetime.now()
         self._evals = 0
         self._max_evals = max_evals
         self._dim = dim
@@ -32,12 +40,19 @@ class Runner():
         self._flag_OoB = False
         self._flag_MaxEval = False
         self._flag_Dim = False
+        self._flag_MaxTime = False
 
         self._a = alg
 
         pass
 
     def _func_eval_helper(self, x):
+
+        _time = datetime.now() - self._time_start
+        # Max time check
+        if _time >= self._max_time:
+            self._flag_MaxTime = True
+            raise MaxTimeException(self._a, self._func)
 
         # Max evaluations check
         if self._evals >= self._max_evals:
@@ -75,10 +90,14 @@ class Runner():
     def run(self) -> dict:
         data = {}
         try:
+            self._time_start = datetime.now()
             self._a(self._func_eval_helper, self._dim, self._bounds, self._max_evals)
         except MaxEvalException as e:
             logging.warning(f'ResourceTask:Metaheuristic:Runner: {e.text}')
             data['maxevalexception'] = e.text
+        except MaxTimeException as e:
+            logging.warning(f'ResourceTask:Metaheuristic:Runner: {e.text}')
+            data['maxtimeexception'] = e.text
         except DimException as e:
             logging.error(f'ResourceTask:Metaheuristic:Runner: {e.text}')
             data['dimexception'] = e.text
