@@ -258,6 +258,12 @@ def predict(X_train, y_train, X_test):
     return random.choices([0, 1], k = len(X_test))
 ```"""
 
+        jan = """
+<SYSTEM_PROMPT>You are a SOC analyst.</SYSTEM_PROMPT>
+<SUMMARY_PROMPT>Summarize this incident. Focus on MITRE ATTACKs.</SUMMARY_PROMPT>
+<MITIGATE_PROMPT>Suggest mitigations.</MITIGATE_PROMPT>
+"""
+
         match self._response_type:
             case 'Meta: random search':
                 msg_text = meta_random_search
@@ -265,6 +271,8 @@ def predict(X_train, y_train, X_test):
                 msg_text = slow_2048
             case 'ModernTV: video transitions':
                 msg_text = transitions
+            case 'Jan: SoC test':
+                msg_text = jan
             case _:
                 msg_text = 'This is simple response.'
 
