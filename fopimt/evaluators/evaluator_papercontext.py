@@ -37,7 +37,7 @@ class EvaluatorPaperContext(Evaluator):
 Glossary:
 func - function that returns output value (float) for an array of input parameter values (np.array).
 dim - (int) dimension of the input vector.
-bounds - (np.array) specified lower and upper bounds for the input vector values. A pair for each dimension.
+bounds - (list) specified lower and upper bounds for the input vector values. A pair for each dimension.
 max_time - (int) maximum acceptable time in seconds to return a result.
 
 Template:
@@ -64,7 +64,7 @@ def run(func, dim, bounds, max_time):
         if passed_time >= timedelta(seconds=max_time):
             return best
 
-        params = np.array([np.random.uniform(low, high) for low, high in bounds])
+        params = [np.random.uniform(low, high) for low, high in bounds]
         fitness = func(params)
         if best is None or fitness <= best:
             best = fitness
@@ -82,7 +82,7 @@ def run(func, dim, bounds, max_time):
 
     def _init_params(self):
         super()._init_params()
-        self.function = Resource.get_resource_function('resource.gnbg.f_24', ResourceType.METABENCHMARK)
+        self.function = Resource.get_resource_function('resource.gnbg.f_24', ResourceType.METABENCHMARK)()
         self._max_time = self.parameters.get('time', 5)
         self._best = None
         self._solution_history: list = []
@@ -142,9 +142,6 @@ def run(func, dim, bounds, max_time):
             solution.add_metadata('exceptions', exceptions)
 
             self._check_if_best(solution)
-
-            feedback = self.get_feedback_msg_template().format(**self._keys)
-            solution.set_feedback(feedback)
             self._solution_history.append(solution)
 
             # Update text logs
@@ -188,6 +185,9 @@ def run(func, dim, bounds, max_time):
                 '3-last': last3_txt,
                 'all': all_txt
             }
+
+            feedback = self.get_feedback_msg_template().format(**self._keys)
+            solution.set_feedback(feedback)
 
         except Exception as e:
             logging.error('Evaluator:Metaheuristic: Error during Task evaluation: ' + repr(e))

@@ -258,6 +258,26 @@ def predict(X_train, y_train, X_test):
     return random.choices([0, 1], k = len(X_test))
 ```"""
 
+        paper_context = """```
+import numpy as np
+from datetime import datetime, timedelta
+        
+def run(func, dim, bounds, max_time):
+    start = datetime.now()
+    best = float('inf')
+
+    # Algorithm body
+    while True:
+        passed_time = (datetime.now() - start)
+        if passed_time >= timedelta(seconds=max_time):
+            return best
+
+        params = [np.random.uniform(low, high) for low, high in bounds]
+        fitness = func(params)
+        if best is None or fitness <= best:
+            best = fitness
+```"""
+
         match self._response_type:
             case 'Meta: random search':
                 msg_text = meta_random_search
@@ -265,6 +285,8 @@ def predict(X_train, y_train, X_test):
                 msg_text = slow_2048
             case 'ModernTV: video transitions':
                 msg_text = transitions
+            case 'Paper: context':
+                msg_text = paper_context
             case _:
                 msg_text = 'This is simple response.'
 

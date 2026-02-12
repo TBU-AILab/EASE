@@ -24,7 +24,8 @@ class Runner():
 
     def __init__(self, alg, func, dim, bounds, max_evals, max_time):
 
-        self._max_time = timedelta(seconds=max_time)
+        self._time_delta = timedelta(seconds=max_time)
+        self._max_time = max_time
         self._time_start = datetime.now()
         self._evals = 0
         self._max_evals = max_evals
@@ -44,13 +45,11 @@ class Runner():
 
         self._a = alg
 
-        pass
-
     def _func_eval_helper(self, x):
 
         _time = datetime.now() - self._time_start
         # Max time check
-        if _time >= self._max_time:
+        if _time >= self._time_delta:
             self._flag_MaxTime = True
             raise MaxTimeException(self._a, self._func)
 
@@ -91,7 +90,7 @@ class Runner():
         data = {}
         try:
             self._time_start = datetime.now()
-            self._a(self._func_eval_helper, self._dim, self._bounds, self._max_evals)
+            self._a(self._func_eval_helper, self._dim, self._bounds, self._max_time)
         except MaxEvalException as e:
             logging.warning(f'ResourceTask:Metaheuristic:Runner: {e.text}')
             data['maxevalexception'] = e.text
