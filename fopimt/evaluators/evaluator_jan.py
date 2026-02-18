@@ -250,7 +250,7 @@ Output MUST match the exact parseable template described in the system instructi
         try:
             # 1) POST /run
             run_url = f"{base}/run"
-            status, run_json, run_raw = _http_json("POST", run_url, body_obj=payload, timeout_s=3600.0)
+            status, run_json, run_raw = _http_json("POST", run_url, body_obj=payload, timeout_s=60.0)
             results_dict["run"] = {"http_status": status, "json": run_json, "raw": run_raw}
 
             if status < 200 or status >= 300:
@@ -284,7 +284,7 @@ Output MUST match the exact parseable template described in the system instructi
 
             # 3) GET /result/<experiment_id>?expected=<expected>
             result_url = f"{base}/result/{urllib.parse.quote(experiment_id)}?{q}"
-            r_status, r_json, r_raw = _http_json("GET", result_url, body_obj=None, timeout_s=120.0)
+            r_status, r_json, r_raw = _http_json("GET", result_url, body_obj=None, timeout_s=30.0)
             results_dict["result"] = {"http_status": r_status, "json": r_json, "raw": r_raw}
 
             if r_status != 200 or not isinstance(r_json, dict):
