@@ -190,8 +190,13 @@ def run(func, dim, bounds, max_time):
             solution.set_feedback(feedback)
 
         except Exception as e:
+            # Return error in feedback and set fitness to -1
+            fitness = -1
+            solution.set_fitness(fitness)
+            feedback = f"Error during solution evaluation: {repr(e)}\n. Try to fix it."
+            solution.set_feedback(feedback)
             logging.error('Evaluator:Metaheuristic: Error during Task evaluation: ' + repr(e))
-            raise e
+            #raise e
 
         return fitness
 
