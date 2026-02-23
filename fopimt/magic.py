@@ -217,6 +217,8 @@ class Magic:
         new_task.initialize(self._loader, orig_task._init_config)
         new_task._init_config.name = new_name
         new_task._name = new_name
+        new_task.pickle_me()
+
         return new_task
 
 

@@ -166,7 +166,7 @@ class Task():
                 logging.error("Task:run: Task is not completely defined.")
                 raise TaskInitializationException(["Task:run: Task is not completely defined."])
 
-        self._init_config = task_config
+        self._init_config = copy.deepcopy(task_config)
         self.pickle_me()
 
     def _clear_modules(self):
