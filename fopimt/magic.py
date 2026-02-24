@@ -142,7 +142,14 @@ class Magic:
         return result
 
     def task_finished_callback(self, task: Task):
+        # keep Magic's pool in sync
         self._tasks[task.id] = task
+
+        # IMPORTANT: TaskManager keeps a private in-memory dict "_tasks"
+        # Remove terminal tasks from TaskManager so they don't accumulate in RAM.
+        if task.get_state() in (TaskState.FINISH, TaskState.BREAK, TaskState.STOP):
+            with self._task_manager.lock:
+                self._task_manager._tasks.pop(task.id, None)
 
     def task_run(self, uid: str) -> bool:
         # 1) Check existence of the task and if not init return False
