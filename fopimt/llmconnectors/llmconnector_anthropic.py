@@ -67,29 +67,71 @@ class LLMConnectorAnthropic(LLMConnector):
         """
         return 'assistant'
 
+
     def send(self, context) -> Message:
         msgs = self._extract_messages(context)
-        message = self._client.messages.create(
-            max_tokens=4096,
-            messages=msgs,
-            system=self._system_msg,
-            model=self._model
-        )
-        response = message.to_dict()
-        if 'content' in response:
-            if isinstance(response['content'], list):
-                formatted_output = "".join(
-                    text_block['text'] for text_block in response['content'] if 'text' in text_block)
-        else:
-            formatted_output = ""
 
-        msg = Message(role=self.get_role_assistant(), model_encoding=None,
-                      message=formatted_output
-                      )
-        msg.set_tokens(message.usage.output_tokens)
+        HARD_MAX_TOKENS = 65536  # 64k per-call output
+        MAX_CONTINUATIONS = 20  # safety cap
+
+        all_text_parts = []
+        total_output_tokens = 0
+
+        working_msgs = list(msgs)
+
+        for _ in range(MAX_CONTINUATIONS + 1):
+            chunk_text = ""
+
+            # Streaming required for long requests (Anthropic SDK constraint)
+            with self._client.messages.stream(
+                    model=self._model,
+                    system=self._system_msg,
+                    messages=working_msgs,
+                    max_tokens=HARD_MAX_TOKENS,
+            ) as stream:
+                for delta_text in stream.text_stream:
+                    chunk_text += delta_text
+                final_msg = stream.get_final_message()
+
+            all_text_parts.append(chunk_text)
+
+            # Usage token accounting (best-effort)
+            try:
+                usage = getattr(final_msg, "usage", None)
+                if usage is not None and getattr(usage, "output_tokens", None) is not None:
+                    total_output_tokens += int(usage.output_tokens)
+            except Exception:
+                pass
+
+            stop_reason = getattr(final_msg, "stop_reason", None)
+
+            # Finished normally (e.g., "end_turn", "stop_sequence", etc.)
+            if stop_reason != "max_tokens":
+                break
+
+            # Doc-style continuation: append assistant output, then ask to continue without repetition
+            working_msgs.append({"role": self.get_role_assistant(), "content": chunk_text})
+            working_msgs.append({
+                "role": self.get_role_user(),
+                "content": (
+                    "Continue exactly where you left off. "
+                    "Do not repeat anything already written. "
+                    "Do not add any preamble like 'Continuing'."
+                )
+            })
+        # else: exhausted continuations; return what we have
+
+        formatted_output = "".join(all_text_parts)
+
+        msg = Message(
+            role=self.get_role_assistant(),
+            model_encoding=None,
+            message=formatted_output
+        )
+        if total_output_tokens:
+            msg.set_tokens(total_output_tokens)
 
         return msg
-
 
 
     def get_model(self) -> str:
