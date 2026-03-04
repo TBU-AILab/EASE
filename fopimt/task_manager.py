@@ -85,7 +85,7 @@ def run_task(
 
 # TaskManager class with pause functionality
 class TaskManager:
-    def __init__(self, max_workers=4):
+    def __init__(self, max_workers=8):
         self.running_on_unix = os.name == "posix"
         self.max_workers = max_workers
 
