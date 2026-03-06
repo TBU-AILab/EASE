@@ -4,6 +4,9 @@ from ..modul import Modul
 from ..solutions.solution import Solution
 from ..loader import Parameter, PrimitiveType
 
+class OptimizationGoal(Enum):
+    MINIMIZATION = 0
+    MAXIMIZATION = 1
 
 class Evaluator(Modul):
     """
@@ -46,7 +49,7 @@ class Evaluator(Modul):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> float:
+    def evaluate(self, solution: Solution, opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION) -> float:
         """
         Evaluation function. Returns quality of solution as float number.
         Arguments:

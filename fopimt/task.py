@@ -19,7 +19,7 @@ from pydantic import BaseModel
 
 from .tests.test import Test
 from .user import User
-from .evaluators.evaluator import Evaluator
+from .evaluators.evaluator import Evaluator, OptimizationGoal
 from .magic_datetime import DateTime, is_newer_than, convert_to_datetime
 from .message import Message, MessageAPI
 from .message_repeating import MessageRepeating, MessageRepeatingConfig
@@ -60,6 +60,8 @@ class TaskConfig(BaseModel):
     system_message: Optional[str] = None
     repeated_message: Optional[MessageRepeatingConfig] = None
 
+    optimization_goal: Optional[OptimizationGoal] = None
+
     modules: Optional[list[TaskModulConfig]] = None
 
 class TaskInfo(BaseModel):
@@ -73,12 +75,14 @@ class TaskInfo(BaseModel):
     iterations_invalid_consecutive: int | None
     incompatible: list[list[str]] | None # list of shortnames of incompatible ModuleAPIs, always in pair
     log: list[str] | None # error log, i.e. STATE == BREAK
+    optimization_goal: Optional[OptimizationGoal] = None
 
 
 class TaskData(BaseModel):
     id: str | None  # uuid
     messages: list[MessageAPI]
     solutions: list[SolutionAPI]
+
 
 class TaskFull(BaseModel):
     task_info: Optional[TaskInfo] = None
@@ -108,6 +112,9 @@ class Task():
             self._max_context_size = task_config.max_context_size
         if task_config.feedback_from_solution is not None:
             self._spec_feedback_from_solution = task_config.feedback_from_solution
+        if task_config.optimization_goal is not None:
+            self._optimization_goal = task_config.optimization_goal
+
 
         # Moduls
         self._clear_modules()
@@ -209,7 +216,8 @@ class Task():
             ConfigTask.EVALUATOR: None,
             ConfigTask.COND: [],
             ConfigTask.STAT: [],
-            ConfigTask.REP_MESSAGE: None
+            ConfigTask.REP_MESSAGE: None,
+            ConfigTask.OPTIMIZATION_GOAL: OptimizationGoal.MINIMIZATION
         }
 
         task = cls(config)
@@ -282,6 +290,7 @@ class Task():
         self._spec_feedback_from_solution: bool = config[ConfigTask.FEEDBACK_FROM_SOLUTION]  # Option: send feedback
         # to LLM from solution
         self._spec_stat: list[Stat] = config[ConfigTask.STAT]  # Optional Statistics
+        self._optimization_goal = config[ConfigTask.OPTIMIZATION_GOAL] #Minimization/Maximization
 
         # Set encoding of Messages based on the LLMConnector.model
         # Only if specified LLM is set
@@ -353,7 +362,8 @@ class Task():
             iterations_valid=self._iteration_valid,
             iterations_invalid_consecutive=self._iteration_invalid_cons,
             incompatible=self._incompatible_modules,
-            log=self._log_error
+            log=self._log_error,
+            optimization_goal=self._optimization_goal
         )
 
     def get_full(self) -> TaskFull:
@@ -960,7 +970,7 @@ class Task():
 
             # 10) evaluation, only if no ERROR
             if state == 'OK':
-                self._spec_evaluator.evaluate(solution)
+                self._spec_evaluator.evaluate(solution, self._optimization_goal)
                 if self._spec_feedback_from_solution:
                     buffer_message.put(solution.get_feedback())
                     for anal in self._spec_analysis:

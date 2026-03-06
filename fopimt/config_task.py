@@ -21,3 +21,4 @@ class ConfigTask(Enum):
     EVALUATOR = "evaluator"
     COND = "cond"
     SOLUTION = "solution"
+    OPTIMIZATION_GOAL = "optimization_goal"

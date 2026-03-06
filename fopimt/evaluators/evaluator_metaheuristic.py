@@ -1,7 +1,7 @@
 import logging
 
 import numpy as np
-from .evaluator import Evaluator
+from .evaluator import Evaluator, OptimizationGoal
 from ..solutions.solution import Solution
 from ..loader import Parameter, PrimitiveType
 import copy
@@ -127,7 +127,7 @@ def run(func, dim, bounds, max_evals):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> float:
+    def evaluate(self, solution: Solution, opt_goal: OptimizationGoal) -> float:
         """
         Evaluation function. Returns quality of solution as float number.
         Arguments:
@@ -204,7 +204,7 @@ def run(func, dim, bounds, max_evals):
                 'best_solution': best_sol_text
             }
 
-            self._check_if_best(solution)
+            self._check_if_best(solution, opt_goal)
 
             feedback = self.get_feedback_msg_template().format(**self._keys)
             solution.set_feedback(feedback)
@@ -338,7 +338,7 @@ def run(func, dim, bounds, max_evals):
 
         return new_row, exceptions
 
-    def _check_if_best(self, solution: Solution) -> bool:
+    def _check_if_best(self, solution: Solution, opt_goal: OptimizationGoal) -> bool:
         """
         Internal function. Compares fitness of saved solution (_best) against parameter solution.
         Saves the best one to the _best.
@@ -378,12 +378,18 @@ def run(func, dim, bounds, max_evals):
                 # Determine the better algorithm
                 if p_value < 0.05:
                     if stat < 0:
-                        score += 1
+                        if opt_goal == OptimizationGoal.MINIMIZATION:
+                            score += 1
+                        else:
+                            score -= 1
 
                         stats_txt += self.parameters.get('stats_txt_better_solution', self.get_parameters().get('stats_txt_better_solution').default).format(
                             f=key[0], dim=key[1], p_value=p_value)
                     else:
-                        score -= 1
+                        if opt_goal == OptimizationGoal.MINIMIZATION:
+                            score -= 1
+                        else:
+                            score += 1
                         stats_txt += self.parameters.get('stats_txt_worse_solution', self.get_parameters().get('stats_txt_worse_solution').default).format(
                             f=key[0], dim=key[1], p_value=p_value)
                 else:
