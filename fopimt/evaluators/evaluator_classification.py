@@ -5,7 +5,7 @@ import pandas as pd
 import copy
 
 from ..resource.resource import Resource, ResourceType
-from .evaluator import Evaluator
+from .evaluator import Evaluator, OptimizationGoal
 from ..modul import Modul
 from ..solutions.solution import Solution
 from ..utils.import_utils import dynamic_import
@@ -75,7 +75,7 @@ class EvaluatorClassification(Evaluator):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> float:
+    def evaluate(self, solution: Solution, opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION) -> float:
         """
         Evaluation function. Returns quality of solution as float number.
         Arguments:

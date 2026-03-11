@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 import itertools
-from .evaluator import Evaluator
+from .evaluator import Evaluator, OptimizationGoal
 from ..solutions.solution import Solution
 from ..loader import Parameter, PrimitiveType
 import copy
@@ -163,7 +163,7 @@ def run(n, fitness_func, check_inside_triangle_func, max_time):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> float:
+    def evaluate(self, solution: Solution, opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION) -> float:
         """
         Evaluation function. Returns quality of solution as float number.
         Arguments:

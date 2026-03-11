@@ -3,7 +3,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import itertools
-from .evaluator import Evaluator
+from .evaluator import Evaluator, OptimizationGoal
 from ..solutions.solution import Solution
 from ..loader import Parameter, PrimitiveType
 import copy
@@ -281,7 +281,7 @@ Avoid any form of testing or logging. Only return the best valid configuration y
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> float:
+    def evaluate(self, solution: Solution, opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION) -> float:
         """
         Evaluation function. Returns quality of solution as float number.
         Arguments:

@@ -1,6 +1,6 @@
 import copy
 
-from .evaluator import Evaluator
+from .evaluator import Evaluator, OptimizationGoal
 from ..solutions.solution import Solution
 from ..solutions.solution_image import SolutionImage
 from ..llmconnectors.llmconnector import LLMConnector
@@ -51,7 +51,7 @@ class EvaluatorLlmFeedback(Evaluator):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> float:
+    def evaluate(self, solution: Solution, opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION) -> float:
         """
         Evaluation function. Returns quality of solution as float number.
         Arguments:
