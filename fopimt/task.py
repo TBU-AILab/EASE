@@ -960,7 +960,9 @@ class Task():
 
             # 10) evaluation, only if no ERROR
             if state == 'OK':
-                self._spec_evaluator.evaluate(solution)
+                fitness = self._spec_evaluator.evaluate(solution)
+                if fitness == -1:
+                    state = 'ERROR'
                 if self._spec_feedback_from_solution:
                     buffer_message.put(solution.get_feedback())
                     for anal in self._spec_analysis:
