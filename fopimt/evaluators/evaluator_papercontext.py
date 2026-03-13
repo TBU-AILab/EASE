@@ -196,6 +196,7 @@ def run(func, dim, bounds, max_time):
             feedback = f"Error during solution evaluation: {repr(e)}\n. Try to fix it."
             solution.set_feedback(feedback)
             logging.error('Evaluator:Metaheuristic: Error during Task evaluation: ' + repr(e))
+            return fitness
             #raise e
 
         return fitness
