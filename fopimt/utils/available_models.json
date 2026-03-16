@@ -13,14 +13,16 @@
   "llm.ollama": [
     {
       "url": "http://host.docker.internal:11434",
-      "models": []
+      "models": [
+        "llama3.1:8b",
+        "llama3.1:70b"
+      ]
     }
   ],
   "llm.openai": [
     {
       "url": "https://api.openai.com/v1/models",
       "models": [
-        "gpt-5.2",
         "gpt-4o",
         "chatgpt-4o-latest",
         "gpt-4o-mini",
@@ -54,8 +56,6 @@
     {
       "url": "https://api.anthropic.com/v1/models",
       "models": [
-        "claude-opus-4-6",
-        "claude-sonnet-4-5-20250929",
         "claude-3-7-sonnet-20250219",
         "claude-3-5-sonnet-20241022",
         "claude-3-5-haiku-20241022claude-3-opus-20240229",
