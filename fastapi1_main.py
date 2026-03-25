@@ -2,6 +2,7 @@ import logging
 
 import os
 import uvicorn
+from datetime import datetime, timezone
 
 from pydantic import BaseModel
 
@@ -94,6 +95,20 @@ console_capture = ConsoleCapture()
 magic_instance = Magic()
 
 
+def _log_endpoint_event(action: str, phase: str) -> None:
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    logging.info("%s (%s) - %s", action, phase, timestamp)
+
+
+@app.middleware("http")
+async def log_http_requests(request: Request, call_next):
+    action = f"{request.method} {request.url.path}"
+    _log_endpoint_event(action, "Start")
+    response = await call_next(request)
+    _log_endpoint_event(action, "Finish")
+    return response
+
+
 def _get_task(task_id: str) -> Task:
     task = magic_instance.task_get(task_id)
     if task is None:
@@ -168,6 +183,7 @@ def system_pm_delete(packages: list[PythonPackage]) -> None:
 @app.websocket("/ws/xterm/{session_id}")
 async def websocket_xterm(websocket: WebSocket, session_id: str):
     """ WebSocket handler for an interactive shell session with xterm.js """
+    _log_endpoint_event(f"WS {websocket.url.path}", "Start")
     await websocket.accept()
 
     process = await asyncio.create_subprocess_exec(
@@ -200,10 +216,12 @@ async def websocket_xterm(websocket: WebSocket, session_id: str):
 
     finally:
         await websocket.close()
+        _log_endpoint_event(f"WS {websocket.url.path}", "Finish")
 
 
 @app.websocket("/ws/logs")
 async def websocket_log_endpoint(websocket: WebSocket):
+    _log_endpoint_event(f"WS {websocket.url.path}", "Start")
     await websocket.accept()
     last_position = 0
     try:
@@ -215,6 +233,8 @@ async def websocket_log_endpoint(websocket: WebSocket):
                 last_position += len(new_output)
     except Exception as e:
         logging.error(f"WebSocket error: {e}")
+    finally:
+        _log_endpoint_event(f"WS {websocket.url.path}", "Finish")
 
 
 # Landing page
