@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException, Request, WebSocket, UploadFile, File, Query
 from typing import List, Any, Optional, Union, Dict
 from fopimt.task import Task, TaskConfig, TaskState, TaskInfo, TaskData, TaskFull
-from fopimt.utils.connector_utils import update_all_models
+from fopimt.utils.connector_utils import update_all_models, read_json, write_json, validate_models_structure
 from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -146,6 +146,30 @@ def update_models():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/available-models")
+def get_available_models_config() -> dict:
+    """
+    GET - returns the current content of available_models.json
+    """
+    try:
+        return read_json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/available-models")
+def update_available_models_config(models: Dict[str, Any]):
+    """
+    PUT - replaces the content of available_models.json with the provided data
+    """
+    errors = validate_models_structure(models)
+    if errors:
+        raise HTTPException(status_code=422, detail=errors)
+    try:
+        write_json(models)
+        return {"status": "success", "message": "Available models configuration updated successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/system/pm/all")
 def system_pm_all() -> list[PythonPackage]:
