@@ -1,27 +1,33 @@
+from ..loader_dto import Parameter, PrimitiveType
 from ..message import Message
-from .llmconnector import LLMConnector
-from ..loader import Parameter, PrimitiveType
 from ..utils.connector_utils import get_available_models
+from .llmconnector import LLMConnector, LLMConnectorResult
 
 
 class LLMConnectorMock(LLMConnector):
-
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
-
         av_models = get_available_models(cls.get_short_name())
 
         return {
-            'response': Parameter(short_name="response", type=PrimitiveType.enum, long_name='Response type',
-                                  enum_options=av_models['model_names'], enum_descriptions=av_models['model_longnames'], default='Meta: random search')
+            "response": Parameter(
+                short_name="response",
+                type=PrimitiveType.enum,
+                long_name="Response type",
+                enum_options=av_models["model_names"],
+                enum_descriptions=av_models["model_longnames"],
+                default="Meta: random search",
+            )
         }
 
     def _init_params(self):
         super()._init_params()
-        self._response_type = self.parameters.get('response', self.get_parameters().get('response').default)
+        self._response_type = self.parameters.get(
+            "response", self.get_parameters().get("response").default
+        )
 
-        self._type = 'Mock'  # Type of LLM (OpenAI, Meta, Google, ...)
-        self._model = 'gpt-3.5-turbo'  # Model ('gpt-3.5-turbo', ...)
+        self._type = "Mock"  # Type of LLM (OpenAI, Meta, Google, ...)
+        self._model = "gpt-3.5-turbo"  # Model ('gpt-3.5-turbo', ...)
 
     ####################################################################
     #########  Public functions
@@ -31,23 +37,23 @@ class LLMConnectorMock(LLMConnector):
         Get role specification string for USER.
         Returns string.
         """
-        return 'user'
+        return "user"
 
     def get_role_system(self) -> str:
         """
         Get role specification string for SYSTEM.
         Returns string.
         """
-        return 'system'
+        return "system"
 
     def get_role_assistant(self) -> str:
         """
         Get role specification string for ASSISTANT.
         Returns string.
         """
-        return 'assistant'
+        return "assistant"
 
-    def send(self, context) -> Message:
+    def send(self, context) -> LLMConnectorResult:
         """
         Send context to mock LLM.
         Returns mock response as Message from LLM.
@@ -259,22 +265,23 @@ def predict(X_train, y_train, X_test):
 ```"""
 
         match self._response_type:
-            case 'Meta: random search':
+            case "Meta: random search":
                 msg_text = meta_random_search
-            case '2048: left and slow':
+            case "2048: left and slow":
                 msg_text = slow_2048
-            case 'ModernTV: video transitions':
+            case "ModernTV: video transitions":
                 msg_text = transitions
             case _:
-                msg_text = 'This is simple response.'
+                msg_text = "This is simple response."
 
         msg = Message(
-            role=self.get_role_assistant(),
-            model_encoding=None,
-            message=msg_text
+            role=self.get_role_assistant(), model_encoding=None, message=msg_text
         )
         msg.set_tokens(10)  # funny number
-        return msg
+        return LLMConnectorResult(
+            class_ref=type(self),
+            response=msg,
+        )
 
     def get_model(self) -> str:
         """
@@ -296,10 +303,8 @@ def predict(X_train, y_train, X_test):
 
     @classmethod
     def get_tags(cls) -> dict:
-        return {
-            'input': set(),
-            'output': {'text'}
-        }
+        return {"input": set(), "output": {"text"}}
+
     ####################################################################
     #########  Private functions
     ####################################################################

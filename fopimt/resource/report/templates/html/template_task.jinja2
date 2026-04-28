@@ -1,0 +1,848 @@
+{# ============================================================
+   EASE Offline HTML Report — TASK LEVEL (Plotly FE rendering)
+   Updates in this version:
+   - Fitness + Avg fitness: SAME purple (CSS --brand)
+     - Best fitness: solid line
+     - Avg fitness: dashed line
+   - Convergence: SAME purple, solid line
+   - Removed the "ugly" vertical hover guide by using hovermode: "x"
+     (NOT "x unified") and no spikes
+   - Best Solution uses <details> toggle (no JS)
+   - Module visualizations are toggleable (<details open>)
+   ============================================================ #}
+<!DOCTYPE html>
+<html lang="en"{% if theme and theme|lower == "light" %} class="light"{% endif %}>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{ page_title|default("EASE Task Report") }}</title>
+
+{% include "base_styles.jinja2" %}
+
+<style>
+  /* ---- UX helpers (no redesign, just hierarchy/layout) ---- */
+  .grid-2{
+    display:grid;
+    gap: 12px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 860px){
+    .grid-2{ grid-template-columns: 1fr 1fr; }
+  }
+
+  .metrics{
+    display:grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  @media (min-width: 860px){
+    .metrics{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+
+  .metric{
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+    padding: 12px 12px;
+    background: color-mix(in oklab, var(--surface) 82%, transparent);
+  }
+  .metric .k{
+    margin:0;
+    font-size: 12px;
+    color: var(--fg-muted);
+    letter-spacing: 0.15px;
+  }
+  .metric .v{
+    margin: 4px 0 0 0;
+    font-size: 22px;
+    font-weight: 760;
+    letter-spacing: -0.2px;
+  }
+  .metric .h{
+    margin: 4px 0 0 0;
+    font-size: 12px;
+    color: var(--fg-muted);
+    line-height: 1.35;
+  }
+
+  .subcard{
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+    padding: 12px 12px;
+    background: color-mix(in oklab, var(--surface) 86%, transparent);
+  }
+  .subcard h3{
+    margin:0 0 8px 0;
+    font-size: 13px;
+    letter-spacing: 0.2px;
+  }
+  .subcard p{
+    margin:0;
+    color: var(--fg-muted);
+    font-size: 12.5px;
+    line-height: 1.35;
+  }
+
+  .divider{
+    height:1px;
+    background: var(--border-soft);
+    margin: 12px 0;
+  }
+
+  .viz-grid{
+    display:grid;
+    gap: 12px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 860px){
+    .viz-grid{ grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Plot containers (keeps your card look clean) */
+  .plot{
+    width: 100%;
+    height: 320px;
+  }
+  @media (min-width: 860px){
+    .plot{ height: 360px; }
+  }
+
+  .grid-2{
+    display:grid;
+    gap: 12px;
+    grid-template-columns: 1fr;
+    align-items: stretch; /* key */
+  }
+
+  .grid-2 > *{
+    min-width: 0;
+  }
+  @media (min-width: 860px){
+    .grid-2{ grid-template-columns: 1fr 1fr; }
+  }
+
+  .message-card{
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+  }
+
+  .message-box{
+    flex:1;
+    max-width:100%;
+    max-height:320px;
+    overflow:auto;
+
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    background: var(--code-bg);
+    padding: 12px 14px;
+  }
+
+  /* Rendered markdown content */
+  .message-markdown{
+    min-width: 0;
+    color: var(--fg);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .message-markdown > *:first-child{
+    margin-top: 0;
+  }
+
+  .message-markdown > *:last-child{
+    margin-bottom: 0;
+  }
+
+  .message-markdown p,
+  .message-markdown ul,
+  .message-markdown ol,
+  .message-markdown blockquote,
+  .message-markdown pre,
+  .message-markdown table{
+    margin: 0 0 12px 0;
+  }
+
+  .message-markdown h1,
+  .message-markdown h2,
+  .message-markdown h3,
+  .message-markdown h4,
+  .message-markdown h5,
+  .message-markdown h6{
+    margin: 0 0 10px 0;
+    line-height: 1.25;
+  }
+
+  .message-markdown ul,
+  .message-markdown ol{
+    padding-left: 1.25rem;
+  }
+
+  .message-markdown blockquote{
+    margin: 0 0 12px 0;
+    padding: 0 0 0 12px;
+    border-left: 3px solid var(--border);
+    color: var(--fg-muted);
+  }
+
+  .message-markdown pre{
+    overflow:auto;
+  }
+
+  .message-markdown code{
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .message-markdown pre code{
+    white-space: pre-wrap;
+    display:block;
+  }
+
+  .message-markdown table{
+    width:100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .message-markdown th,
+  .message-markdown td{
+    border: 1px solid var(--border-soft);
+    padding: 6px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+    .modules-list{
+    display:grid;
+    gap: 10px;
+  }
+
+  .module-config-item{
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+    background: color-mix(in oklab, var(--surface) 86%, transparent);
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  .module-config-summary{
+    padding: 12px 14px;
+    font-weight: 650;
+    font-size: 13px;
+    color: var(--fg);
+    background: linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--raised) 92%, transparent),
+      color-mix(in oklab, var(--surface) 92%, transparent)
+    );
+    border-bottom: 1px solid transparent;
+  }
+
+  .module-config-item[open] > .module-config-summary{
+    border-bottom-color: var(--border-soft);
+  }
+
+  .module-config-title{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+  }
+
+  .module-config-body{
+    padding: 12px 14px 14px;
+  }
+
+  .module-config-body pre{
+    margin: 0;
+  }
+</style>
+
+{# Local Plotly (minified) #}
+<script defer src="assets/plotly.min.js"></script>
+
+{# Provide the BE JSON to FE in a safe way #}
+<script id="iteration-series" type="application/json">
+{{ iteration_series | default({"columns": {}}) | tojson }}
+</script>
+
+<script>
+(function () {
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function cssColorVar(name, fallback) {
+    const root = document.documentElement;
+    const raw = getComputedStyle(root).getPropertyValue(name).trim();
+    if (!raw) return fallback;
+
+    const probe = document.createElement("span");
+    probe.style.color = "transparent";
+    probe.style.color = `var(${name})`;
+    probe.style.position = "absolute";
+    probe.style.pointerEvents = "none";
+    probe.style.opacity = "0";
+    document.body.appendChild(probe);
+
+    const resolved = getComputedStyle(probe).color;
+    probe.remove();
+
+    if (!resolved || resolved === "rgba(0, 0, 0, 0)") {
+      return fallback || raw;
+    }
+    return resolved;
+  }
+
+  function parseSeries() {
+    const el = document.getElementById("iteration-series");
+    if (!el) return { columns: {} };
+    try { return JSON.parse(el.textContent || "{}"); }
+    catch { return { columns: {} }; }
+  }
+
+  // Build a Plotly layout that matches your theme via CSS vars
+  function makeLayout(title) {
+    const fg = cssVar("--fg") || "#f3f4f8";
+    const fgMuted = cssVar("--fg-muted") || "#b4b7c6";
+    const borderSoft = cssVar("--border-soft") || "#232332";
+    const codeBg = cssVar("--code-bg") || "#0f0f16";
+
+    return {
+      title: { text: title, font: { size: 13, color: fgMuted }, x: 0, xanchor: "left" },
+      paper_bgcolor: "rgba(0,0,0,0)",
+      plot_bgcolor: "rgba(0,0,0,0)",
+      font: { family: "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif", color: fg },
+      margin: { l: 46, r: 18, t: 34, b: 42 },
+
+      // ✅ Avoid Plotly's unified-hover vertical guide line
+      // "x" shares x hover without the unified mode line; keeps UX decent.
+      hovermode: "x",
+
+      xaxis: {
+        title: { text: "Iteration", font: { size: 12, color: fgMuted } },
+        gridcolor: borderSoft,
+        zerolinecolor: borderSoft,
+        linecolor: borderSoft,
+        tickfont: { color: fgMuted },
+        ticks: "outside",
+        tickcolor: borderSoft
+      },
+      yaxis: {
+        title: { text: "", font: { size: 12, color: fgMuted } },
+        gridcolor: borderSoft,
+        zerolinecolor: borderSoft,
+        linecolor: borderSoft,
+        tickfont: { color: fgMuted },
+        ticks: "outside",
+        tickcolor: borderSoft
+      },
+      legend: {
+        orientation: "h",
+        x: 0,
+        y: -0.18,
+        font: { size: 12, color: fgMuted }
+      },
+      hoverlabel: {
+        bgcolor: codeBg,
+        bordercolor: borderSoft,
+        font: { color: fg }
+      }
+    };
+  }
+
+  function makeConfig() {
+    return {
+      responsive: true,
+      displaylogo: false,
+      modeBarButtonsToRemove: [
+        "lasso2d", "select2d",
+        "autoScale2d", "resetScale2d",
+        "toggleSpikelines"
+      ],
+      toImageButtonOptions: { format: "png", filename: "ease_plot", scale: 2 }
+    };
+  }
+
+  function renderPlots() {
+    if (!window.Plotly) return;
+
+    const data = parseSeries();
+    const cols = (data && data.columns) ? data.columns : {};
+
+    const x = Array.isArray(cols.iteration) ? cols.iteration : [];
+    const fitness = Array.isArray(cols.fitness) ? cols.fitness : [];
+    const avg = Array.isArray(cols.avg_fitness) ? cols.avg_fitness : [];
+    const conv = Array.isArray(cols.fitness_convergence) ? cols.fitness_convergence : [];
+
+    // Same purple for everything
+    const brand = cssColorVar("--brand-plot", "#8b5cf6");
+
+    // Plot 1: Fitness over iterations (best + avg) — same color, avg dashed
+    const traceFitness = {
+      type: "scatter",
+      mode: "lines+markers",
+      name: "Best fitness",
+      x,
+      y: fitness,
+      connectgaps: false,  // respects nulls
+      line: { width: 2, color: brand, dash: "solid" },
+      marker: { size: 6, color: brand },
+      hovertemplate: "Iter %{x}<br>Fitness %{y}<extra></extra>"
+    };
+
+    const traceAvg = {
+      type: "scatter",
+      mode: "lines+markers",
+      name: "Avg fitness",
+      x,
+      y: avg,
+      connectgaps: false,
+      line: { width: 2, color: brand, dash: "dash" },
+      marker: { size: 5, color: brand },
+      hovertemplate: "Iter %{x}<br>Avg %{y}<extra></extra>"
+    };
+
+    // Plot 2: Convergence — same color, solid
+    const traceConv = {
+      type: "scatter",
+      mode: "lines",
+      name: "Best-so-far",
+      x,
+      y: conv,
+      connectgaps: true,
+      line: { width: 2.5, color: brand, dash: "solid" },
+      hovertemplate: "Iter %{x}<br>Best-so-far %{y}<extra></extra>"
+    };
+
+    const el1 = document.getElementById("plot-fitness");
+    const el2 = document.getElementById("plot-convergence");
+
+    if (el1) {
+      window.Plotly.newPlot(el1, [traceFitness, traceAvg], makeLayout("Fitness over iterations"), makeConfig());
+    }
+    if (el2) {
+      window.Plotly.newPlot(el2, [traceConv], makeLayout("Convergence"), makeConfig());
+    }
+  }
+
+  // Render after DOM + Plotly are ready
+  function ready(fn){ (document.readyState !== "loading") ? fn() : document.addEventListener("DOMContentLoaded", fn); }
+  ready(function () {
+    // Plotly is defer-loaded; poll briefly (no async promises needed)
+    let tries = 0;
+    const t = setInterval(function () {
+      tries += 1;
+      if (window.Plotly) {
+        clearInterval(t);
+        renderPlots();
+      } else if (tries > 40) {
+        clearInterval(t);
+      }
+    }, 25);
+
+    // Re-render on theme toggle (if you flip html.light at runtime)
+    const obs = new MutationObserver(function (muts) {
+      for (const m of muts) {
+        if (m.type === "attributes" && m.attributeName === "class") {
+          renderPlots();
+          break;
+        }
+      }
+    });
+    obs.observe(document.documentElement, { attributes: true });
+  });
+})();
+</script>
+</head>
+
+<body>
+<div class="wrap">
+
+<!-- =========================================================
+     HEADER
+========================================================= -->
+<header class="header">
+  <div class="brandbar">
+    <div class="brand-left">
+      <div class="logo">
+        <img src="{{ logo_data_uri }}" alt="EASE Logo">
+      </div>
+      <div class="brand-title">
+        <h1>EASE</h1>
+        <p class="subtitle">Effortless Algorithmic Solution Evolution</p>
+      </div>
+    </div>
+    <div class="chip" style="position:relative;">
+      Generated: <span>{{ generated_at|default("—") }}</span>
+    </div>
+  </div>
+
+  <div class="header-meta">
+    <div class="taskline">
+      <p class="taskname">{{ task_name|default("Unnamed task") }}</p>
+      <div class="chips">
+        <span class="chip">Task ID: {{ task_id|default("task_unknown") }}</span>
+        {% if task_author %}<span class="chip">Author: {{ task_author }}</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="main-result">
+      <div>
+        <p class="label">Best Fitness</p>
+        <p class="value">{{ best_fitness|default("—") }}</p>
+        <p class="note">{{ best_fitness_note|default("Computed by task-specific evaluator") }}</p>
+      </div>
+      <div class="chips">
+        <span class="chip">Solver: {{ solution_name|default("unknown") }}</span>
+        <span class="chip">Evaluator: {{ evaluator_name|default("unknown") }}</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- =========================================================
+     TASK SUMMARY
+========================================================= -->
+<section class="section">
+<h2>Task Summary</h2>
+
+<div class="card">
+  <div class="metrics">
+    <div class="metric">
+      <p class="k">Runtime</p>
+      <p class="v">{{ total_runtime|default("—") }}</p>
+      <p class="h">Start: {{ time_start|default("—") }}</p>
+    </div>
+
+    <div class="metric">
+      <p class="k">Tokens used</p>
+      <p class="v">{{ tokens_used|default(0) }}</p>
+      <p class="h">Consumed across all iterations</p>
+    </div>
+
+    <div class="metric">
+      <p class="k">Valid / Invalid iterations</p>
+      <p class="v">{{ valid_iterations|default(0) }} / {{ invalid_iterations|default(0) }}</p>
+      <p class="h">Passed vs failed solution iterations</p>
+    </div>
+
+    <div class="metric">
+      <p class="k">Best fitness iteration</p>
+      <p class="v">{{ best_solution_number|default("—") }}</p>
+      <p class="h">Iteration with best fitness</p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="grid-2">
+    <div class="subcard message-card">
+      <h3>System message</h3>
+      {% if system_message_html %}
+        <div class="message-box">
+          <div class="message-markdown">
+            {{ system_message_html | safe }}
+          </div>
+        </div>
+      {% else %}
+        <p>No system message provided.</p>
+      {% endif %}
+    </div>
+
+    <div class="subcard message-card">
+      <h3>Initial message</h3>
+      {% if initial_message_html %}
+        <div class="message-box">
+          <div class="message-markdown">
+            {{ initial_message_html | safe }}
+          </div>
+        </div>
+      {% else %}
+        <p>No initial message provided.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="subcard">
+    <h3>Repeated message</h3>
+
+    {% if repeated_message_type or (repeated_message_messages and repeated_message_messages|length > 0) %}
+      <div class="chips" style="margin-top:6px; margin-bottom:10px;">
+        <span class="chip">
+          Type: {{ repeated_message_type|default("—") }}
+        </span>
+        <span class="chip">
+          Count: {{ repeated_message_messages|length if repeated_message_messages else 0 }}
+        </span>
+      </div>
+
+      {% if repeated_message_messages and repeated_message_messages|length > 0 %}
+        <div style="display:grid; gap:10px;">
+          {% for msg in repeated_message_messages %}
+            <div class="message-box" style="max-height:none;">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:wrap;">
+                <p style="margin:0; font-size:12px; color:var(--fg-muted);">
+                  Repeated message {{ loop.index }}
+                </p>
+                <span class="chip">
+                  Weight: {{ repeated_message_weights[loop.index0] if repeated_message_weights and repeated_message_weights|length > loop.index0 else "—" }}
+                </span>
+              </div>
+
+              <div class="message-markdown">
+                <p style="margin:0; color:var(--fg); white-space:pre-wrap;">{{ msg }}</p>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p>No repeated messages provided.</p>
+      {% endif %}
+    {% else %}
+      <p>No repeated message provided.</p>
+    {% endif %}
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="subcard">
+    <h3>Used modules with configuration parameters</h3>
+
+    {% if used_modules and used_modules|length > 0 %}
+      <div class="modules-list" style="margin-top:10px;">
+        {% for mod in used_modules %}
+          <details class="module-config-item">
+            <summary class="module-config-summary">
+              <span class="module-config-title">{{ mod.modul_name|default("Unnamed module") }}</span>
+            </summary>
+
+            <div class="module-config-body">
+              {% if mod.parameters_json %}
+                <pre><code>{{ mod.parameters_json }}</code></pre>
+              {% else %}
+                <p style="margin:0; color: var(--fg-muted); font-size: 13px;">
+                  No configuration was provided for this module.
+                </p>
+              {% endif %}
+            </div>
+          </details>
+        {% endfor %}
+      </div>
+
+      <div class="chips" style="margin-top:10px;">
+        <span class="chip">Evaluator: {{ evaluator_name|default("unknown") }}</span>
+        <span class="chip">Solution: {{ solution_name|default("unknown") }}</span>
+        <span class="chip">Modules: {{ used_modules|length }}</span>
+      </div>
+    {% else %}
+      <p style="margin:0; color: var(--fg-muted); font-size:13px;">
+        No used modules were provided for this task.
+      </p>
+
+      <div class="chips" style="margin-top:10px;">
+        <span class="chip">Evaluator: {{ evaluator_name|default("unknown") }}</span>
+        <span class="chip">Solution: {{ solution_name|default("unknown") }}</span>
+      </div>
+    {% endif %}
+  </div>
+</div>
+</section>
+
+<!-- =========================================================
+     ITERATION OVERVIEW (Plotly FE graphs)
+========================================================= -->
+<section class="section">
+<h2>Iteration Overview</h2>
+
+<div class="card">
+  <div class="viz-grid">
+    <div class="subcard" style="padding:0; overflow:hidden;">
+      <div style="padding:12px 12px; border-bottom:1px solid var(--border-soft);">
+        <h3 style="margin:0; font-size:13px;">Fitness over iterations</h3>
+        <p style="margin:3px 0 0 0; color:var(--fg-muted); font-size:12.5px;">
+          Tracks best/avg fitness per iteration.
+        </p>
+      </div>
+      <div style="padding:12px 12px;">
+        <div id="plot-fitness" class="plot" aria-label="Fitness plot"></div>
+        <noscript>
+          <p style="margin:0; color: var(--fg-muted); font-size:13px;">Enable JavaScript to view the plot.</p>
+        </noscript>
+      </div>
+    </div>
+
+    <div class="subcard" style="padding:0; overflow:hidden;">
+      <div style="padding:12px 12px; border-bottom:1px solid var(--border-soft);">
+        <h3 style="margin:0; font-size:13px;">Convergence</h3>
+        <p style="margin:3px 0 0 0; color:var(--fg-muted); font-size:12.5px;">
+          Shows improvement rate / stagnation across the run.
+        </p>
+      </div>
+      <div style="padding:12px 12px;">
+        <div id="plot-convergence" class="plot" aria-label="Convergence plot"></div>
+        <noscript>
+          <p style="margin:0; color: var(--fg-muted); font-size:13px;">Enable JavaScript to view the plot.</p>
+        </noscript>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="chips">
+    <span class="chip">Valid iterations: {{ valid_iterations|default(0) }}</span>
+    <span class="chip">Invalid iterations: {{ invalid_iterations|default(0) }}</span>
+    <span class="chip">Total iterations: {{ valid_iterations|default(0) + invalid_iterations|default(0) }}</span>
+  </div>
+</div>
+</section>
+
+<!-- =========================================================
+     BEST SOLUTION (toggle, no JS)
+========================================================= -->
+<section class="section">
+<h2>Best Solution</h2>
+
+<details>
+  <summary>Best solution across iterations</summary>
+  <div class="codewrap">
+    <div class="chips" style="margin-bottom:10px;">
+      <span class="chip">Solution #{{ best_solution_number|default("—") }}</span>
+      <span class="chip">Fitness: {{ best_fitness|default("—") }}</span>
+      {% if best_runtime %}<span class="chip">Runtime: {{ best_runtime }}</span>{% endif %}
+      {% if best_solution_id %}<span class="chip">ID: {{ best_solution_id }}</span>{% endif %}
+    </div>
+
+    {% if best_solution_preview %}
+      <pre><code>{{ best_solution_preview }}</code></pre>
+    {% else %}
+      <p style="margin:0; color: var(--fg-muted); font-size: 13px;">
+        No best solution preview provided.
+      </p>
+    {% endif %}
+  </div>
+</details>
+</section>
+
+<!-- =========================================================
+     MODULE VISUALIZATIONS (grouped by iteration)
+     Structure:
+       - Iteration (toggleable)
+         - Visualization item (toggleable)
+========================================================= -->
+<section class="section">
+<h2>Module Visualizations</h2>
+{# -------------------------------
+   Iteration-scoped visualizations
+   viz_items_by_iteration: dict[int, list[TaskVizItem]]
+-------------------------------- #}
+{% if viz_items_by_iteration is defined and viz_items_by_iteration|length > 0 %}
+
+  {# sort by iteration index #}
+  {% for it_idx, items in viz_items_by_iteration|dictsort %}
+    <details style="margin-top:12px;">
+      <summary>
+        Iteration {{ it_idx }}
+        {% if items is defined %}<span style="color:var(--fg-muted); font-size:12px;"> — {{ items|length }} visualization{% if items|length != 1 %}s{% endif %}</span>{% endif %}
+      </summary>
+
+      {% if items is defined and items|length > 0 %}
+        {% for item in items %}
+          <div class="codewrap">
+            <details class="viz-fence">
+              <summary class="viz-head" style="margin: 0; border: none; list-style: none;">
+                <div class="left">
+                  <div class="title-row">
+                    <p class="title">{{ item.title|default("Module Visualization") }}</p>
+                    <span class="tag">{{ item.module|default("module") }}</span>
+                  </div>
+                </div>
+              </summary>
+
+              <div class="viz-body" style="border-top: 1px dashed color-mix(in oklab, var(--brand) 35%, var(--border));">
+                {% if item.rendered_content %}
+                  {{ item.rendered_content | safe }}
+                {% else %}
+                  <div class="card">
+                    <p style="margin:0; color: var(--fg-muted); font-size: 13px;">
+                      No visualization HTML was provided for this module.
+                    </p>
+                  </div>
+                {% endif %}
+              </div>
+            </details>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="card" style="margin-top:12px;">
+          <p style="margin:0; color: var(--fg-muted); font-size:13px;">
+            No visualizations were provided for this iteration.
+          </p>
+        </div>
+      {% endif %}
+    </details>
+  {% endfor %}
+
+{% else %}
+  <div class="card">
+    <p style="margin:0; color: var(--fg-muted); font-size:13px;">
+      No module visualizations were provided for this task.
+    </p>
+  </div>
+{% endif %}
+
+</section>
+
+<!-- =========================================================
+     STATISTICS / GLOBAL VISUALIZATIONS
+========================================================= -->
+<section class="section">
+<h2>Statistics Visualizations</h2>
+
+{% if stats_viz_items and stats_viz_items|length > 0 %}
+
+  {% for item in stats_viz_items %}
+    <details class="viz-fence" style="margin-top:12px;">
+      <summary class="viz-head" style="margin:0; border:none; list-style:none;">
+        <div class="left">
+          <div class="title-row">
+            <p class="title">{{ item.title|default("Statistics Visualization") }}</p>
+            <span class="tag">{{ item.module|default("statistics") }}</span>
+          </div>
+        </div>
+      </summary>
+
+      <div class="viz-body" style="border-top: 1px dashed color-mix(in oklab, var(--brand) 35%, var(--border));">
+        {% if item.rendered_content %}
+          {{ item.rendered_content | safe }}
+        {% else %}
+          <div class="card">
+            <p style="margin:0; color: var(--fg-muted); font-size:13px;">
+              No visualization HTML was provided for this statistics module.
+            </p>
+          </div>
+        {% endif %}
+      </div>
+    </details>
+  {% endfor %}
+
+{% else %}
+  <div class="card">
+    <p style="margin:0; color: var(--fg-muted); font-size:13px;">
+      No statistics visualizations were provided for this task.
+    </p>
+  </div>
+{% endif %}
+
+</section>
+
+<div class="footer">
+  EASE Task Report · Generated <span>{{ generated_at|default("—") }}</span>
+</div>
+
+</div>
+</body>
+</html>

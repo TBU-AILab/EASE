@@ -1,42 +1,47 @@
+import copy
+import itertools
 import logging
 
 import numpy as np
-import itertools
-from .evaluator import Evaluator
+
+from ..loader_dto import Parameter, PrimitiveType
+from ..resource.resource import Resource
 from ..solutions.solution import Solution
-from ..loader import Parameter, PrimitiveType
-import copy
 from ..utils.import_utils import dynamic_import
-from ..resource.resource import Resource, ResourceType
+from .evaluator import Evaluator, EvaluatorResult
+
 
 def _check_inside_triangle(points: np.ndarray) -> bool:
     """
     Returns True if all points are inside or on the boundary of the equilateral triangle
     with vertices (0,0), (1,0), and (0.5, sqrt(3)/2). Returns False otherwise.
     """
-    for (x, y) in points:
+    for x, y in points:
         if not (
-                (y >= 0) and
-                (y <= np.sqrt(3) * x) and
-                (y <= -np.sqrt(3) * x + np.sqrt(3))
+            (y >= 0) and (y <= np.sqrt(3) * x) and (y <= -np.sqrt(3) * x + np.sqrt(3))
         ):
             return False
     return True
 
 
 def _triangle_area(a: np.array, b: np.array, c: np.array) -> float:
-    return np.abs(a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1])) / 2
+    return (
+        np.abs(a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1])) / 2
+    )
 
 
 def _evaluate_found_points(points: np.ndarray):
-
     a = np.array([0, 0])
     b = np.array([1, 0])
     c = np.array([0.5, np.sqrt(3) / 2])
 
     if _check_inside_triangle(points):
         min_triangle_area = min(
-            [_triangle_area(p1, p2, p3) for p1, p2, p3 in itertools.combinations(points, 3)])
+            [
+                _triangle_area(p1, p2, p3)
+                for p1, p2, p3 in itertools.combinations(points, 3)
+            ]
+        )
         # Normalize the minimum triangle area (since the equilateral triangle is not unit).
         min_area_normalized = min_triangle_area / _triangle_area(a, b, c)
         return min_area_normalized
@@ -68,18 +73,22 @@ class EvaluatorHeilbronn(Evaluator):
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
-        benchmarks = Resource.get_resources(ResourceType.METABENCHMARK)
+        benchmarks = Resource.get_resources("metabenchmark")
         return {
-            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.markdown,
-                                               long_name="Template for a feedback message",
-                                               description="Feedback message for evaluation. Can use {keywords}",
-                                               default="The result found by the current solution is:\n{max}\n\nBest-so-far solution:\n{best_solution}\n\nand the "
-                                                       "best result is:\n{best_max}\nwith coordinates:\n{best_coordinates}"
-                                               ),
-            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.markdown,
-                                           long_name="Template for an initial message",
-                                           description="Initial message for evaluation. Specific for each evaluator.",
-                                           default='''Your task as an advanced AI is to design a solving algorithm for the **Heilbronn triangle problem** with $n = 11$ points. The objective is to **maximize area of the smallest triangle formed by these points** placed **inside or on the boundary of a triangle** defined by vertices $(0, 0), (1, 0), (0.5, \sqrt{3}/2)$.
+            "feedback_msg_template": Parameter(
+                short_name="feedback_msg_template",
+                type=PrimitiveType.markdown,
+                long_name="Template for a feedback message",
+                description="Feedback message for evaluation. Can use {keywords}",
+                default="The result found by the current solution is:\n{max}\n\nBest-so-far solution:\n{best_solution}\n\nand the "
+                "best result is:\n{best_max}\nwith coordinates:\n{best_coordinates}",
+            ),
+            "init_msg_template": Parameter(
+                short_name="init_msg_template",
+                type=PrimitiveType.markdown,
+                long_name="Template for an initial message",
+                description="Initial message for evaluation. Specific for each evaluator.",
+                default='''Your task as an advanced AI is to design a solving algorithm for the **Heilbronn triangle problem** with $n = 11$ points. The objective is to **maximize area of the smallest triangle formed by these points** placed **inside or on the boundary of a triangle** defined by vertices $(0, 0), (1, 0), (0.5, \sqrt{3}/2)$.
 
 You are encouraged to innovate: create a new algorithm or adapt and hybridize existing approaches. Do **not** include testing functions, visualization, or statistical analysis — these are handled externally.
 
@@ -137,35 +146,59 @@ def run(n, fitness_func, check_inside_triangle_func, max_time):
                 best_coordinates = candidates.copy()
 ```
         ''',
-                                           readonly=True),
-
-            'keywords': Parameter(short_name="keywords", type=PrimitiveType.enum, long_name='Feedback keywords',
-                                  description="Feedback keyword-based sentences",
-                                  enum_options=['max', 'coordinates', 'best_max', 'best_coordinates', 'best_solution'],
-                                  readonly=True),
-            'time_constraint': Parameter(short_name="time_constraint", type=PrimitiveType.time, long_name='Time limit for evaluation',
-                                  description="Time constraint in seconds specifying the maximum runtime of the generated algorithm",
-                                  min_value=0, max_value=31536000, default=60, required=True),
-            'point_count': Parameter(short_name="point_count", type=PrimitiveType.int,
-                                         long_name='Number of points to place (n)',
-                                         description="How many points should be placed inside of the triangle - parameter n.",
-                                         min_value=5, max_value=30, default=11, required=True)
+                readonly=True,
+            ),
+            "keywords": Parameter(
+                short_name="keywords",
+                type=PrimitiveType.enum,
+                long_name="Feedback keywords",
+                description="Feedback keyword-based sentences",
+                enum_options=[
+                    "max",
+                    "coordinates",
+                    "best_max",
+                    "best_coordinates",
+                    "best_solution",
+                ],
+                readonly=True,
+            ),
+            "time_constraint": Parameter(
+                short_name="time_constraint",
+                type=PrimitiveType.time,
+                long_name="Time limit for evaluation",
+                description="Time constraint in seconds specifying the maximum runtime of the generated algorithm",
+                min_value=0,
+                max_value=31536000,
+                default=60,
+                required=True,
+            ),
+            "point_count": Parameter(
+                short_name="point_count",
+                type=PrimitiveType.int,
+                long_name="Number of points to place (n)",
+                description="How many points should be placed inside of the triangle - parameter n.",
+                min_value=5,
+                max_value=30,
+                default=11,
+                required=True,
+            ),
         }
 
     def _init_params(self):
         super()._init_params()
-        self.time_constraint = self.parameters.get('time_constraint', self.get_parameters().get('time_constraint').default)
-        self.n = self.parameters.get('point_count',
-                                                   self.get_parameters().get('point_count').default)
-
-
+        self.time_constraint = self.parameters.get(
+            "time_constraint", self.get_parameters().get("time_constraint").default
+        )
+        self.n = self.parameters.get(
+            "point_count", self.get_parameters().get("point_count").default
+        )
 
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> float:
+    def evaluate(self, solution: Solution) -> EvaluatorResult:
         """
-        Evaluation function. Returns quality of solution as float number.
+        Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:
             solution: Solution  -- Solution that will be evaluated.
         """
@@ -180,8 +213,8 @@ def run(n, fitness_func, check_inside_triangle_func, max_time):
 
         # Dynamic import of solution-specific libraries
         exec_globals = {}
-        if 'modules' in solution.get_metadata().keys():
-            imports = solution.get_metadata()['modules']
+        if "modules" in solution.get_metadata().keys():
+            imports = solution.get_metadata()["modules"]
             for module_name, specific_part, alias in imports:
                 dynamic_import(module_name, specific_part, alias, exec_globals)
 
@@ -194,36 +227,56 @@ def run(n, fitness_func, check_inside_triangle_func, max_time):
 
             # Rebind the global scope for all functions defined in the script
             for key, value in combined_scope.items():
-                if callable(value) and not isinstance(value, type):  # If the value is a function
+                if callable(value) and not isinstance(
+                    value, type
+                ):  # If the value is a function
                     try:
-                        value.__globals__.update(combined_scope)  # Update its global scope
+                        value.__globals__.update(
+                            combined_scope
+                        )  # Update its global scope
                     except Exception as e:
                         logging.error("Test:Meta:", repr(e))
 
-            algorithm = combined_scope['run']
-            coordinates, fitness = algorithm(self.n, _evaluate_found_points, _check_inside_triangle, self.time_constraint)
+            algorithm = combined_scope["run"]
+            coordinates, fitness = algorithm(
+                self.n,
+                _evaluate_found_points,
+                _check_inside_triangle,
+                self.time_constraint,
+            )
             solution.set_fitness(fitness)
 
-            solution.add_metadata('results', {'coordinates': coordinates, 'fitness': fitness})
+            solution.add_metadata(
+                "results", {"coordinates": coordinates, "fitness": fitness}
+            )
 
             self._check_if_best(solution)
 
             self._keys = {
-                'max': fitness,
-                'best_max': self._best.get_metadata().get('results').get('fitness'),
-                'coordinates': coordinates,
-                'best_coordinates': self._best.get_metadata().get('results').get('coordinates'),
-                'best_solution': best_sol_text
+                "max": fitness,
+                "best_max": self._best.get_metadata().get("results").get("fitness"),
+                "coordinates": coordinates,
+                "best_coordinates": self._best.get_metadata()
+                .get("results")
+                .get("coordinates"),
+                "best_solution": best_sol_text,
             }
 
             feedback = self.get_feedback_msg_template().format(**self._keys)
             solution.set_feedback(feedback)
 
         except Exception as e:
-            logging.error('Evaluator:Heilbronn: Error during Task evaluation: ' + repr(e))
+            logging.error(
+                "Evaluator:Heilbronn: Error during Task evaluation: " + repr(e)
+            )
             raise e
 
-        return fitness
+        result_metadata = {"results": {"coordinates": coordinates, "fitness": fitness}}
+        return EvaluatorResult(
+            class_ref=type(self),
+            fitness=fitness,
+            metadata=result_metadata,
+        )
 
     @classmethod
     def get_short_name(cls) -> str:
@@ -235,15 +288,14 @@ def run(n, fitness_func, check_inside_triangle_func, max_time):
 
     @classmethod
     def get_description(cls) -> str:
-        return "Evaluator for algorithms solving Heilbronn Triangles. Assuming generated Python code with " \
-               "template code of the runner."
+        return (
+            "Evaluator for algorithms solving Heilbronn Triangles. Assuming generated Python code with "
+            "template code of the runner."
+        )
 
     @classmethod
     def get_tags(cls) -> dict:
-        return {
-            'input': {'python'},
-            'output': {'heilbronn'}
-        }
+        return {"input": {"python"}, "output": {"heilbronn"}}
 
     ####################################################################
     #########  Private functions
@@ -259,11 +311,11 @@ def run(n, fitness_func, check_inside_triangle_func, max_time):
 
         if self._best is None:
             self._best = copy.deepcopy(solution)
-            self._keys['best_solution'] = self._best.get_input()
+            self._keys["best_solution"] = self._best.get_input()
             return True
 
         if solution.get_fitness() >= self._best.get_fitness():
             self._best = copy.deepcopy(solution)
-            self._keys['best_solution'] = self._best.get_input()
+            self._keys["best_solution"] = self._best.get_input()
             return True
         return False

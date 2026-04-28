@@ -1,0 +1,19 @@
+{# ============================================================
+   Default Evaluator Visualization
+   - Uses shared/base_viz.jinja2
+   ============================================================ #}
+
+{% extends "shared/base_viz.jinja2" %}
+
+{% block metadata %}
+  <details style="margin-top:12px;" {% if metadata_open %}open{% endif %}>
+    <summary>Module metadata</summary>
+    <div class="codewrap">
+      <div class="code-header">
+        <p class="code-title">Metadata</p>
+        <span class="langpill">{{ metadata_lang|default("json") }}</span>
+      </div>
+      <pre class="viz-pre"><code class="language-json">{{ metadata_text }}</code></pre>
+    </div>
+  </details>
+{% endblock %}

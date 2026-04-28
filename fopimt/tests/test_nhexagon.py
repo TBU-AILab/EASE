@@ -1,12 +1,13 @@
-from .test import Test
-from ..solutions.solution import Solution
-from ..utils.import_utils import dynamic_import
 import logging
+import math
 import time
 
-import math
+from ..solutions.solution import Solution
+from ..utils.import_utils import dynamic_import
+from .test import Test, TestResult
 
 MAX_EVAL_TIME = 10
+
 
 class TestHexagon(Test):
     """
@@ -23,25 +24,23 @@ class TestHexagon(Test):
     def get_short_name(cls) -> str:
         return "test.Hexagon"
 
-
     @classmethod
     def get_long_name(cls) -> str:
         return "Hexagon placement test"
 
     @classmethod
     def get_description(cls) -> str:
-        return "This class serves for Hexagon placement solver testing. Tests common issues with solutions:\n" \
-                                     "- Unhandled time constraint\n" \
-                                     "- Invalid solution\n"
+        return (
+            "This class serves for Hexagon placement solver testing. Tests common issues with solutions:\n"
+            "- Unhandled time constraint\n"
+            "- Invalid solution\n"
+        )
 
     @classmethod
     def get_tags(cls) -> dict:
-        return {
-            'input': {'python'},
-            'output': set()
-        }
+        return {"input": {"python"}, "output": set()}
 
-    def test(self, solution: Solution) -> bool:
+    def test(self, solution: Solution) -> TestResult:
         """
         This method tests the given solution
 
@@ -54,8 +53,8 @@ class TestHexagon(Test):
 
         # Dynamic import of solution-specific libraries
         exec_globals = {}
-        if 'modules' in solution.get_metadata().keys():
-            imports = solution.get_metadata()['modules']
+        if "modules" in solution.get_metadata().keys():
+            imports = solution.get_metadata()["modules"]
             for module_name, specific_part, alias in imports:
                 dynamic_import(module_name, specific_part, alias, exec_globals)
 
@@ -64,43 +63,77 @@ class TestHexagon(Test):
             exec(solution.get_input(), exec_globals, local_scope)
         except Exception as e:
             self._test_result = False
-            self._error_msg = self._user_msg = f"Test:Hexagon: Algorithm could not be checked due to the following error: {repr(e)}"
-            return self._test_result
+            self._error_msg = self._user_msg = (
+                f"Test:Hexagon: Algorithm could not be checked due to the following error: {repr(e)}"
+            )
+            return TestResult(
+                class_ref=type(self),
+                passed=self._test_result,
+                metadata={
+                    "error_msg": self._error_msg,
+                    "user_msg": self._user_msg,
+                },
+            )
 
         try:
-
             # Merge exec_globals and exec_locals to ensure functions can access each other
             combined_scope = {**exec_globals, **local_scope}
 
             # Rebind the global scope for all functions defined in the script
             for key, value in combined_scope.items():
-                if callable(value) and not isinstance(value, type):  # If the value is a function
+                if callable(value) and not isinstance(
+                    value, type
+                ):  # If the value is a function
                     try:
-                        value.__globals__.update(combined_scope)  # Update its global scope
+                        value.__globals__.update(
+                            combined_scope
+                        )  # Update its global scope
                     except Exception as e:
                         logging.error("Test:Hexagon:", repr(e))
 
-            algorithm = combined_scope['algorithm']
+            algorithm = combined_scope["algorithm"]
 
             start_time = time.time()
-            inner_hex_data, outer_hex_center, outer_hex_side_length, outer_hex_angle_degrees = algorithm(12,
-                                                                                                         verify_construction,
-                                                                                                         MAX_EVAL_TIME)
+            (
+                inner_hex_data,
+                outer_hex_center,
+                outer_hex_side_length,
+                outer_hex_angle_degrees,
+            ) = algorithm(12, verify_construction, MAX_EVAL_TIME)
             end_time = time.time()
 
-            if end_time - start_time > (MAX_EVAL_TIME+1):
-                self._error_msg = self._user_msg = f'Test:Hexagon: Generated algorithm violated the time constraint ({MAX_EVAL_TIME} +1 (for orchestration)s), evaluation time was: {end_time - start_time}s'
+            if end_time - start_time > (MAX_EVAL_TIME + 1):
+                self._error_msg = self._user_msg = (
+                    f"Test:Hexagon: Generated algorithm violated the time constraint ({MAX_EVAL_TIME} +1 (for orchestration)s), evaluation time was: {end_time - start_time}s"
+                )
                 self._test_result = False
 
-            if not verify_construction(inner_hex_data, outer_hex_center, outer_hex_side_length, outer_hex_angle_degrees):
-                self._error_msg = self._user_msg = 'Test:Hexagon: Generated algorithm did not produce viable solution.'
+            if not verify_construction(
+                inner_hex_data,
+                outer_hex_center,
+                outer_hex_side_length,
+                outer_hex_angle_degrees,
+            ):
+                self._error_msg = self._user_msg = (
+                    "Test:Hexagon: Generated algorithm did not produce viable solution."
+                )
                 self._test_result = False
 
         except Exception as e:
             self._test_result = False
-            self._error_msg = self._user_msg = (f"Test:Hexagon: Algorithm could not be checked due to the "
-                                                f"following error: {repr(e)}")
-        return self._test_result
+            self._error_msg = self._user_msg = (
+                f"Test:Hexagon: Algorithm could not be checked due to the "
+                f"following error: {repr(e)}"
+            )
+        return TestResult(
+            class_ref=type(self),
+            passed=self._test_result,
+            metadata={
+                "error_msg": self._error_msg,
+                "user_msg": self._user_msg,
+            },
+        )
+
 
 def hexagon_vertices(
     center_x: float,
@@ -131,13 +164,11 @@ def hexagon_vertices(
 
 def normalize_vector(v: tuple[float, float]) -> tuple[float, float]:
     """Normalizes a 2D vector."""
-    magnitude = math.sqrt(v[0]**2 + v[1]**2)
-    return (v[0] / magnitude, v[1] / magnitude) if magnitude != 0 else (0., 0.)
+    magnitude = math.sqrt(v[0] ** 2 + v[1] ** 2)
+    return (v[0] / magnitude, v[1] / magnitude) if magnitude != 0 else (0.0, 0.0)
 
 
-def get_normals(
-    vertices: list[tuple[float, float]]
-) -> list[tuple[float, float]]:
+def get_normals(vertices: list[tuple[float, float]]) -> list[tuple[float, float]]:
     """Gets the outward normals of a polygon's edges."""
     normals = []
     for i in range(len(vertices)):
@@ -154,8 +185,8 @@ def project_polygon(
     axis: tuple[float, float],
 ) -> tuple[float, float]:
     """Projects a polygon onto an axis and returns the min/max values."""
-    min_proj = float('inf')
-    max_proj = float('-inf')
+    min_proj = float("inf")
+    max_proj = float("-inf")
     for vertex in vertices:
         projection = vertex[0] * axis[0] + vertex[1] * axis[1]  # Dot product.
         min_proj = min(min_proj, projection)
@@ -207,7 +238,7 @@ def is_inside_hexagon(
         edge_vector = (p2[0] - p1[0], p2[1] - p1[1])
         point_vector = (point[0] - p1[0], point[1] - p1[1])
         cross_product = (
-        edge_vector[0] * point_vector[1] - edge_vector[1] * point_vector[0]
+            edge_vector[0] * point_vector[1] - edge_vector[1] * point_vector[0]
         )
         if cross_product < 0:
             return False
@@ -246,18 +277,20 @@ def verify_construction(
     """
 
     inner_hex_params_list = [
-      (x, y, 1, angle) for x, y, angle in inner_hex_data
+        (x, y, 1, angle) for x, y, angle in inner_hex_data
     ]  # Sets the side length to 1.
     outer_hex_params = (
-      outer_hex_center[0], outer_hex_center[1],
-      outer_hex_side_length, outer_hex_angle_degrees
+        outer_hex_center[0],
+        outer_hex_center[1],
+        outer_hex_side_length,
+        outer_hex_angle_degrees,
     )
 
     # Disjointness check.
     for i in range(len(inner_hex_params_list)):
         for j in range(i + 1, len(inner_hex_params_list)):
             if not hexagons_are_disjoint(
-              inner_hex_params_list[i], inner_hex_params_list[j]
+                inner_hex_params_list[i], inner_hex_params_list[j]
             ):
                 return False
 
@@ -266,4 +299,3 @@ def verify_construction(
         return False
 
     return True
-

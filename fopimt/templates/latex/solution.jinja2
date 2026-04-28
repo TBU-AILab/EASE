@@ -1,0 +1,12 @@
+{% extends "shared/base_viz.jinja2" %}
+
+{% block extra_sections %}
+
+\vspace{1em}
+\reportsubsection{Evaluator input}
+
+\begin{lstlisting}
+{{ evaluator_input_serialized|default("{}") }}
+\end{lstlisting}
+
+{% endblock %}

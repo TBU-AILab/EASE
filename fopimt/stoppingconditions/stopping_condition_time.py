@@ -1,5 +1,6 @@
+from ..loader_dto import Parameter, PrimitiveType
+from ..modul_dto import StoppingConditionResult
 from .stopping_condition import StoppingCondition
-from ..loader import Parameter, PrimitiveType
 
 
 class StoppingConditionTime(StoppingCondition):
@@ -11,18 +12,23 @@ class StoppingConditionTime(StoppingCondition):
 
     def _init_params(self):
         super()._init_params()
-        self._max_time = self.parameters.get('max_time', 0)
+        self._max_time = self.parameters.get("max_time", 0)
         self._satisfied: bool = False
 
     ####################################################################
     #########  Public functions
     ####################################################################
 
-    def is_satisfied(self) -> bool:
-        return self._satisfied
+    def is_satisfied(self) -> StoppingConditionResult:
+        return StoppingConditionResult(
+            class_ref=type(self),
+            is_satisfied=self._satisfied,
+            metadata={"max_time": self._max_time},
+        )
 
     def update(self, task) -> None:
         from ..task import Task
+
         if isinstance(task, Task):
             if task.get_time() >= self._max_time:
                 self._satisfied = True
@@ -31,11 +37,17 @@ class StoppingConditionTime(StoppingCondition):
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
-        return {'max_time':
-                    Parameter(short_name='max_time', long_name='Running time',
-                              description='Maximum running time for Task in seconds',
-                              type=PrimitiveType.time, min_value=0, max_value=31536000, default=60)
-                }
+        return {
+            "max_time": Parameter(
+                short_name="max_time",
+                long_name="Running time",
+                description="Maximum running time for Task in seconds",
+                type=PrimitiveType.time,
+                min_value=0,
+                max_value=31536000,
+                default=60,
+            )
+        }
 
     @classmethod
     def get_short_name(cls) -> str:
@@ -51,10 +63,8 @@ class StoppingConditionTime(StoppingCondition):
 
     @classmethod
     def get_tags(cls) -> dict:
-        return {
-            'input': set(),
-            'output': set()
-        }
+        return {"input": set(), "output": set()}
+
     ####################################################################
     #########  Private functions
     ####################################################################

@@ -1,6 +1,7 @@
-import os
 import base64
-from sys import prefix
+import os
+
+from fopimt.modul_dto import SolutionResult
 
 from ..message import Message
 from .solution import Solution
@@ -15,15 +16,26 @@ class SolutionImage(Solution):
 
     def _init_params(self):
         super()._init_params()
-        self._suffix = '.png'
-        self._prefix = self.parameters.get('prefix', '')
+        self._suffix = ".png"
+        self._prefix = self.parameters.get("prefix", "")
 
     ####################################################################
     #########  Public functions
     ####################################################################
-    def get_input_from_msg(self, msg: Message):
+    def get_input_from_msg(self, msg: Message) -> SolutionResult:
         # Images are stored in 'image' metadata in Message
-        self._input = msg.get_metadata()['image']
+        self._input = msg.get_metadata()["image"]
+        try:
+            input_serialized = str(self._input)
+        except Exception:
+            input_serialized = "Image data (not serializable)"
+
+        return SolutionResult(
+            class_ref=type(self),
+            metadata=self.get_metadata(),
+            evaluator_input=self._input,
+            evaluator_input_serialized=input_serialized,
+        )
 
     def export(self, dir: str, id: str) -> None:
         # export solution itself (code, text, ...)
@@ -31,8 +43,8 @@ class SolutionImage(Solution):
             self._prefix = ""
         file_name = self._prefix + id + self._suffix
         self._path = os.path.join(dir, file_name)
-        self._metadata['url'] = self._path
-        file = open(self._path, 'wb')
+        self._metadata["url"] = self._path
+        file = open(self._path, "wb")
         file.write(base64.b64decode(self._input))
         file.close()
 
@@ -50,10 +62,8 @@ class SolutionImage(Solution):
 
     @classmethod
     def get_tags(cls) -> dict:
-        return {
-            'input': {'image'},
-            'output': {'image'}
-        }
+        return {"input": {"image"}, "output": {"image"}}
+
     ####################################################################
     #########  Private functions
     ####################################################################

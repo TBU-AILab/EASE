@@ -1,15 +1,19 @@
-import os
-import json
-import numpy as np
-from typing import Optional, Any
 import datetime
+import json
+import os
+from typing import Optional
 
+import numpy as np
 import pandas as pd
 from pydantic import BaseModel
 
-from ..modul import Modul
+from fopimt.modul_dto import SolutionResult
+from fopimt.task_dto import TaskExecutionContext
+from fopimt.utils.render_utils import DefaultSolutionRenderer
+
+from ..loader_dto import Parameter, PrimitiveType
 from ..message import Message
-from ..loader import Parameter, PrimitiveType
+from ..modul import Modul
 
 
 def serialize_unserializable(obj):
@@ -45,13 +49,15 @@ class SolutionAPI(BaseModel):
 
 
 class Solution(Modul):
-
     def _init_params(self):
         """
         General Solution class. Defines _input and _fitness.
         """
+        self._id = None
         self._input = None
         self._fitness: float = -1
+        self._time_start: Optional[datetime.datetime] = None
+        self._time_end: Optional[datetime.datetime] = None
         self._prefix = ""
         self._suffix = ""
         self._path = ""
@@ -68,7 +74,6 @@ class Solution(Modul):
     #########  Public functions
     ####################################################################
     def get_API(self) -> SolutionAPI:
-
         # TODO - fix this shit
         new_meta = dict()
         for m in self._metadata.keys():
@@ -85,7 +90,10 @@ class Solution(Modul):
         # export solution itself (code, text, ...)
         if self._prefix is None:
             self._prefix = ""
-        file_name = self._prefix + id + self._suffix
+
+        self._id = id
+
+        file_name = self._prefix + self._id + self._suffix
         self._path = os.path.join(dir, file_name)
         file = open(self._path, "w", encoding="utf-8", newline="")
         file.write(self._input)
@@ -96,9 +104,7 @@ class Solution(Modul):
         self._path_meta = self._path + ".dat"
         with open(self._path_meta, "w") as outfile:
             # json.dump(self._metadata, outfile, default=lambda df: json.loads(df.to_json()))
-            json.dump(
-                self._metadata, outfile, default=serialize_unserializable
-            )
+            json.dump(self._metadata, outfile, default=serialize_unserializable)
 
     def set_fitness(self, fitness: float) -> None:
         """
@@ -130,7 +136,7 @@ class Solution(Modul):
     def get_path_metadata(self) -> str:
         return self._path_meta
 
-    def get_input_from_msg(self, msg: Message):
+    def get_input_from_msg(self, msg: Message) -> SolutionResult:
         """
         Extracts input of the solution from Message.
         Arguments:
@@ -159,6 +165,24 @@ class Solution(Modul):
         """
         return self._feedback
 
+    def get_time_start(self) -> Optional[datetime.datetime]:
+        return self._time_start
+
+    def set_time_start(self, time_start: Optional[datetime.datetime]) -> None:
+        self._time_start = time_start
+
+    def get_time_end(self) -> Optional[datetime.datetime]:
+        return self._time_end
+
+    def set_time_end(self, time_end: Optional[datetime.datetime]) -> None:
+        self._time_end = time_end
+
+    def get_id(self) -> Optional[str]:
+        return self._id
+
+    def set_id(self, id_value: Optional[str]) -> None:
+        self._id = id_value
+
     def set_feedback(self, msg: str):
         """
 
@@ -181,9 +205,39 @@ class Solution(Modul):
                 default="",
                 description="Prefix for generated solutions.",
                 type=PrimitiveType.str,
-                required=False
+                required=False,
             )
         }
+
+    @staticmethod
+    def render_html(
+        modul_result: SolutionResult,
+        task_execution_context: TaskExecutionContext,
+        output_dir: str,
+    ) -> str:
+        """
+        Returns HTML representation of the evaluation. Used for visualization.
+        :return: HTML string
+        """
+        return DefaultSolutionRenderer.render_template(
+            modul_result,
+            output_format="html",
+        )
+
+    @staticmethod
+    def render_latex(
+        modul_result: SolutionResult,
+        task_execution_context: TaskExecutionContext,
+        output_dir: str,
+    ) -> str:
+        """
+        Returns LaTeX representation of the evaluation. Used for visualization.
+        :return: LaTeX string
+        """
+        return DefaultSolutionRenderer.render_template(
+            modul_result,
+            output_format="latex",
+        )
 
     ####################################################################
     #########  Private functions

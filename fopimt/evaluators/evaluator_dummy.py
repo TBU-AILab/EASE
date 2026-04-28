@@ -1,17 +1,16 @@
 import copy
 
-from .evaluator import Evaluator
 from ..solutions.solution import Solution
+from .evaluator import Evaluator, EvaluatorResult
 
 
 class EvaluatorDummy(Evaluator):
-
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> float:
+    def evaluate(self, solution: Solution) -> EvaluatorResult:
         """
-        Evaluation function. Returns quality of solution as float number.
+        Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:
             solution: Solution  -- Solution that will be evaluated.
         """
@@ -21,12 +20,14 @@ class EvaluatorDummy(Evaluator):
         else:
             fitness = 0
         solution.set_fitness(fitness)
-        solution.add_metadata('OK', True)
+        solution.add_metadata("OK", True)
 
         self._check_if_best(solution)
 
-        return fitness
-
+        result_metadata = {"OK": True}
+        return EvaluatorResult(
+            class_ref=type(self), fitness=fitness, metadata=result_metadata
+        )
 
     @classmethod
     def get_short_name(cls) -> str:
@@ -42,10 +43,7 @@ class EvaluatorDummy(Evaluator):
 
     @classmethod
     def get_tags(cls) -> dict:
-        return {
-            'input': set(),
-            'output': set()
-        }
+        return {"input": set(), "output": set()}
 
     ####################################################################
     #########  Private functions

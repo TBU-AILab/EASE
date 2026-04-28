@@ -1,103 +1,53 @@
 import copy
 import csv
 import io
-
 import logging
-
 import os
-import pathlib
-import re
-import uuid
 import pickle
-from datetime import datetime, timezone
-from enum import Enum
+import uuid
+from datetime import UTC, datetime
 from queue import Queue
-from typing import Optional, Any
+from typing import Any
 
-from pandas.core.arrays.period import raise_on_incompatible
-from pydantic import BaseModel
-
+from .analysis.analysis import Analysis
+from .config_task import ConfigTask
+from .evaluators.evaluator import Evaluator
+from .llmconnectors.llmconnector import LLMConnector
+from .loader import Loader
+from .loader_dto import ModulAPI, PackageType, Parameter, PrimitiveType
+from .magic_datetime import DateTime, convert_to_datetime, is_newer_than
+from .message import Message
+from .message_repeating import MessageRepeating
+from .modul_dto import ModulResult
+from .solutions.solution import Solution
+from .stats.stat import Stat
+from .stoppingconditions.stopping_condition import StoppingCondition
+from .task_dto import (
+    ModulData,
+    ModulInfo,
+    TaskConfig,
+    TaskData,
+    TaskExecutionContext,
+    TaskFull,
+    TaskInfo,
+    TaskState,
+)
 from .tests.test import Test
 from .user import User
-from .evaluators.evaluator import Evaluator
-from .magic_datetime import DateTime, is_newer_than, convert_to_datetime
-from .message import Message, MessageAPI
-from .message_repeating import MessageRepeating, MessageRepeatingConfig
-from .llmconnectors.llmconnector import LLMConnector
-from .stoppingconditions.stopping_condition import StoppingCondition
-from .solutions.solution import Solution, SolutionAPI
-from .analysis.analysis import Analysis
-from .stats.stat import Stat
-from .loader import Loader, PackageType, ModulAPI, Parameter, PrimitiveType
 from .utils.tools import get_zip_buffer as zip_it
-from .config_task import ConfigTask
-
-class TaskState(Enum):
-    """
-    Enum for multiprocessing states
-    """
-    CREATED = 0
-    INIT = 1
-    RUN = 2
-    PAUSED = 3
-    STOP = 4
-    FINISH = 5
-    BREAK = 6
-
-# Basic description of configurable task modules
-class TaskModulConfig(BaseModel):
-    short_name: str
-    parameters: dict[str, Any]  # Parameter defined by short_name and its value
-
-
-class TaskConfig(BaseModel):
-    name: Optional[str] = None
-    author: Optional[str] = None
-    max_context_size: Optional[int] = None
-    feedback_from_solution: Optional[bool] = None
-
-    initial_message: Optional[str] = None
-    system_message: Optional[str] = None
-    repeated_message: Optional[MessageRepeatingConfig] = None
-
-    modules: Optional[list[TaskModulConfig]] = None
-
-class TaskInfo(BaseModel):
-    id: str | None  # uuid
-    name: str | None
-    date_updated: str | None
-    date_created: str | None
-    state: TaskState | None
-    current_iteration: int | None
-    iterations_valid: int | None
-    iterations_invalid_consecutive: int | None
-    incompatible: list[list[str]] | None # list of shortnames of incompatible ModuleAPIs, always in pair
-    log: list[str] | None # error log, i.e. STATE == BREAK
-
-
-class TaskData(BaseModel):
-    id: str | None  # uuid
-    messages: list[MessageAPI]
-    solutions: list[SolutionAPI]
-
-class TaskFull(BaseModel):
-    task_info: Optional[TaskInfo] = None
-    task_data: Optional[TaskData] = None
-    task_modules: Optional[list[ModulAPI]] = None
-    task_config: Optional[TaskConfig] = None
 
 
 class TaskInitializationException(Exception):
     def __init__(self, messages: list[str]):
         self.messages = messages
 
-class Task():
+
+class Task:
     @classmethod
     def pickle_rick(cls, task_folder: str):
-        _file_name = os.path.join('out_task', task_folder, 'task.pkl')
-        with open(_file_name, 'rb') as _file:
+        _file_name = os.path.join("out_task", task_folder, "task.pkl")
+        with open(_file_name, "rb") as _file:
             return pickle.load(_file)
-
 
     def initialize(self, loader: Loader, task_config: TaskConfig):
         if task_config.name is not None:
@@ -116,7 +66,9 @@ class Task():
             _response = loader.get_modul_by_name(short_name=modul.short_name)
             if _response is not None:
                 _modul, _type = _response
-                self._init_config_modulAPI.append(loader.get_package(_type).get_modul(modul.short_name))
+                self._init_config_modulAPI.append(
+                    loader.get_package(_type).get_modul(modul.short_name)
+                )
                 instance = _modul(parameters=modul.parameters)
 
                 match _type:
@@ -135,36 +87,58 @@ class Task():
                     case PackageType.Stat:
                         self._spec_stat.append(instance)
 
-        model = self._spec_llm.get_model() if self._spec_llm is not None else 'gpt-4o'
+        model = self._spec_llm.get_model() if self._spec_llm is not None else "gpt-4o"
 
         if task_config.system_message is not None:
-            role = self._spec_llm.get_role_system() if self._spec_llm is not None else 'undefined'
-            self._spec_system_message = Message(role=role,
-                                                message=task_config.system_message,
-                                                model_encoding=model)
+            role = (
+                self._spec_llm.get_role_system()
+                if self._spec_llm is not None
+                else "undefined"
+            )
+            self._spec_system_message = Message(
+                role=role, message=task_config.system_message, model_encoding=model
+            )
 
         if task_config.initial_message is not None:
-            role = self._spec_llm.get_role_user() if self._spec_llm is not None else 'undefined'
-            self._spec_init_message = Message(role=role,
-                                              message=task_config.initial_message,
-                                              model_encoding=model)
+            role = (
+                self._spec_llm.get_role_user()
+                if self._spec_llm is not None
+                else "undefined"
+            )
+            self._spec_init_message = Message(
+                role=role, message=task_config.initial_message, model_encoding=model
+            )
 
         if task_config.repeated_message is not None:
-            role = self._spec_llm.get_role_user() if self._spec_llm is not None else 'undefined'
-            self._spec_rep_message = MessageRepeating(msg_type=task_config.repeated_message.type, role=role,
-                                                      model_encoding=model, msgs=task_config.repeated_message.msgs,
-                                                      weights=tuple(task_config.repeated_message.weights))
+            role = (
+                self._spec_llm.get_role_user()
+                if self._spec_llm is not None
+                else "undefined"
+            )
+            self._spec_rep_message = MessageRepeating(
+                msg_type=task_config.repeated_message.type,
+                role=role,
+                model_encoding=model,
+                msgs=task_config.repeated_message.msgs,
+                weights=tuple(task_config.repeated_message.weights),
+            )
 
         # Check if the task can be sucessfuly initialized
         if not self.is_init():
             if len(self.get_incompatible_modules()) > 0:
                 logging.error(
-                    f"Task:run: Selected task modules are not compatible. Incompatible modules: {self.get_incompatible_modules()}")
-                msgs = [f"Selected incompatible module: {item}" for item in self.get_incompatible_modules()]
+                    f"Task:run: Selected task modules are not compatible. Incompatible modules: {self.get_incompatible_modules()}"
+                )
+                msgs = [
+                    f"Selected incompatible module: {item}"
+                    for item in self.get_incompatible_modules()
+                ]
                 raise TaskInitializationException(msgs)
             else:
                 logging.error("Task:run: Task is not completely defined.")
-                raise TaskInitializationException(["Task:run: Task is not completely defined."])
+                raise TaskInitializationException(
+                    ["Task:run: Task is not completely defined."]
+                )
 
         self._init_config = task_config
         self.pickle_me()
@@ -181,6 +155,10 @@ class Task():
         self._spec_cond = []
         self._spec_stat = []
 
+        # Cached module API definitions used for task sync/context
+        # TODO: IS THIS OKAY?
+        self._init_config_modulAPI = []
+
     def _replace_or_append(self, collection: list, new_instance):
         for i, existing in enumerate(collection):
             if type(existing) == type(new_instance):
@@ -195,8 +173,8 @@ class Task():
         # create an empty task with dummy values
         # TODO: Think about what these default values should be
         config = {
-            ConfigTask.AUTHOR: '',
-            ConfigTask.NAME: '',
+            ConfigTask.AUTHOR: "",
+            ConfigTask.NAME: "",
             ConfigTask.MAX_CONTEXT_SIZE: -1,
             ConfigTask.SAVE_TO_DISK: True,
             ConfigTask.FEEDBACK_FROM_SOLUTION: True,
@@ -209,7 +187,7 @@ class Task():
             ConfigTask.EVALUATOR: None,
             ConfigTask.COND: [],
             ConfigTask.STAT: [],
-            ConfigTask.REP_MESSAGE: None
+            ConfigTask.REP_MESSAGE: None,
         }
 
         task = cls(config)
@@ -243,43 +221,74 @@ class Task():
         self._id: str = str(uuid.uuid4())  # TODO Unique ID - check if unique in DB
         self._name: str = config[ConfigTask.NAME]  # Custom name
         self._author: User = config[ConfigTask.AUTHOR]  # Author - instance of Author?
-        self._date: DateTime = DateTime()  # Datetime - created, last modified, last run, all runs timestamps
+        self._date: DateTime = (
+            DateTime()
+        )  # Datetime - created, last modified, last run, all runs timestamps
         self._state: TaskState = TaskState.INIT
 
         # Task properties
         self._iteration: int = 0  # Used iterations so far
         self._iteration_valid: int = 0  # Valid iterations of the Task (state == 'OK')
-        self._iteration_invalid_cons: int = 0  # Consecutive invalid iterations of the Task (state != 'OK')
-        self._history_message: list[Message] = []  # History of all Messages send and received
+        self._iteration_invalid_cons: int = (
+            0  # Consecutive invalid iterations of the Task (state != 'OK')
+        )
+        self._history_message: list[
+            Message
+        ] = []  # History of all Messages send and received
         self._history_solution: list[Solution] = []  # History of all Solutions
         self._max_context_size: int = config[
-            ConfigTask.MAX_CONTEXT_SIZE]  # Number of messages to be sent (messages in context)
-        self._dir: str = os.path.join('out_task')  # Path to main task directory
-        self._dir_solution: str = ''
-        self._dir_stat: str = ''
-        self._dir_anal: str = ''
-        self._members: list[User] = []  # Additional members that can view and modify this task, can only be set by
+            ConfigTask.MAX_CONTEXT_SIZE
+        ]  # Number of messages to be sent (messages in context)
+        self._dir: str = os.path.join("out_task")  # Path to main task directory
+        self._dir_solution: str = ""
+        self._dir_stat: str = ""
+        self._dir_anal: str = ""
+        self._members: list[
+            User
+        ] = []  # Additional members that can view and modify this task, can only be set by
         self._incompatible_modules = []
         self._log_error = []
-        self._init_config: TaskConfig = None # Original TaskConfig for easy duplication
-        self._init_config_modulAPI: list[ModulAPI] = [] # Saved ModulAPIs for Task synchronization on server start
+        self._init_config: TaskConfig = None  # Original TaskConfig for easy duplication
+        self._init_config_modulAPI: list[
+            ModulAPI
+        ] = []  # Saved ModulAPIs for Task synchronization on server start
         # Author of the Task #TODO redo to config
 
         # Task specifications
-        self._spec_system_message: Optional[Message] = config[
-            ConfigTask.SYSTEM_MESSAGE]  # Initial code/prompt, using Message class, may be empty if needed
-        self._spec_init_message: Message = config[ConfigTask.INIT_MESSAGE]  # Initial code/prompt, using Message class
-        self._spec_rep_message: Message = config[ConfigTask.REP_MESSAGE]  # Repetitive Message definition
-        self._spec_llm: LLMConnector = config[ConfigTask.LLM]  # LLM definition - connector
-        self._spec_test: list[Test] = config[ConfigTask.TEST]  # Errors definition / unit test / static code analysis
-        self._spec_analysis: list[Analysis] = config[ConfigTask.ANALYSIS]  # Analysis tools
+        self._spec_system_message: Message | None = config[
+            ConfigTask.SYSTEM_MESSAGE
+        ]  # Initial code/prompt, using Message class, may be empty if needed
+        self._spec_init_message: Message = config[
+            ConfigTask.INIT_MESSAGE
+        ]  # Initial code/prompt, using Message class
+        self._spec_rep_message: Message = config[
+            ConfigTask.REP_MESSAGE
+        ]  # Repetitive Message definition
+        self._spec_llm: LLMConnector = config[
+            ConfigTask.LLM
+        ]  # LLM definition - connector
+        self._spec_test: list[Test] = config[
+            ConfigTask.TEST
+        ]  # Errors definition / unit test / static code analysis
+        self._spec_analysis: list[Analysis] = config[
+            ConfigTask.ANALYSIS
+        ]  # Analysis tools
         self._spec_evaluator: Evaluator = config[
-            ConfigTask.EVALUATOR]  # Evaluator object capable of solution fitness evaluation
-        self._spec_cond: list[StoppingCondition] = config[ConfigTask.COND]  # Stopping condition(s)
+            ConfigTask.EVALUATOR
+        ]  # Evaluator object capable of solution fitness evaluation
+        self._spec_cond: list[StoppingCondition] = config[
+            ConfigTask.COND
+        ]  # Stopping condition(s)
         self._spec_res = None  # Results (+ visuals)
-        self._spec_solution: Solution = config[ConfigTask.SOLUTION]  # Solution of the Task
-        self._spec_save_to_disk: bool = config[ConfigTask.SAVE_TO_DISK]  # Option: save task files to disk
-        self._spec_feedback_from_solution: bool = config[ConfigTask.FEEDBACK_FROM_SOLUTION]  # Option: send feedback
+        self._spec_solution: Solution = config[
+            ConfigTask.SOLUTION
+        ]  # Solution of the Task
+        self._spec_save_to_disk: bool = config[
+            ConfigTask.SAVE_TO_DISK
+        ]  # Option: save task files to disk
+        self._spec_feedback_from_solution: bool = config[
+            ConfigTask.FEEDBACK_FROM_SOLUTION
+        ]  # Option: send feedback
         # to LLM from solution
         self._spec_stat: list[Stat] = config[ConfigTask.STAT]  # Optional Statistics
 
@@ -294,7 +303,6 @@ class Task():
         # TODO remove spec from config
         # Save to disk is always true on the server
         self._spec_save_to_disk = True
-
 
     def get_all(self) -> io.BytesIO | None:
         return zip_it(self._dir)
@@ -312,9 +320,11 @@ class Task():
         # the directory of the task. Be carefully for duplicit ID when restoring or archiving task.
         # TODO - check if archived task with the same ID already exist
         old_dir = os.path.basename(self._dir)
-        new_dir = old_dir.replace("t_", "a_", 1) if old_dir.startswith("t_") else old_dir
-        os.rename(self._dir, os.path.join('out_task', new_dir))
-        logging.info(f'Archived Task:{self._name}:{self._id}')
+        new_dir = (
+            old_dir.replace("t_", "a_", 1) if old_dir.startswith("t_") else old_dir
+        )
+        os.rename(self._dir, os.path.join("out_task", new_dir))
+        logging.info(f"Archived Task:{self._name}:{self._id}")
         return True
 
     def get_task_data(self, date_from: str) -> TaskData:
@@ -325,7 +335,7 @@ class Task():
         _roleProvider = [
             self._spec_llm.get_role_system(),
             self._spec_llm.get_role_user(),
-            self._spec_llm.get_role_assistant()
+            self._spec_llm.get_role_assistant(),
         ]
 
         datefrom_dt = convert_to_datetime(date_from)
@@ -336,11 +346,7 @@ class Task():
                     if sol.get_message_id() == msg.get_id():
                         sols.append(sol.get_API())
 
-        return TaskData(
-            id=self._id,
-            messages=msgs,
-            solutions=sols
-        )
+        return TaskData(id=self._id, messages=msgs, solutions=sols)
 
     def get_info(self):
         return TaskInfo(
@@ -353,7 +359,7 @@ class Task():
             iterations_valid=self._iteration_valid,
             iterations_invalid_consecutive=self._iteration_invalid_cons,
             incompatible=self._incompatible_modules,
-            log=self._log_error
+            log=self._log_error,
         )
 
     def get_full(self) -> TaskFull:
@@ -363,7 +369,11 @@ class Task():
         #     for key in module.parameters.keys():
         #         module.parameters[key].value = modul_with_value.parameters[key]
         for module in modules:
-            modul_with_value = next(x for x in self._init_config.modules if x.short_name == module.short_name)
+            modul_with_value = next(
+                x
+                for x in self._init_config.modules
+                if x.short_name == module.short_name
+            )
             for key, param in module.parameters.items():
                 input_value = modul_with_value.parameters.get(key)
                 if input_value is not None:
@@ -371,9 +381,111 @@ class Task():
 
         return TaskFull(
             task_info=self.get_info(),
-            task_data=self.get_task_data("0001-01-01T00:00:00.000000Z"), #I want to load all messages
+            task_data=self.get_task_data(
+                "0001-01-01T00:00:00.000000Z"
+            ),  # I want to load all messages
             task_modules=modules,
-            task_config=self.task_config()
+            task_config=self.task_config(),
+        )
+
+    def get_execution_context(
+        self,
+        moduls_results: dict[int, list[ModulResult]],
+    ) -> TaskExecutionContext:
+        loader = Loader()
+        modules_out: list[ModulInfo] = []
+        modules_data_by_iteration: dict[int, list[ModulData]] = {}
+        module_package_by_ref: dict[type, PackageType] = {}
+
+        modules = copy.deepcopy(self._init_config_modulAPI)
+
+        # Fill parameter values for modules inside the config modulAPI
+        for module in modules:
+            _init_config_modules = self._init_config.modules or []
+            modul_with_value = next(
+                x for x in _init_config_modules if x.short_name == module.short_name
+            )
+            for key, param in module.parameters.items():
+                input_value = modul_with_value.parameters.get(key)
+                if input_value is not None:
+                    self._fill_parameter_values(param, input_value)
+
+        for module in modules:
+            _result = loader.get_modul_by_name(module.short_name)
+            if _result is None:
+                continue
+            module_ref, package_type = _result
+
+            modul_info = ModulInfo(
+                class_ref=module_ref,
+                package_type=package_type,
+                parameters=module.parameters,
+            )
+            modules_out.append(modul_info)
+            module_package_by_ref[module_ref] = package_type
+
+        for iteration, results in (moduls_results or {}).items():
+            iteration_data: list[ModulData] = []
+            seen_module_refs: set[type] = set()
+
+            # Keep incoming order of ModulResults for this iteration
+            for result in results:
+                package_type = module_package_by_ref.get(result.class_ref)
+                if package_type is None:
+                    continue
+
+                iteration_data.append(
+                    ModulData(
+                        class_ref=result.class_ref,
+                        package_type=package_type,
+                        result=result,
+                    )
+                )
+                seen_module_refs.add(result.class_ref)
+
+            modules_data_by_iteration[iteration] = iteration_data
+
+        if not self._time_start:
+            raise ValueError("TaskExecutionContext requires time_start to be set")
+
+        null_message = Message(role="", message="", model_encoding="")
+        null_repeating_message = MessageRepeating(role="", msgs="")
+        system_message = (
+            copy.deepcopy(self.spec_system_message)
+            if self.spec_system_message
+            else null_message
+        )
+        initial_message = (
+            copy.deepcopy(self.spec_init_message)
+            if self.spec_init_message
+            else null_message
+        )
+        repeating_message = (
+            copy.deepcopy(self.spec_rep_message)
+            if self.spec_rep_message
+            else null_repeating_message
+        )
+
+        if not isinstance(repeating_message, MessageRepeating):
+            repeating_message = null_repeating_message
+            logging.warning(
+                "Expected repeating_message to be of type MessageRepeating. Using empty MessageRepeating instead."
+            )
+
+        return TaskExecutionContext(
+            task_id=self._id,
+            task_name=self._name,
+            used_modules=modules_out,
+            modules_data_by_iteration=modules_data_by_iteration,
+            current_iteration=self._iteration,
+            solutions=copy.deepcopy(self._history_solution),
+            time_start=self._time_start,
+            used_tokens=self.get_used_tokens(),
+            valid_iterations=self._iteration_valid,
+            invalid_iterations=self._iteration - self._iteration_valid,
+            system_message=system_message,
+            initial_message=initial_message,
+            repeating_message=repeating_message,
         )
 
     def _fill_parameter_values(self, param: Parameter, input_value: Any) -> None:
@@ -398,17 +510,32 @@ class Task():
 
         elif param.type == PrimitiveType.enum:
             if isinstance(input_value, str):
-                match = next((opt for opt in param.enum_options
-                              if isinstance(opt, ModulAPI) and opt.short_name == input_value), None)
+                match = next(
+                    (
+                        opt
+                        for opt in param.enum_options
+                        if isinstance(opt, ModulAPI) and opt.short_name == input_value
+                    ),
+                    None,
+                )
                 param.value = match or input_value
             elif isinstance(input_value, dict):
-                if 'short_name' in input_value and 'parameters' in input_value:
-                    matched = next((opt for opt in param.enum_options
-                                    if isinstance(opt, ModulAPI) and opt.short_name == input_value['short_name']), None)
+                if "short_name" in input_value and "parameters" in input_value:
+                    matched = next(
+                        (
+                            opt
+                            for opt in param.enum_options
+                            if isinstance(opt, ModulAPI)
+                            and opt.short_name == input_value["short_name"]
+                        ),
+                        None,
+                    )
                     if matched:
                         for sub_key, sub_param in matched.parameters.items():
-                            if sub_key in input_value['parameters']:
-                                self._fill_parameter_values(sub_param, input_value['parameters'][sub_key])
+                            if sub_key in input_value["parameters"]:
+                                self._fill_parameter_values(
+                                    sub_param, input_value["parameters"][sub_key]
+                                )
                         param.value = matched
                     else:
                         param.value = input_value
@@ -418,7 +545,6 @@ class Task():
                 param.value = input_value
         else:
             param.value = input_value
-
 
     # TODO clean setters/getters
     @property
@@ -675,17 +801,15 @@ class Task():
     def get_incompatible_modules(self) -> list:
         return self._incompatible_modules
 
-
-
     ####################################################################
     #########  Public functions
     ####################################################################
     def pickle_me(self) -> None:
         # Create the file path
-        file_path = os.path.join(self._dir, 'task.pkl')
+        file_path = os.path.join(self._dir, "task.pkl")
         try:
             # Open the file without a context manager for more control
-            file = open(file_path, 'wb')
+            file = open(file_path, "wb")
             try:
                 pickle.dump(self, file)  # Replace with the data you want to pickle
             except Exception as e:
@@ -707,22 +831,28 @@ class Task():
         # TODO add optional ON/OFF option for debug and info messages
 
         self._date.task_start()
-        logging.info(f'Task[{self._id}] start | time: {self._date.get_task_history()[-1].get_start()}')
+        logging.info(
+            f"Task[{self._id}] start | time: {self._date.get_task_history()[-1].get_start()}"
+        )
 
         # calling the true 'iterative' run
         try:
             self._state = TaskState.RUN
             self._run()
         except Exception as e:
-            logging.error('Unexpected error during Task run (BREAKING):', repr(e))
-            self._log_error.append(f'Unexpected error during Task run (BREAKING): {repr(e)}')
+            logging.error("Unexpected error during Task run (BREAKING):", repr(e))
+            self._log_error.append(
+                f"Unexpected error during Task run (BREAKING): {repr(e)}"
+            )
             self._state = TaskState.BREAK
             self.pickle_me()
             return self
 
         self._date.task_end()
 
-        logging.info(f'Task[{self._id}] finish | time: {self._date.get_task_history()[-1].get_in_sec()} s')
+        logging.info(
+            f"Task[{self._id}] finish | time: {self._date.get_task_history()[-1].get_in_sec()} s"
+        )
         self._state = TaskState.FINISH
         self.pickle_me()
 
@@ -754,16 +884,18 @@ class Task():
 
     def create_dir(self) -> bool:
         try:
-            self._dir = os.path.join(self._dir, 't_' + self._id)
+            self._dir = os.path.join(self._dir, "t_" + self._id)
             os.mkdir(self._dir)
         except Exception as e:
-            logging.error(f'Task:{self._name}:{self._id} cant create folder! Exception: {e}')
+            logging.error(
+                f"Task:{self._name}:{self._id} cant create folder! Exception: {e}"
+            )
             return False
 
         # create sub-folders and save path
-        self._dir_solution = os.path.join(self._dir, 'solution')
-        self._dir_stat = os.path.join(self._dir, 'stat')
-        self._dir_anal = os.path.join(self._dir, 'anal')
+        self._dir_solution = os.path.join(self._dir, "solution")
+        self._dir_stat = os.path.join(self._dir, "stat")
+        self._dir_anal = os.path.join(self._dir, "anal")
         os.mkdir(self._dir_solution)
         os.mkdir(self._dir_stat)
         os.mkdir(self._dir_anal)
@@ -785,7 +917,7 @@ class Task():
 
     def get_time(self) -> int:
         start = self._date.get_task_history()[-1].get_start()
-        end = datetime.now(timezone.utc)
+        end = datetime.now(UTC)
         duration = end - start
         return duration.seconds
 
@@ -798,18 +930,22 @@ class Task():
         Arguments:
             state: str  -- State of the internal _run().
         """
-        if state == 'INIT':
+        if state == "INIT":
             return self._spec_init_message
 
         msg_str = ""
-        if state == 'OK':
+        if state == "OK":
             msg_str += self._spec_rep_message.get_content() + "\n"
 
         while not queue.empty():
             msg_str += queue.get()
-            msg_str += '\n'
+            msg_str += "\n"
 
-        return Message(model_encoding=self._spec_llm.get_model(), message=msg_str, role=self._spec_llm.get_role_user())
+        return Message(
+            model_encoding=self._spec_llm.get_model(),
+            message=msg_str,
+            role=self._spec_llm.get_role_user(),
+        )
 
     def _add_to_history(self, msg: Message) -> None:
         """
@@ -821,30 +957,45 @@ class Task():
         self._history_message.append(msg)
 
         if self._spec_save_to_disk:
-            _path = os.path.join(self._dir, 'messages.csv')
+            _path = os.path.join(self._dir, "messages.csv")
             _init = os.path.isfile(_path)
-            with open(_path, 'a', encoding='utf-8', newline='') as csv_file:
-                fieldnames = ['time', 'tokens', 'role', 'text', 'path_solution_file', 'path_solution_metadata', 'id',
-                              'metadata']
-                wr = csv.DictWriter(csv_file, fieldnames=fieldnames, delimiter=';')
+            with open(_path, "a", encoding="utf-8", newline="") as csv_file:
+                fieldnames = [
+                    "time",
+                    "tokens",
+                    "role",
+                    "text",
+                    "path_solution_file",
+                    "path_solution_metadata",
+                    "id",
+                    "metadata",
+                ]
+                wr = csv.DictWriter(csv_file, fieldnames=fieldnames, delimiter=";")
                 if not _init:
                     wr.writeheader()
                 ret = self._get_solution_paths(msg.get_id())
-                wr.writerow({'time': msg.get_timestamp(), 'tokens': msg.get_tokens(),
-                             'role': msg.get_role(), 'text': str(msg.get_content()),
-                             'id': msg.get_id(),
-                             'path_solution_file': ret.get('path_solution_file', None),
-                             'path_solution_metadata': ret.get('path_solution_metadata', None),
-                             'metadata': msg.get_metadata()
-                             })
+                wr.writerow(
+                    {
+                        "time": msg.get_timestamp(),
+                        "tokens": msg.get_tokens(),
+                        "role": msg.get_role(),
+                        "text": str(msg.get_content()),
+                        "id": msg.get_id(),
+                        "path_solution_file": ret.get("path_solution_file", None),
+                        "path_solution_metadata": ret.get(
+                            "path_solution_metadata", None
+                        ),
+                        "metadata": msg.get_metadata(),
+                    }
+                )
                 csv_file.close()
 
     def _get_solution_paths(self, id: str) -> dict:
         ret = {}
         for sol in self._history_solution:
             if sol.get_message_id() == id:
-                ret['path_solution_file'] = sol.get_path()
-                ret['path_solution_metadata'] = sol.get_path_metadata()
+                ret["path_solution_file"] = sol.get_path()
+                ret["path_solution_metadata"] = sol.get_path_metadata()
                 break
         return ret
 
@@ -861,7 +1012,9 @@ class Task():
                 return [self._spec_init_message]
 
         # unlimited context size or no slicing needed
-        if self._max_context_size < 0 or self._max_context_size > len(self._history_message):
+        if self._max_context_size < 0 or self._max_context_size > len(
+            self._history_message
+        ):
             cnx = copy.deepcopy(self._history_message)
             return cnx
 
@@ -870,7 +1023,7 @@ class Task():
             cnx = [self._spec_system_message]
         else:
             cnx = []
-        cnx += copy.deepcopy(self._history_message[-self._max_context_size - 1:])
+        cnx += copy.deepcopy(self._history_message[-self._max_context_size - 1 :])
         return cnx
 
     def _run(self) -> None:
@@ -879,21 +1032,35 @@ class Task():
         """
 
         # save task time
-        self._time_start = datetime.now(timezone.utc)
+        self._time_start = datetime.now(UTC)
 
-        state = 'INIT'
+        state = "INIT"
         if self._spec_system_message is not None:
             self._spec_system_message.update_timestamp()
             self._history_message = []
             self._add_to_history(self._spec_system_message)
         else:
             self._history_message = []
-        buffer_message = Queue(maxsize=0)  # Buffer (queue) of messages to be sent to LLM in new iteration
+        buffer_message = Queue(
+            maxsize=0
+        )  # Buffer (queue) of messages to be sent to LLM in new iteration
 
         if self._spec_init_message is not None:
             self._spec_init_message.update_timestamp()
 
-        while (state != 'STOP'):
+        moduls_results: dict[int, list[ModulResult]] = {}
+
+        def _add_modul_result(
+            modul_result: ModulResult,
+            iteration: int | None = None,
+        ):
+            if iteration is None:
+                iteration = self._iteration
+            if iteration not in moduls_results:
+                moduls_results[iteration] = []
+            moduls_results[iteration].append(modul_result)
+
+        while state != "STOP":
             # 1) get context
             # 2) add new message to history and to context
             # 3) pass context to LLM
@@ -923,59 +1090,77 @@ class Task():
             self._add_to_history(msg)
 
             # 3) pass context to LLM & # 4) get response from LLM
-            response = self._spec_llm.send(context)
+            llm_connector_result = self._spec_llm.send(context)
+            _add_modul_result(llm_connector_result)
 
             # 5) create a solution
             solution = copy.deepcopy(self._spec_solution)
-            solution.get_input_from_msg(response)
-            solution.set_message_id(response.get_id())
+            solution.set_id(str(self._iteration))
+            solution.set_time_start(datetime.now(UTC))
+            solution_result = solution.get_input_from_msg(llm_connector_result.response)
+            _add_modul_result(solution_result)
+            solution.set_message_id(llm_connector_result.response.get_id())
 
             # 5.5) add response to history
-            self._add_to_history(response)
+            self._add_to_history(llm_connector_result.response)
 
             # export solution
             if self._spec_save_to_disk:
-                sol_dir = os.path.join(self._dir_solution, 'sol_' + str(self._iteration))
+                sol_dir = os.path.join(
+                    self._dir_solution, "sol_" + str(self._iteration)
+                )
                 os.mkdir(sol_dir)
-                solution.export(dir=sol_dir, id='sol_' + str(self._iteration))
+                solution.export(dir=sol_dir, id="sol_" + str(self._iteration))
 
             # 6) check for errors/unit testing
-            state = 'OK'
-            for test in self._spec_test:
-                if not test.test(solution):
-                    logging.error(f'Task[{self._id}]: {test.get_user_msg()}')
+            state = "OK"
+            sorted_tests = sorted(self._spec_test, key=lambda x: x.get_order())
+            for test in sorted_tests:
+                test_result = test.test(solution)
+                _add_modul_result(test_result)
+                if not test_result.passed:
+                    logging.error(f"Task[{self._id}]: {test.get_user_msg()}")
                     buffer_message.put(test.get_error_msg())
-                    state = 'ERROR'
+                    state = "ERROR"
                 else:
-                    logging.info(f'Task[{self._id}]: {test.get_user_msg()}')
+                    logging.info(f"Task[{self._id}]: {test.get_user_msg()}")
 
             # 7) if state of the errors is 'OK' (i.e. no errors) GOTO 9)
             # 8) if state of the errors is 'ERROR' GOTO 1)
 
-            # 9) check for optional analysis
-            if state == 'OK':
-                for anal in self._spec_analysis:
-                    anal.evaluate_analysis(solution)
-                    anal.export(path=self._dir_anal, id='anal_' + str(self._iteration))
-
             # 10) evaluation, only if no ERROR
-            if state == 'OK':
-                self._spec_evaluator.evaluate(solution)
+            if state == "OK":
+                evaluator_result = self._spec_evaluator.evaluate(solution)
+                _add_modul_result(evaluator_result)
                 if self._spec_feedback_from_solution:
                     buffer_message.put(solution.get_feedback())
-                    for anal in self._spec_analysis:
-                        buffer_message.put(anal.get_feedback())
+
+            # save end time of the solution
+            solution.set_time_end(datetime.now(UTC))
 
             # export metadata of evaluated solution
             if self._spec_save_to_disk:
                 solution.export_meta()
+
+            # 9) check for optional analysis
+            if state == "OK":
+                sorted_analysis = sorted(
+                    self._spec_analysis, key=lambda x: x.get_order()
+                )
+                for anal in sorted_analysis:
+                    anal_result = anal.evaluate_analysis(
+                        solution, self.get_execution_context(moduls_results)
+                    )
+                    _add_modul_result(anal_result)
+                    anal.export(path=self._dir_anal, id=f"anal_{self._iteration}")
+                    buffer_message.put(anal.get_feedback())
 
             # copy so the saved solution in history does not change
             self._history_solution.append(copy.deepcopy(solution))
 
             # 11) check stopping conditions
             self._iteration += 1
-            if state == 'OK':
+            if state == "OK":
                 self._iteration_valid += 1
                 self._iteration_invalid_cons = 0
             # invalid iteration counter
@@ -983,8 +1168,10 @@ class Task():
                 self._iteration_invalid_cons += 1
             for cond in self._spec_cond:
                 cond.update(self)
-                if cond.is_satisfied():
-                    state = 'STOP'
+                cond_result = cond.is_satisfied()
+                _add_modul_result(cond_result, self._iteration - 1)
+                if cond_result.is_satisfied:
+                    state = "STOP"
 
             # 12) if state of the condition is 'OK' (i.e. no stopping) GOTO 1)
             # EMPTY
@@ -998,12 +1185,19 @@ class Task():
         self._spec_solution = self._spec_evaluator.get_best()
 
         # 14.5) Optional statistic
-        for stat in self._spec_stat:
-            stat.evaluate_statistic(solutions=self._history_solution)
+        # stats_results: list[ModulResult] = []
+        sorted_statistics = sorted(self._spec_stat, key=lambda x: x.get_order())
+        for stat in sorted_statistics:
+            stat_result = stat.evaluate_statistic(
+                self._history_solution,
+                self.get_execution_context(moduls_results),
+            )
+            _add_modul_result(stat_result)
+            # stats_results.append(stat_result)
             stat.export(self._dir_stat)
 
         # save end time
-        self._time_end = datetime.now(timezone.utc)
+        self._time_end = datetime.now(UTC)
 
     def is_init(self) -> bool:
         """
@@ -1051,18 +1245,20 @@ class Task():
             (self._spec_solution, [self._spec_evaluator]),
             (self._spec_solution, self._spec_test),
             (self._spec_solution, self._spec_analysis),
-            (self._spec_evaluator, self._spec_stat)
+            (self._spec_evaluator, self._spec_stat),
         )
-        for (parent, children) in pairs:
-            tags_out = parent.get_tags()['output']
+        for parent, children in pairs:
+            tags_out = parent.get_tags()["output"]
             if len(tags_out) == 0:
                 continue
             for child in children:
-                tags_in = child.get_tags()['input']
+                tags_in = child.get_tags()["input"]
                 if len(tags_in) == 0:
                     continue
                 if len(tags_out & tags_in) < 1:
-                    self._incompatible_modules.append([parent.get_short_name(), child.get_short_name()])
+                    self._incompatible_modules.append(
+                        [parent.get_short_name(), child.get_short_name()]
+                    )
                     self._state = TaskState.BREAK
 
         if len(self._incompatible_modules) > 0:

@@ -1,8 +1,9 @@
-from ..message import Message
-from .llmconnector import LLMConnector
-from ..loader import Parameter, PrimitiveType
-from ..utils.connector_utils import get_available_models
 import anthropic
+
+from ..loader_dto import Parameter, PrimitiveType
+from ..message import Message
+from ..utils.connector_utils import get_available_models
+from .llmconnector import LLMConnector, LLMConnectorResult
 
 
 class LLMConnectorAnthropic(LLMConnector):
@@ -15,8 +16,8 @@ class LLMConnectorAnthropic(LLMConnector):
     def __getstate__(self):
         state = self.__dict__.copy()
         # Remove the client from the state to allow pickling
-        if '_client' in state:
-            del state['_client']
+        if "_client" in state:
+            del state["_client"]
         return state
 
     def __setstate__(self, state):
@@ -26,21 +27,31 @@ class LLMConnectorAnthropic(LLMConnector):
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
-
         av_models = get_available_models(cls.get_short_name())
 
         return {
-            'token': Parameter(short_name="token", type=PrimitiveType.str),
-            'model': Parameter(short_name="model", type=PrimitiveType.enum, long_name='LLM model', enum_options=av_models['model_names'], enum_descriptions=av_models['model_longnames'], default='claude-3-haiku-20240307')
+            "token": Parameter(
+                short_name="token", type=PrimitiveType.str, sensitive=True
+            ),
+            "model": Parameter(
+                short_name="model",
+                type=PrimitiveType.enum,
+                long_name="LLM model",
+                enum_options=av_models["model_names"],
+                enum_descriptions=av_models["model_longnames"],
+                default="claude-3-haiku-20240307",
+            ),
         }
 
     def _init_params(self):
         super()._init_params()
-        self._token = self.parameters.get('token', '')  # Access token, ID
-        self._model = self.parameters.get('model', self.get_parameters().get('model').default)
+        self._token = self.parameters.get("token", "")  # Access token, ID
+        self._model = self.parameters.get(
+            "model", self.get_parameters().get("model").default
+        )
 
-        self._type = 'Anthropic'  # Type of LLM (OpenAI, Meta, Google, ...)
-        self._system_msg = ''
+        self._type = "Anthropic"  # Type of LLM (OpenAI, Meta, Google, ...)
+        self._system_msg = ""
         self._client = anthropic.Anthropic(api_key=self._token)
 
     ####################################################################
@@ -51,46 +62,49 @@ class LLMConnectorAnthropic(LLMConnector):
         Get role specification string for USER.
         Returns string.
         """
-        return 'user'
+        return "user"
 
     def get_role_system(self) -> str:
         """
         Get role specification string for SYSTEM.
         Returns string.
         """
-        return 'system'
+        return "system"
 
     def get_role_assistant(self) -> str:
         """
         Get role specification string for ASSISTANT.
         Returns string.
         """
-        return 'assistant'
+        return "assistant"
 
-    def send(self, context) -> Message:
+    def send(self, context) -> LLMConnectorResult:
         msgs = self._extract_messages(context)
         message = self._client.messages.create(
-            max_tokens=4096,
-            messages=msgs,
-            system=self._system_msg,
-            model=self._model
+            max_tokens=4096, messages=msgs, system=self._system_msg, model=self._model
         )
         response = message.to_dict()
-        if 'content' in response:
-            if isinstance(response['content'], list):
+        if "content" in response:
+            if isinstance(response["content"], list):
                 formatted_output = "".join(
-                    text_block['text'] for text_block in response['content'] if 'text' in text_block)
+                    text_block["text"]
+                    for text_block in response["content"]
+                    if "text" in text_block
+                )
         else:
             formatted_output = ""
 
-        msg = Message(role=self.get_role_assistant(), model_encoding=None,
-                      message=formatted_output
-                      )
+        msg = Message(
+            role=self.get_role_assistant(),
+            model_encoding=None,
+            message=formatted_output,
+        )
         msg.set_tokens(message.usage.output_tokens)
 
-        return msg
-
-
+        return LLMConnectorResult(
+            class_ref=type(self),
+            response=msg,
+        )
 
     def get_model(self) -> str:
         """
@@ -112,10 +126,7 @@ class LLMConnectorAnthropic(LLMConnector):
 
     @classmethod
     def get_tags(cls) -> dict:
-        return {
-            'input': set(),
-            'output': {'text'}
-        }
+        return {"input": set(), "output": {"text"}}
 
     ####################################################################
     #########  Private functions
@@ -124,8 +135,8 @@ class LLMConnectorAnthropic(LLMConnector):
         messages = []
         for cnx in context:
             msg = cnx.get()
-            if msg['role'] == self.get_role_system():
-                self._system_msg = msg['content']
+            if msg["role"] == self.get_role_system():
+                self._system_msg = msg["content"]
             else:
                 messages.append(cnx.get())
 

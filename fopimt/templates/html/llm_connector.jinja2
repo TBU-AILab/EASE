@@ -1,0 +1,79 @@
+{# ============================================================
+   LLMConnector Visualization
+   - Uses shared/base_viz.jinja2
+   - No computation / no formatting logic: all strings precomputed in Python
+   - Uses base_viz variable names (no mapping)
+   ============================================================ #}
+
+{% extends "shared/base_viz.jinja2" %}
+
+{% block custom_styles %}
+<style>
+  .llm-subline{
+    margin-top: 10px;
+    color: var(--fg-muted);
+    font-size: 12.5px;
+    display:flex;
+    flex-wrap:wrap;
+    gap: 10px;
+    align-items:center;
+  }
+  .llm-pill{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: color-mix(in oklab, var(--surface) 70%, transparent);
+    color: var(--fg-muted);
+    font-size: 12px;
+  }
+  .llm-pill code{
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: color-mix(in oklab, var(--fg) 88%, transparent);
+    white-space: pre;
+  }
+</style>
+{% endblock %}
+
+{% block main_result_extra %}
+  <div class="llm-subline">
+    <span class="llm-pill">module: <code>{{ module_name }}</code></span>
+    <span class="llm-pill">class_ref: <code>{{ module_class_ref }}</code></span>
+  </div>
+
+  <div class="llm-subline">
+    <span class="llm-pill">role: <code>{{ message_role }}</code></span>
+    <span class="llm-pill">model: <code>{{ message_model }}</code></span>
+    <span class="llm-pill">tokens: <code>{{ message_tokens }}</code></span>
+    <span class="llm-pill">created: <code>{{ message_created_at }}</code></span>
+    <span class="llm-pill">msg_id: <code>{{ message_id }}</code></span>
+  </div>
+{% endblock %}
+
+{% block extra_sections %}
+
+  <details {% if response_open %}open{% endif %} style="margin-top:12px;">
+    <summary>Response content</summary>
+    <div class="codewrap">
+      <div class="code-header">
+        <p class="code-title">Response content</p>
+      </div>
+      <pre class="viz-pre"><code>{{ response_text }}</code></pre>
+    </div>
+  </details>
+
+  <details {% if message_metadata_open %}open{% endif %} style="margin-top:12px;">
+    <summary>Message metadata</summary>
+    <div class="codewrap">
+      <div class="code-header">
+        <p class="code-title">Message metadata</p>
+        {% if message_metadata_lang %}<span class="langpill">{{ message_metadata_lang }}</span>{% endif %}
+      </div>
+      <pre class="viz-pre"><code class="language-json">{{ message_metadata_text }}</code></pre>
+    </div>
+  </details>
+
+{% endblock %}

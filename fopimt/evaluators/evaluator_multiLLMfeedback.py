@@ -1,59 +1,88 @@
 import copy
-
-from .evaluator import Evaluator
-from ..solutions.solution import Solution
-from ..solutions.solution_image import SolutionImage
-from ..llmconnectors.llmconnector import LLMConnector
-from ..message import Message
-from ..loader import Parameter, PrimitiveType, Loader, PackageType
 import re
-
 from pprint import pprint
 
-class EvaluatorMultiLlmFeedback(Evaluator):
+from ..loader import Loader
+from ..loader_dto import PackageType, Parameter, PrimitiveType
+from ..message import Message
+from ..solutions.solution import Solution
+from .evaluator import Evaluator, EvaluatorResult
 
+
+class EvaluatorMultiLlmFeedback(Evaluator):
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
-        llms = Loader((PackageType.LLMConnector,)).get_package(PackageType.LLMConnector).get_moduls()
+        llms = (
+            Loader((PackageType.LLMConnector,))
+            .get_package(PackageType.LLMConnector)
+            .get_moduls()
+        )
 
         param_dict = {
-            'llms': Parameter(short_name='llms', long_name='LLM connectors', description='A list of LLM connectors.',
-                              type=PrimitiveType.list, required=True,
-                              default=[
-                                  {
-                                      'alias': Parameter(short_name='alias', type=PrimitiveType.str,
-                                                         long_name='Name',
-                                                         description='Name alias for the llm if you want to specify it (e.g. Alice, Bob).',
-                                                         required=False),
-                                      'llm': Parameter(short_name='llm', type=PrimitiveType.enum,
-                                                       long_name='LLM', description='LLM connector',
-                                                       enum_options=llms, required=True),
-                                      'instruction': Parameter(short_name='instruction', type=PrimitiveType.markdown,
-                                                               long_name='Instructions for LLM evaluation',
-                                                               description='Instructions for LLM evaluation [User prompt]. If left empty, general instructions will be used.',
-                                                               required=False),
-                                  }
-                              ]),
-
-            'llm_instruction': Parameter(short_name="llm_instruction", type=PrimitiveType.markdown,
-                                         long_name="General instructions for LLM",
-                                         description="Instructions for LLM evaluation [User prompt].",
-                                         default='Rate this solution on a scale of 0 to 10 (0 the worst, 10 the best).',
-                                         required=False
-                                         ),
-
-            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.markdown,
-                                               long_name="Template for a feedback message",
-                                               description="Feedback message for evaluation. Can use {keywords}",
-                                               default='{llm_name}:\n{llm_feedback}\n\n"'),
-            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.markdown,
-                                           long_name="Template for an initial message",
-                                           description="Initial message for evaluation. Specific for each evaluator.",
-                                           default="You are a LLM Harry.", readonly=True),
-
-            'keywords': Parameter(short_name="keywords", type=PrimitiveType.enum, long_name='Feedback keywords',
-                                  description="Feedback keyword-based sentences",
-                                  enum_options=['llm_name', 'llm_shortname', 'llm_feedback'], readonly=True)
+            "llms": Parameter(
+                short_name="llms",
+                long_name="LLM connectors",
+                description="A list of LLM connectors.",
+                type=PrimitiveType.list,
+                required=True,
+                default=[
+                    {
+                        "alias": Parameter(
+                            short_name="alias",
+                            type=PrimitiveType.str,
+                            long_name="Name",
+                            description="Name alias for the llm if you want to specify it (e.g. Alice, Bob).",
+                            required=False,
+                        ),
+                        "llm": Parameter(
+                            short_name="llm",
+                            type=PrimitiveType.enum,
+                            long_name="LLM",
+                            description="LLM connector",
+                            enum_options=llms,
+                            required=True,
+                        ),
+                        "instruction": Parameter(
+                            short_name="instruction",
+                            type=PrimitiveType.markdown,
+                            long_name="Instructions for LLM evaluation",
+                            description="Instructions for LLM evaluation [User prompt]. If left empty, general instructions will be used.",
+                            required=False,
+                        ),
+                    }
+                ],
+            ),
+            "llm_instruction": Parameter(
+                short_name="llm_instruction",
+                type=PrimitiveType.markdown,
+                long_name="General instructions for LLM",
+                description="Instructions for LLM evaluation [User prompt].",
+                default="Rate this solution on a scale of 0 to 10 (0 the worst, 10 the best).",
+                required=False,
+            ),
+            "feedback_msg_template": Parameter(
+                short_name="feedback_msg_template",
+                type=PrimitiveType.markdown,
+                long_name="Template for a feedback message",
+                description="Feedback message for evaluation. Can use {keywords}",
+                default='{llm_name}:\n{llm_feedback}\n\n"',
+            ),
+            "init_msg_template": Parameter(
+                short_name="init_msg_template",
+                type=PrimitiveType.markdown,
+                long_name="Template for an initial message",
+                description="Initial message for evaluation. Specific for each evaluator.",
+                default="You are a LLM Harry.",
+                readonly=True,
+            ),
+            "keywords": Parameter(
+                short_name="keywords",
+                type=PrimitiveType.enum,
+                long_name="Feedback keywords",
+                description="Feedback keyword-based sentences",
+                enum_options=["llm_name", "llm_shortname", "llm_feedback"],
+                readonly=True,
+            ),
         }
 
         return param_dict
@@ -61,37 +90,40 @@ class EvaluatorMultiLlmFeedback(Evaluator):
     def _init_params(self):
         super()._init_params()
         self._llms = []
-        for llm in self.parameters.get('llms', []):
-
-            if 'instruction' not in llm.keys() or llm['instruction'] is None or llm['instruction'] == '':
-                instruction = self.parameters.get('llm_instruction', self.get_parameters().get('llm_instruction').default)
+        for llm in self.parameters.get("llms", []):
+            if (
+                "instruction" not in llm.keys()
+                or llm["instruction"] is None
+                or llm["instruction"] == ""
+            ):
+                instruction = self.parameters.get(
+                    "llm_instruction",
+                    self.get_parameters().get("llm_instruction").default,
+                )
             else:
-                instruction = llm['instruction']
+                instruction = llm["instruction"]
 
-            if 'alias' not in llm.keys() or llm['alias'] is None or llm['alias'] == '':
-                alias = llm['llm']['short_name']
+            if "alias" not in llm.keys() or llm["alias"] is None or llm["alias"] == "":
+                alias = llm["llm"]["short_name"]
             else:
-                alias = llm['alias']
+                alias = llm["alias"]
 
-            _llm = Loader().get_package(PackageType.LLMConnector).get_modul_imported(llm['llm']['short_name'])(
-                llm['llm']['parameters'])
-
-            self._llms.append(
-                {
-                    'llm': _llm,
-                    'instruction': instruction,
-                    'alias': alias
-                }
+            _llm = (
+                Loader()
+                .get_package(PackageType.LLMConnector)
+                .get_modul_imported(llm["llm"]["short_name"])(llm["llm"]["parameters"])
             )
+
+            self._llms.append({"llm": _llm, "instruction": instruction, "alias": alias})
 
             pprint(self._llms)
 
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> float:
+    def evaluate(self, solution: Solution) -> EvaluatorResult:
         """
-        Evaluation function. Returns quality of solution as float number.
+        Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:
             solution: Solution  -- Solution that will be evaluated.
         """
@@ -99,21 +131,26 @@ class EvaluatorMultiLlmFeedback(Evaluator):
         data = solution.get_input()
         feedback = ""
         for llm in self._llms:
-            if 'image' in solution.get_tags()['output']:
-                msg = Message(role=llm['llm'].get_role_user(), message=llm['instruction'])
-                msg.set_metadata(label='image', data=data)
+            if "image" in solution.get_tags()["output"]:
+                msg = Message(
+                    role=llm["llm"].get_role_user(), message=llm["instruction"]
+                )
+                msg.set_metadata(label="image", data=data)
             else:
-                msg = Message(role=llm['llm'].get_role_user(), message=llm['instruction'] + f"\n{data}")
+                msg = Message(
+                    role=llm["llm"].get_role_user(),
+                    message=llm["instruction"] + f"\n{data}",
+                )
 
-            msg_response = llm['llm'].send([msg])
+            msg_response = llm["llm"].send([msg])
 
             # set the feedback from LLM to solution feedback
             single_feedback = msg_response.get_content()
 
             keys = {
-                'llm_name': llm['alias'],
-                'llm_shortname': llm['llm'].get_short_name(),
-                'llm_feedback': single_feedback
+                "llm_name": llm["alias"],
+                "llm_shortname": llm["llm"].get_short_name(),
+                "llm_feedback": single_feedback,
             }
             feedback += self.get_feedback_msg_template().format(**keys)
 
@@ -126,7 +163,11 @@ class EvaluatorMultiLlmFeedback(Evaluator):
 
         self._check_if_best(solution)
 
-        return fitness
+        return EvaluatorResult(
+            class_ref=type(self),
+            fitness=fitness,
+            metadata={"feedback": feedback},
+        )
 
     @classmethod
     def get_short_name(cls) -> str:
@@ -142,10 +183,7 @@ class EvaluatorMultiLlmFeedback(Evaluator):
 
     @classmethod
     def get_tags(cls) -> dict:
-        return {
-            'input': set(),
-            'output': set()
-        }
+        return {"input": set(), "output": set()}
 
     ####################################################################
     #########  Private functions
@@ -164,10 +202,10 @@ class EvaluatorMultiLlmFeedback(Evaluator):
 
     def _extract_rating(self, text: str) -> float:
         # Define a regex pattern to find the rating value
-        pattern = r'^Rating:\s*(-?\d+(\.\d+)?)$'
+        pattern = r"^Rating:\s*(-?\d+(\.\d+)?)$"
 
         # Split the text into lines
-        lines = text.split('\n')
+        lines = text.split("\n")
 
         # Iterate over each line to find the line with the rating
         for line in lines:
