@@ -1,7 +1,8 @@
-from ..message import Message
 from enum import Enum
-from ..modul import Modul
+
 from ..loader import Parameter, PrimitiveType
+from ..message import Message
+from ..modul import Modul
 
 
 class LLMConnector(Modul):

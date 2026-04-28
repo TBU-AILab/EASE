@@ -3,7 +3,6 @@ from .gnbg_data.gnbg_init import GNBGfunction
 
 
 class GNBG(Modul):
-
     @classmethod
     def get_short_name(cls) -> str:
         return "resource.gnbg"
@@ -27,12 +26,7 @@ class GNBG(Modul):
         # Prepare test functions
         functions = []
         for f in funcs:
-            f_dict = {
-                'func': f,
-                'runs': runs,
-                'dim': f.dim,
-                'max_fes': f.maxfes
-            }
+            f_dict = {"func": f, "runs": runs, "dim": f.dim, "max_fes": f.maxfes}
             functions.append(f_dict)
 
         return functions
@@ -48,11 +42,6 @@ class GNBG(Modul):
         # Prepare test functions
         functions = []
         for f in funcs:
-            f_dict = {
-                'func': f,
-                'runs': runs,
-                'dim': f.dim,
-                'max_fes': 1_000
-            }
+            f_dict = {"func": f, "runs": runs, "dim": f.dim, "max_fes": 1_000}
             functions.append(f_dict)
         return functions

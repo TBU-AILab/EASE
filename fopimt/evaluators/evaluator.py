@@ -1,12 +1,15 @@
 from enum import Enum
 from typing import Optional
+
+from ..loader import Parameter, PrimitiveType
 from ..modul import Modul
 from ..solutions.solution import Solution
-from ..loader import Parameter, PrimitiveType
+
 
 class OptimizationGoal(Enum):
     MINIMIZATION = 0
     MAXIMIZATION = 1
+
 
 class Evaluator(Modul):
     """
@@ -23,33 +26,54 @@ class Evaluator(Modul):
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
         return {
-            'feedback_msg_template': Parameter(short_name="feedback_msg_template", type=PrimitiveType.markdown,
-                                               long_name="Template for a feedback message",
-                                               description="Feedback message for evaluation. Can use {keywords}",
-                                               default=''),
-            'init_msg_template': Parameter(short_name="init_msg_template", type=PrimitiveType.markdown,
-                                           long_name="Template for an initial message",
-                                           description="Initial message for evaluation. Specific for each evaluator.",
-                                           default="You are a LLM Harry.", readonly=True),
-
-            'keywords': Parameter(short_name="keywords", type=PrimitiveType.enum, long_name='Feedback keywords',
-                                  description="Feedback keyword-based sentences", enum_options=[], readonly=True)
+            "feedback_msg_template": Parameter(
+                short_name="feedback_msg_template",
+                type=PrimitiveType.markdown,
+                long_name="Template for a feedback message",
+                description="Feedback message for evaluation. Can use {keywords}",
+                default="",
+            ),
+            "init_msg_template": Parameter(
+                short_name="init_msg_template",
+                type=PrimitiveType.markdown,
+                long_name="Template for an initial message",
+                description="Initial message for evaluation. Specific for each evaluator.",
+                default="You are a LLM Harry.",
+                readonly=True,
+            ),
+            "keywords": Parameter(
+                short_name="keywords",
+                type=PrimitiveType.enum,
+                long_name="Feedback keywords",
+                description="Feedback keyword-based sentences",
+                enum_options=[],
+                readonly=True,
+            ),
         }
 
     def _init_params(self):
         super()._init_params()
         self._best: Solution | None = None  # Best Solution found so far
-        self._feedback_msg_template = self.parameters.get('feedback_msg_template',
-                                                          self.get_parameters().get('feedback_msg_template').default)
-        self._feedback_keywords = self.parameters.get('keywords', self.get_parameters().get('keywords').default)
+        self._feedback_msg_template = self.parameters.get(
+            "feedback_msg_template",
+            self.get_parameters().get("feedback_msg_template").default,
+        )
+        self._feedback_keywords = self.parameters.get(
+            "keywords", self.get_parameters().get("keywords").default
+        )
         self._keys: dict = {}
-        self._init_msg_template = self.parameters.get('init_msg_template',
-                                                      self.get_parameters().get('init_msg_template').default)
+        self._init_msg_template = self.parameters.get(
+            "init_msg_template", self.get_parameters().get("init_msg_template").default
+        )
 
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution, opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION) -> float:
+    def evaluate(
+        self,
+        solution: Solution,
+        opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
+    ) -> float:
         """
         Evaluation function. Returns quality of solution as float number.
         Arguments:

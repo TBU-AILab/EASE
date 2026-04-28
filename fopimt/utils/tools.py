@@ -1,7 +1,7 @@
 import io
+import logging
 import os
 import zipfile
-import logging
 
 
 def get_zip_buffer(directory_path: str) -> io.BytesIO | None:
@@ -10,7 +10,7 @@ def get_zip_buffer(directory_path: str) -> io.BytesIO | None:
 
     # Create a ZIP file in memory
     try:
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
             for root, _, files in os.walk(directory_path):
                 for file in files:
                     file_path = os.path.join(root, file)

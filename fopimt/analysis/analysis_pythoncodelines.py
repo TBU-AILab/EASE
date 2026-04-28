@@ -2,12 +2,11 @@ import copy
 import os.path
 
 from ..loader import Parameter
-from .analysis import Analysis
 from ..solutions.solution import Solution
+from .analysis import Analysis
 
 
 class AnalysisPythonCodeLines(Analysis):
-
     def _init_params(self):
         self._lines: int = 0
 
@@ -22,14 +21,14 @@ class AnalysisPythonCodeLines(Analysis):
         """
         # TODO assuming that Solution is of a type python code... This should be checked somehow
         if not isinstance(solution.get_input(), str):
-            raise TypeError('AnalysisPythonCodeLines: The solution is not a string')
+            raise TypeError("AnalysisPythonCodeLines: The solution is not a string")
 
         count = 0
-        for line in solution.get_input().split('\n'):
+        for line in solution.get_input().split("\n"):
             linet = line.lstrip()
-            if linet == '':
+            if linet == "":
                 continue
-            if not linet.startswith('#'):
+            if not linet.startswith("#"):
                 count += 1
         self._lines = count
 
@@ -41,9 +40,12 @@ class AnalysisPythonCodeLines(Analysis):
 
         out = "Code analysis: How many lines of code were generated?\n"
         out += str(self._lines)
-        with open(os.path.join(path, id+"_"+self.get_short_name()+".txt"), "w", encoding="utf-8") as f:
+        with open(
+            os.path.join(path, id + "_" + self.get_short_name() + ".txt"),
+            "w",
+            encoding="utf-8",
+        ) as f:
             f.write(out)
-
 
     @classmethod
     def get_short_name(cls) -> str:
@@ -59,10 +61,7 @@ class AnalysisPythonCodeLines(Analysis):
 
     @classmethod
     def get_tags(cls) -> dict:
-        return {
-            'input': {'python'},
-            'output': set()
-        }
+        return {"input": {"python"}, "output": set()}
 
     ####################################################################
     #########  Private functions

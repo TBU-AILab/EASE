@@ -1,12 +1,13 @@
+from ..loader import Parameter
 from ..modul import Modul
 from ..solutions.solution import Solution
-from ..loader import Parameter
 
 
 class Stat(Modul):
     """
     Parent statistical module.
     """
+
     def _init_params(self):
         super()._init_params()
 

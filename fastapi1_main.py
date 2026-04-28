@@ -1,35 +1,35 @@
+import asyncio
 import logging
-
 import os
+import sys
+from io import StringIO
+from typing import Any, Dict, List, Optional, Union
+
+import sentry_sdk
 import uvicorn
-
-from pydantic import BaseModel
-
-from fastapi import FastAPI, HTTPException, Request, WebSocket, UploadFile, File, Query
-from typing import List, Any, Optional, Union, Dict
-from fopimt.task import Task, TaskConfig, TaskState, TaskInfo, TaskData, TaskFull
-from fopimt.utils.connector_utils import update_all_models, read_json, write_json, validate_models_structure
-from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
+from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from fopimt import Magic
 from fopimt.loader import Loader, ModulAPI, PackageType
+from fopimt.task import Task, TaskConfig, TaskData, TaskFull, TaskInfo, TaskState
+from fopimt.utils.connector_utils import (
+    read_json,
+    update_all_models,
+    validate_models_structure,
+    write_json,
+)
 from fopimt.utils.package_manager import PythonPackage
-
-import sentry_sdk
-
-import sys
-import asyncio
-from io import StringIO
-
 
 # How to run server:
 # uvicorn fastapi_main:app --reload --port 8086
 
 # HOW TO RUN WITH BETTER WORKING MULTIPROCESSING
 # docker compose up
-#   
+#
 # If changes were made to the docker setup, use --build
 # docker compose up --build
 #
@@ -70,10 +70,7 @@ app = FastAPI(
     title="EASE",
     description="Effortless Algorithmic Solution Evolution (Fop-IMT)",
     version="1.0",
-    contact={
-        "name": "A.I.Lab",
-        "url": "https://ailab.fai.utb.cz/"
-    }
+    contact={"name": "A.I.Lab", "url": "https://ailab.fai.utb.cz/"},
 )
 
 # Set up CORS
@@ -97,7 +94,10 @@ magic_instance = Magic()
 def _get_task(task_id: str) -> Task:
     task = magic_instance.task_get(task_id)
     if task is None:
-        raise HTTPException(status_code=404, detail=f"Task with the id {task_id} not exists.", )
+        raise HTTPException(
+            status_code=404,
+            detail=f"Task with the id {task_id} not exists.",
+        )
     return task
 
 
@@ -116,12 +116,17 @@ def _get_task(task_id: str) -> Task:
 @app.post("/system/import")
 async def import_module(file: UploadFile = File(...)):
     if not (file.filename.endswith(".py") or file.filename.endswith(".zip")):
-        raise HTTPException(status_code=400, detail="Only .py or .zip files are supported.")
+        raise HTTPException(
+            status_code=400, detail="Only .py or .zip files are supported."
+        )
 
     try:
         magic_instance.get_loader().import_module(file=file)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unable to import file {file.filename}. Error: {e}", )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unable to import file {file.filename}. Error: {e}",
+        )
 
     return {"filename": file.filename, "message": "Import successful"}
 
@@ -146,6 +151,7 @@ def update_models():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/available-models")
 def get_available_models_config() -> dict:
     """
@@ -167,9 +173,13 @@ def update_available_models_config(models: Dict[str, Any]):
         raise HTTPException(status_code=422, detail=errors)
     try:
         write_json(models)
-        return {"status": "success", "message": "Available models configuration updated successfully."}
+        return {
+            "status": "success",
+            "message": "Available models configuration updated successfully.",
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/system/pm/all")
 def system_pm_all() -> list[PythonPackage]:
@@ -181,7 +191,10 @@ def system_pm_add(packages: list[PythonPackage]) -> None:
     try:
         magic_instance.get_package_manager().add(packs=packages)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unable to install packages {packages}. Error: {e}", )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unable to install packages {packages}. Error: {e}",
+        )
 
 
 @app.delete("/system/pm/delete")
@@ -191,19 +204,20 @@ def system_pm_delete(packages: list[PythonPackage]) -> None:
 
 @app.websocket("/ws/xterm/{session_id}")
 async def websocket_xterm(websocket: WebSocket, session_id: str):
-    """ WebSocket handler for an interactive shell session with xterm.js """
+    """WebSocket handler for an interactive shell session with xterm.js"""
     await websocket.accept()
 
     process = await asyncio.create_subprocess_exec(
-        "/bin/bash", "-i",
+        "/bin/bash",
+        "-i",
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-        env={**os.environ, "TERM": "xterm-256color"}  # Ensure full terminal emulation
+        env={**os.environ, "TERM": "xterm-256color"},  # Ensure full terminal emulation
     )
 
     async def read_stream(stream):
-        """ Continuously read from the shell output and send it to WebSocket """
+        """Continuously read from the shell output and send it to WebSocket"""
         while True:
             data = await stream.read(1024)
             if not data:
@@ -264,7 +278,10 @@ def serve_terminal_page():
 def task_create(task_id: Optional[str] = None) -> TaskInfo:
     _task = magic_instance.task_create(task_id)
     if _task is None:
-        raise HTTPException(status_code=406, detail=f"Unable to create Task with the id {task_id}.", )
+        raise HTTPException(
+            status_code=406,
+            detail=f"Unable to create Task with the id {task_id}.",
+        )
     return _task.get_info()
 
 
@@ -291,8 +308,8 @@ def task_full() -> list[TaskFull]:
     for task in tasks:
         full_task = task.get_full()
         for sol in full_task.task_data.solutions:
-            if 'url' in sol.metadata.keys():
-                sol.metadata['url'] = f"images/{sol.metadata['url']}"
+            if "url" in sol.metadata.keys():
+                sol.metadata["url"] = f"images/{sol.metadata['url']}"
         out.append(full_task)
 
     return out
@@ -315,19 +332,19 @@ def task_info(task_id: str) -> TaskInfo:
 @app.get("/task/status", response_model=list[TaskInfo])
 def task_status(task_ids: Optional[List[str]] = Query(None)) -> list[TaskInfo]:
     """
-        Get the status of all tasks or a specific task.
+    Get the status of all tasks or a specific task.
 
-        - `task_id` (Optional[str]): Specify a task ID to get the status of a single task.
-          If not provided or non-existing, all task statuses will be returned.
+    - `task_id` (Optional[str]): Specify a task ID to get the status of a single task.
+      If not provided or non-existing, all task statuses will be returned.
 
-        The response is a dictionary mapping each task ID to a status code:
-        - `0` (CREATED): Task is created but not yet started or fully initialized.
-        - `1` (INIT): Task is initialized and ready to be started.
-        - `2` (RUN): Taskvis is currently running.
-        - `3` (STOP): Task is stopped.
-        - `4` (FINISH): Task has completed successfully.
-        - `5` (BREAK): Task is interrupted or broken.
-        """
+    The response is a dictionary mapping each task ID to a status code:
+    - `0` (CREATED): Task is created but not yet started or fully initialized.
+    - `1` (INIT): Task is initialized and ready to be started.
+    - `2` (RUN): Taskvis is currently running.
+    - `3` (STOP): Task is stopped.
+    - `4` (FINISH): Task has completed successfully.
+    - `5` (BREAK): Task is interrupted or broken.
+    """
     return magic_instance.get_tasks_info(task_ids)
 
 
@@ -339,7 +356,7 @@ def task_status(task_ids: Optional[List[str]] = Query(None)) -> list[TaskInfo]:
 # based on the current configuration of the Task in FrontEnd
 # TBA
 @app.get("/task/{task_id}/options")
-#def task_options(task_id: str, task_configuration: TaskConfig) -> list[ModulAPI]:
+# def task_options(task_id: str, task_configuration: TaskConfig) -> list[ModulAPI]:
 def task_options(task_id: str) -> list[ModulAPI]:
     task = _get_task(task_id)
     out = []
@@ -363,11 +380,14 @@ def task_options_new() -> list[ModulAPI]:
 # Serves for initialization of the task
 # Once the task is fully initialized (all required characteristics), state of the task changes to INIT
 
+
 @app.put("/task/{task_id}")
 def task_init(task_id: str, task_configuration: TaskConfig) -> TaskInfo:
     task = _get_task(task_id)
     try:
-        task.initialize(loader=magic_instance.get_loader(), task_config=task_configuration)
+        task.initialize(
+            loader=magic_instance.get_loader(), task_config=task_configuration
+        )
     except Exception as e:
         print(e)
         raise HTTPException(status_code=422, detail=list(e.args))
@@ -385,14 +405,20 @@ def task_duplicate(task_id: str, new_name: str | None, num: int) -> list[TaskInf
     for i in range(num):
         if new_name is None or new_name == "":
             new_name = task.get_info().name
-        new_task_name = new_name + '_' + str(i)
+        new_task_name = new_name + "_" + str(i)
         try:
             new_task = magic_instance.task_duplicate(task, new_task_name)
         except AttributeError as e:
-            raise HTTPException(status_code=500, detail=repr(e), )
+            raise HTTPException(
+                status_code=500,
+                detail=repr(e),
+            )
 
         if new_task is None:
-            raise HTTPException(status_code=500, detail=f"Unable to duplicate Task with the id {task_id}.", )
+            raise HTTPException(
+                status_code=500,
+                detail=f"Unable to duplicate Task with the id {task_id}.",
+            )
 
         out.append(new_task.get_info())
 
@@ -405,8 +431,11 @@ def task_duplicate(task_id: str, new_name: str | None, num: int) -> list[TaskInf
 # dateFrom: str - Date from in str.# assuming it is in UTC format (ending with 'Z') "%Y-%m-%dT%H:%M:%S.%fZ"
 # return: TODO  - description
 @app.get("/task/data")
-def get_tasks_data(request: Request, dateFrom: str | None = None, task_ids: Optional[List[str]] = Query(None)) -> list[
-    TaskData]:
+def get_tasks_data(
+    request: Request,
+    dateFrom: str | None = None,
+    task_ids: Optional[List[str]] = Query(None),
+) -> list[TaskData]:
     news = magic_instance.get_new_data(dateFrom)
 
     if task_ids:
@@ -417,9 +446,9 @@ def get_tasks_data(request: Request, dateFrom: str | None = None, task_ids: Opti
 
     for tdata in news:
         for sol in tdata.solutions:
-            if 'url' in sol.metadata.keys():
+            if "url" in sol.metadata.keys():
                 # sol.metadata['url'] = f"{base_url}/images/{sol.metadata['url']}"
-                sol.metadata['url'] = f"images/{sol.metadata['url']}"
+                sol.metadata["url"] = f"images/{sol.metadata['url']}"
 
     return news
 
@@ -433,11 +462,15 @@ def get_tasks_data(request: Request, dateFrom: str | None = None, task_ids: Opti
 def task_get_solution(task_id: str, message_id: str) -> StreamingResponse:
     buffer = _get_task(task_id).get_solution(message_id)
     if buffer is None:
-        raise HTTPException(status_code=500, detail=f"Could not create zip buffer for Task [{task_id}].")
+        raise HTTPException(
+            status_code=500, detail=f"Could not create zip buffer for Task [{task_id}]."
+        )
 
     # Send the ZIP file as a StreamingResponse
-    response = StreamingResponse(buffer, media_type='application/zip')
-    response.headers["Content-Disposition"] = f"attachment; filename=archive_{task_id}_{message_id}.zip"
+    response = StreamingResponse(buffer, media_type="application/zip")
+    response.headers["Content-Disposition"] = (
+        f"attachment; filename=archive_{task_id}_{message_id}.zip"
+    )
 
     return response
 
@@ -450,11 +483,15 @@ def task_get_solution(task_id: str, message_id: str) -> StreamingResponse:
 def task_get_all(task_id: str) -> StreamingResponse:
     buffer = _get_task(task_id).get_all()
     if buffer is None:
-        raise HTTPException(status_code=500, detail=f"Could not create zip buffer for Task [{task_id}].")
+        raise HTTPException(
+            status_code=500, detail=f"Could not create zip buffer for Task [{task_id}]."
+        )
 
     # Send the ZIP file as a StreamingResponse
-    response = StreamingResponse(buffer, media_type='application/zip')
-    response.headers["Content-Disposition"] = f"attachment; filename=archive_{task_id}.zip"
+    response = StreamingResponse(buffer, media_type="application/zip")
+    response.headers["Content-Disposition"] = (
+        f"attachment; filename=archive_{task_id}.zip"
+    )
 
     return response
 

@@ -3,7 +3,6 @@ from .CEC2022_data.CEC2022_init import CEC2022function
 
 
 class CEC2022(Modul):
-
     @classmethod
     def get_short_name(cls) -> str:
         return "resource.cec2022"
@@ -23,7 +22,11 @@ class CEC2022(Modul):
         """
 
         dims = [10, 20]
-        funcs = [CEC2022function(funcNum=f_num, dim=dim) for f_num in range(1, 13) for dim in dims]
+        funcs = [
+            CEC2022function(funcNum=f_num, dim=dim)
+            for f_num in range(1, 13)
+            for dim in dims
+        ]
         runs = 30
 
         # Prepare test functions
@@ -35,12 +38,7 @@ class CEC2022(Modul):
                 max_fes = 200_000
             else:
                 max_fes = 1_000_000
-            f_dict = {
-                'func': f,
-                'runs': runs,
-                'dim': dim,
-                'max_fes': max_fes
-            }
+            f_dict = {"func": f, "runs": runs, "dim": dim, "max_fes": max_fes}
             functions.append(f_dict)
 
         return functions
@@ -52,7 +50,11 @@ class CEC2022(Modul):
         """
 
         dims = [10]
-        funcs = [CEC2022function(funcNum=f_num, dim=dim) for f_num in range(1, 13) for dim in dims]
+        funcs = [
+            CEC2022function(funcNum=f_num, dim=dim)
+            for f_num in range(1, 13)
+            for dim in dims
+        ]
         runs = 30
 
         # Prepare test functions
@@ -64,12 +66,7 @@ class CEC2022(Modul):
                 max_fes = 200_000
             else:
                 max_fes = 1_000_000
-            f_dict = {
-                'func': f,
-                'runs': runs,
-                'dim': dim,
-                'max_fes': max_fes
-            }
+            f_dict = {"func": f, "runs": runs, "dim": dim, "max_fes": max_fes}
             functions.append(f_dict)
 
         return functions
@@ -81,7 +78,11 @@ class CEC2022(Modul):
         """
 
         dims = [20]
-        funcs = [CEC2022function(funcNum=f_num, dim=dim) for f_num in range(1, 13) for dim in dims]
+        funcs = [
+            CEC2022function(funcNum=f_num, dim=dim)
+            for f_num in range(1, 13)
+            for dim in dims
+        ]
         runs = 30
 
         # Prepare test functions
@@ -93,12 +94,7 @@ class CEC2022(Modul):
                 max_fes = 200_000
             else:
                 max_fes = 1_000_000
-            f_dict = {
-                'func': f,
-                'runs': runs,
-                'dim': dim,
-                'max_fes': max_fes
-            }
+            f_dict = {"func": f, "runs": runs, "dim": dim, "max_fes": max_fes}
             functions.append(f_dict)
 
         return functions
@@ -115,11 +111,6 @@ class CEC2022(Modul):
         # Prepare test functions
         functions = []
         for f in funcs:
-            f_dict = {
-                'func': f,
-                'runs': runs,
-                'dim': f.dim,
-                'max_fes': max_fes
-            }
+            f_dict = {"func": f, "runs": runs, "dim": f.dim, "max_fes": max_fes}
             functions.append(f_dict)
         return functions
