@@ -1,10 +1,10 @@
 from ..modul import Modul, Parameter
-#from ..loader import Modul, Parameter
+
+# from ..loader import Modul, Parameter
 from ..solutions.solution import Solution
 
 
 class Analysis(Modul):
-
     ####################################################################
     #########  Public functions
     ####################################################################
@@ -30,6 +30,7 @@ class Analysis(Modul):
         If needed. The child class may override this to get feedback back into loop.
         """
         return ""
+
     ####################################################################
     #########  Private functions
     ####################################################################

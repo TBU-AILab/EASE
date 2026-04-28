@@ -11,34 +11,35 @@ class SolutionCodePython(Solution):
     Gets input (message.context) from Message
     :param prefix: String prefix for the file.
     """
+
     def _init_params(self):
         super()._init_params()
-        self._suffix = '.py'
-        self._prefix = self.parameters.get('prefix', '')
+        self._suffix = ".py"
+        self._prefix = self.parameters.get("prefix", "")
 
     ####################################################################
     #########  Public functions
     ####################################################################
     def get_input_from_msg(self, msg: Message):
         plain = msg.get_content()
-        state = 'TEXT'
+        state = "TEXT"
         out = ""
         lines_code = 0
-        for line in plain.split('\n'):
-            if line.startswith('```'):
-                if state == 'TEXT':
-                    state = 'CODE'
+        for line in plain.split("\n"):
+            if line.startswith("```"):
+                if state == "TEXT":
+                    state = "CODE"
                 else:
-                    state = 'TEXT'
+                    state = "TEXT"
                 continue
-            if state == 'CODE':
+            if state == "CODE":
                 lines_code += 1
                 out += line
-                out += '\n'
-            if state == 'TEXT':
-                out += '#'
+                out += "\n"
+            if state == "TEXT":
+                out += "#"
                 out += line
-                out += '\n'
+                out += "\n"
 
         if lines_code == 0:
             self._input = plain
@@ -59,10 +60,7 @@ class SolutionCodePython(Solution):
 
     @classmethod
     def get_tags(cls) -> dict:
-        return {
-            'input': {'text'},
-            'output': {'python'}
-        }
+        return {"input": {"text"}, "output": {"python"}}
 
     ####################################################################
     #########  Private functions

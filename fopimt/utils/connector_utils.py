@@ -1,7 +1,8 @@
 import json
-import os
-import requests
 import logging
+import os
+
+import requests
 
 # models = {
 #     "llm.mock": [
@@ -81,7 +82,9 @@ def read_json() -> dict:
 
 
 def write_json(data):
-    with open(os.path.join("fopimt", "utils", "available_models.json"), 'w') as json_file:
+    with open(
+        os.path.join("fopimt", "utils", "available_models.json"), "w"
+    ) as json_file:
         json.dump(data, json_file, indent=2)
 
 
@@ -137,7 +140,6 @@ def get_available_models(connector_shortname: str) -> dict:
         model_names = []
 
         for model_instance in data[connector_shortname]:
-
             instance_url = model_instance["url"]
             instance_model_names = model_instance["models"]
 
@@ -145,15 +147,14 @@ def get_available_models(connector_shortname: str) -> dict:
             model_names.append(model_name)
             model_longnames.append(f"{model_name} (url: {instance_url})")
 
-        models = {
-            "model_names": model_names,
-            "model_longnames": model_longnames
-        }
+        models = {"model_names": model_names, "model_longnames": model_longnames}
 
         return models
 
 
-def update_service_models(connector_shortname: str, connector_getupdate, api_key: str = None):
+def update_service_models(
+    connector_shortname: str, connector_getupdate, api_key: str = None
+):
     """
     Updates models for single connector defined by its shortname, connector_getupdate  function and with optional api_key
     """
@@ -171,7 +172,7 @@ def update_all_models():
     """
     This function updates the json config file for all services (if their update function is called below)
     """
-    update_ollama_models() #Ollama models update
+    update_ollama_models()  # Ollama models update
 
 
 #######################################################
@@ -193,8 +194,9 @@ def get_ollama(url: str, api_key: str = None) -> list[str]:
 
 
 def update_ollama_models():
-    update_service_models(connector_shortname="llm.ollama", connector_getupdate=get_ollama)
-
+    update_service_models(
+        connector_shortname="llm.ollama", connector_getupdate=get_ollama
+    )
 
 
 #######################################################
@@ -203,10 +205,7 @@ def update_ollama_models():
 
 
 def get_openai(url: str, api_key: str = None) -> list[str]:
-
-    headers = {
-        "Authorization": f"Bearer {api_key or os.getenv('OPENAI_API_KEY')}"
-    }
+    headers = {"Authorization": f"Bearer {api_key or os.getenv('OPENAI_API_KEY')}"}
 
     try:
         response = requests.get(url, headers=headers, timeout=5)
@@ -221,7 +220,12 @@ def get_openai(url: str, api_key: str = None) -> list[str]:
 
 
 def update_openai_models(api_key: str = None):
-    update_service_models(connector_shortname="llm.openai", connector_getupdate=get_openai, api_key=api_key)
+    update_service_models(
+        connector_shortname="llm.openai",
+        connector_getupdate=get_openai,
+        api_key=api_key,
+    )
+
 
 #######################################################
 # Anthropic Claude

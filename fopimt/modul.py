@@ -2,6 +2,7 @@ from typing import Any
 
 from .loader import Parameter
 
+
 class Modul:
     def __init__(self, parameters: dict[str, Any]):
         """

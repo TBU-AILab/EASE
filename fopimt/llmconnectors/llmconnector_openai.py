@@ -1,17 +1,17 @@
-from .llmconnector import LLMConnector
+from openai import OpenAI
+
 from ..loader import Parameter, PrimitiveType
 from ..message import Message
-from openai import OpenAI
 from ..utils.connector_utils import get_available_models
+from .llmconnector import LLMConnector
 
 
 class LLMConnectorOpenAI(LLMConnector):
-
     def __getstate__(self):
         state = self.__dict__.copy()
         # Remove the client from the state to allow pickling
-        if '_client' in state:
-            del state['_client']
+        if "_client" in state:
+            del state["_client"]
         return state
 
     def __setstate__(self, state):
@@ -22,20 +22,28 @@ class LLMConnectorOpenAI(LLMConnector):
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
-
         av_models = get_available_models(cls.get_short_name())
 
         return {
-            'token': Parameter(short_name="token", type=PrimitiveType.str),
-            'model': Parameter(short_name="model", type=PrimitiveType.enum, long_name='LLM model', enum_options=av_models['model_names'], enum_descriptions=av_models['model_longnames'], default='gpt-4o-mini')
+            "token": Parameter(short_name="token", type=PrimitiveType.str),
+            "model": Parameter(
+                short_name="model",
+                type=PrimitiveType.enum,
+                long_name="LLM model",
+                enum_options=av_models["model_names"],
+                enum_descriptions=av_models["model_longnames"],
+                default="gpt-4o-mini",
+            ),
         }
 
     def _init_params(self):
         super()._init_params()
-        self._token = self.parameters.get('token', '')  # Access token, ID
-        self._model = self.parameters.get('model', self.get_parameters().get('model').default)
+        self._token = self.parameters.get("token", "")  # Access token, ID
+        self._model = self.parameters.get(
+            "model", self.get_parameters().get("model").default
+        )
 
-        self._type = 'OpenAI'
+        self._type = "OpenAI"
         if self._token:
             self._client = OpenAI(api_key=self._token)
 
@@ -44,26 +52,26 @@ class LLMConnectorOpenAI(LLMConnector):
     ####################################################################
     def send(self, context: list[Message]) -> Message:
         completion = self._client.chat.completions.create(
-            model=self._model,
-            messages=self._extract_messages(context)
+            model=self._model, messages=self._extract_messages(context)
         )
 
-        msg = Message(role=self.get_role_assistant(), model_encoding=None,
-                      message=completion.choices[0].message.content
-                      )
+        msg = Message(
+            role=self.get_role_assistant(),
+            model_encoding=None,
+            message=completion.choices[0].message.content,
+        )
         msg.set_tokens(completion.usage.completion_tokens)
 
         return msg
 
     def get_role_user(self) -> str:
-        return 'user'
+        return "user"
 
     def get_role_assistant(self) -> str:
-        return 'assistant'
+        return "assistant"
 
     def get_role_system(self) -> str:
-        return 'system'
-
+        return "system"
 
     def get_model(self) -> str:
         return self._model
@@ -82,12 +90,10 @@ class LLMConnectorOpenAI(LLMConnector):
 
     @classmethod
     def get_tags(cls) -> dict:
-        return {
-            'input': set(),
-            'output': {'text'}
-        }
+        return {"input": set(), "output": {"text"}}
 
         ####################################################################
+
     #########  Private functions
     ####################################################################
     def _extract_messages(self, context: list[Message]):

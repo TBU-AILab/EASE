@@ -1,10 +1,10 @@
-import uuid
-from typing import Optional
 import logging
-import tiktoken
-from datetime import datetime, timezone
 import time
+import uuid
+from datetime import datetime, timezone
+from typing import Optional
 
+import tiktoken
 from pydantic import BaseModel
 
 
@@ -18,7 +18,6 @@ class MessageAPI(BaseModel):
 
 
 class Message:
-
     def __init__(self, role: str, message: str, model_encoding: Optional[str] = None):
         """
         Message class.
@@ -35,10 +34,10 @@ class Message:
         self._role: str = role
         self._content: str = message
         self._tokens: Optional[int] = None
-        time.sleep(0.1) # Adams super HOTFIX
+        time.sleep(0.1)  # Adams super HOTFIX
         self.update_timestamp()
         self._model = model_encoding
-        self._metadata: dict = {}   # Optional metadata obtained from LLM
+        self._metadata: dict = {}  # Optional metadata obtained from LLM
 
         self._calculate_tokens()
 
@@ -49,21 +48,19 @@ class Message:
         # role_dict = {"system": 0, "user": 1, "assistant": 2}
         return MessageAPI(
             msg_id=self._id,
-            date_created=self._timestamp.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            date_created=self._timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             tokens=self._tokens,
             content=self._content,
             model=self._model,
-            role=roleProvider.index(self._role)
+            role=roleProvider.index(self._role),
         )
-
 
     def get(self) -> dict:
         """
         Get the formatted message suitable for LLM.
         Contains role definition and message.
         """
-        return {"role": self._role,
-                "content": self._content}
+        return {"role": self._role, "content": self._content}
 
     def get_model(self) -> str:
         return self._model
@@ -130,4 +127,4 @@ class Message:
                 encoder = tiktoken.encoding_for_model(self._model)
                 self._tokens = len(encoder.encode(self._content))
             except KeyError as e:
-                logging.warning('Message: unknown model for tokenizer')
+                logging.warning("Message: unknown model for tokenizer")

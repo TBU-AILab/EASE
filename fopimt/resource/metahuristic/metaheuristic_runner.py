@@ -1,34 +1,27 @@
-import numpy as np
 import logging
+
+import numpy as np
 
 
 class MaxEvalException(Exception):
-
     def __init__(self, a, f):
-        self.text = f'Algorithm {a.__module__} tried to exceed maximum number of evaluations on function = {f}.'
+        self.text = f"Algorithm {a.__module__} tried to exceed maximum number of evaluations on function = {f}."
 
 
 class DimException(Exception):
-
     def __init__(self, a, dim, length, f):
-        self.text = f'Algorithm {a.__module__} passed array of length = {length} for problem of dim = {dim} on function = {f}.'
+        self.text = f"Algorithm {a.__module__} passed array of length = {length} for problem of dim = {dim} on function = {f}."
 
 
-class Runner():
-
+class Runner:
     def __init__(self, alg, func, dim, bounds, max_evals):
-
         self._evals = 0
         self._max_evals = max_evals
         self._dim = dim
         self._bounds = bounds
         self._func = func
         # Result
-        self._best = {
-            'params': np.array([]),
-            'fitness': None,
-            'eval_num': 0
-        }
+        self._best = {"params": np.array([]), "fitness": None, "eval_num": 0}
         self._flag_OoB = False
         self._flag_MaxEval = False
         self._flag_Dim = False
@@ -38,7 +31,6 @@ class Runner():
         pass
 
     def _func_eval_helper(self, x):
-
         # Max evaluations check
         if self._evals >= self._max_evals:
             if not self._flag_MaxEval:
@@ -63,10 +55,10 @@ class Runner():
         ret = self._func.evaluate(xx)
 
         # Logging best found value
-        if self._best['fitness'] is None or ret <= self._best['fitness']:
-            self._best['fitness'] = ret
-            self._best['params'] = xx
-            self._best['eval_num'] = self._evals
+        if self._best["fitness"] is None or ret <= self._best["fitness"]:
+            self._best["fitness"] = ret
+            self._best["params"] = xx
+            self._best["eval_num"] = self._evals
 
         self._evals += 1
 
@@ -77,20 +69,25 @@ class Runner():
         try:
             self._a(self._func_eval_helper, self._dim, self._bounds, self._max_evals)
         except MaxEvalException as e:
-            logging.warning(f'ResourceTask:Metaheuristic:Runner: {e.text}')
-            data['maxevalexception'] = e.text
+            logging.warning(f"ResourceTask:Metaheuristic:Runner: {e.text}")
+            data["maxevalexception"] = e.text
         except DimException as e:
-            logging.error(f'ResourceTask:Metaheuristic:Runner: {e.text}')
-            data['dimexception'] = e.text
+            logging.error(f"ResourceTask:Metaheuristic:Runner: {e.text}")
+            data["dimexception"] = e.text
         # for checking general unexpected exceptions
         except Exception as e:
-            logging.error(f'ResourceTask:Metaheuristic:Runner: {e}')
-            data['unexpectedexception'] = f'Algorithm {self._a.__module__} raised unexpected exception {e} on function = {self._func}.'
+            logging.error(f"ResourceTask:Metaheuristic:Runner: {e}")
+            data["unexpectedexception"] = (
+                f"Algorithm {self._a.__module__} raised unexpected exception {e} on function = {self._func}."
+            )
 
         if self._flag_OoB:
-            data['outofboundsexception'] = f'ResourceTask:Metaheuristic:Runner: Algorithm {self._a.__module__} tried to evaluate out of bounds. Parameters were clipped to bounds.'
+            data["outofboundsexception"] = (
+                f"ResourceTask:Metaheuristic:Runner: Algorithm {self._a.__module__} tried to evaluate out of bounds. Parameters were clipped to bounds."
+            )
             logging.warning(
-                f'ResourceTask:Metaheuristic:Runner: Algorithm {self._a.__module__} tried to evaluate out of bounds. Parameters were clipped to bounds.')
-        data['best'] = self._best
+                f"ResourceTask:Metaheuristic:Runner: Algorithm {self._a.__module__} tried to evaluate out of bounds. Parameters were clipped to bounds."
+            )
+        data["best"] = self._best
 
         return data

@@ -1,10 +1,10 @@
-from sklearn.model_selection import train_test_split
-from ...modul import Modul
 from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+
+from ...modul import Modul
 
 
 class Iris(Modul):
-
     @classmethod
     def get_short_name(cls) -> str:
         return "resource.iris"
@@ -34,4 +34,3 @@ class Iris(Modul):
             "train_data": {"X": train["data"], "y": train["target"]},
             "test_data": {"X": test["data"], "y": test["target"]},
         }
-

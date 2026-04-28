@@ -10,15 +10,14 @@ class SolutionText(Solution):
 
     def _init_params(self):
         super()._init_params()
-        self._suffix = '.txt'
-        self._prefix = self.parameters.get('prefix', '')
+        self._suffix = ".txt"
+        self._prefix = self.parameters.get("prefix", "")
 
     ####################################################################
     #########  Public functions
     ####################################################################
     def get_input_from_msg(self, msg: Message):
         self._input = msg.get_content()
-
 
     @classmethod
     def get_short_name(cls) -> str:
@@ -34,10 +33,7 @@ class SolutionText(Solution):
 
     @classmethod
     def get_tags(cls) -> dict:
-        return {
-            'input': {'text'},
-            'output': {'text'}
-        }
+        return {"input": {"text"}, "output": {"text"}}
 
     ####################################################################
     #########  Private functions

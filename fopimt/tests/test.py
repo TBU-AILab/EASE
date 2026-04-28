@@ -1,6 +1,6 @@
-from ..solutions.solution import Solution
-from ..modul import Modul
 from ..loader import Parameter, PrimitiveType
+from ..modul import Modul
+from ..solutions.solution import Solution
 
 
 class Test(Modul):
@@ -15,10 +15,10 @@ class Test(Modul):
     def _init_params(self):
         super()._init_params()
         self._test_result: bool = True
-        self._error_msg_template: str = ''
-        self._user_msg_template: str = ''
-        self._error_msg: str = ''
-        self._user_msg: str = ''
+        self._error_msg_template: str = ""
+        self._user_msg_template: str = ""
+        self._error_msg: str = ""
+        self._user_msg: str = ""
 
     @property
     def user_msg_template(self):

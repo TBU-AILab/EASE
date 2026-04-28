@@ -32,10 +32,12 @@ class StoppingCondition(Modul):
             task: Task  -- Instance of the parent Task.
         """
         from ..task import Task
+
         if isinstance(task, Task):
             raise NotImplementedError("This method should be overridden by subclasses.")
         else:
             raise TypeError("Function update needs Task")
+
     ####################################################################
     #########  Private functions
     ####################################################################

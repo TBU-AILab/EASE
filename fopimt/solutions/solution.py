@@ -1,15 +1,15 @@
-import os
-import json
-import numpy as np
-from typing import Optional, Any
 import datetime
+import json
+import os
+from typing import Any, Optional
 
+import numpy as np
 import pandas as pd
 from pydantic import BaseModel
 
-from ..modul import Modul
-from ..message import Message
 from ..loader import Parameter, PrimitiveType
+from ..message import Message
+from ..modul import Modul
 
 
 def serialize_unserializable(obj):
@@ -45,7 +45,6 @@ class SolutionAPI(BaseModel):
 
 
 class Solution(Modul):
-
     def _init_params(self):
         """
         General Solution class. Defines _input and _fitness.
@@ -68,7 +67,6 @@ class Solution(Modul):
     #########  Public functions
     ####################################################################
     def get_API(self) -> SolutionAPI:
-
         # TODO - fix this shit
         new_meta = dict()
         for m in self._metadata.keys():
@@ -96,9 +94,7 @@ class Solution(Modul):
         self._path_meta = self._path + ".dat"
         with open(self._path_meta, "w") as outfile:
             # json.dump(self._metadata, outfile, default=lambda df: json.loads(df.to_json()))
-            json.dump(
-                self._metadata, outfile, default=serialize_unserializable
-            )
+            json.dump(self._metadata, outfile, default=serialize_unserializable)
 
     def set_fitness(self, fitness: float) -> None:
         """
@@ -181,7 +177,7 @@ class Solution(Modul):
                 default="",
                 description="Prefix for generated solutions.",
                 type=PrimitiveType.str,
-                required=False
+                required=False,
             )
         }
 

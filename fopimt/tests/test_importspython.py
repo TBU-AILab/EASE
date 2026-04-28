@@ -1,23 +1,25 @@
-from .test import Test
+import ast
+
 from ..solutions.solution import Solution
 from ..utils.import_utils import dynamic_install
-
-import ast
+from .test import Test
 
 
 class TestImportsPython(Test):
     """
     Test designed for correct Python syntax.
     """
-    
+
     def _init_params(self):
         super()._init_params()
         self._error_msg = "Test:PythonImports: OK"
         self._user_msg = "Test:PythonImports: OK"
-        self._error_msg_template = \
+        self._error_msg_template = (
             "Unable to import or install specified modules. This is the reason: {0}."
-        self._user_msg_template = \
+        )
+        self._user_msg_template = (
             "Unable to import or install specified modules. This is the reason: {0}."
+        )
 
     ####################################################################
     #########  Public functions
@@ -43,7 +45,6 @@ class TestImportsPython(Test):
 
         return self._result
 
-
     @classmethod
     def get_short_name(cls) -> str:
         return "test.pimports"
@@ -58,10 +59,7 @@ class TestImportsPython(Test):
 
     @classmethod
     def get_tags(cls) -> dict:
-        return {
-            'input': {'python'},
-            'output': set()
-        }
+        return {"input": {"python"}, "output": set()}
 
     ####################################################################
     #########  Private functions
@@ -74,7 +72,9 @@ class TestImportsPython(Test):
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     # Append the module name and alias (if any)
-                    imports.append((alias.name, None, alias.asname))  # Whole module import
+                    imports.append(
+                        (alias.name, None, alias.asname)
+                    )  # Whole module import
             elif isinstance(node, ast.ImportFrom):
                 # 'module' is the library, 'names' is the specific part(s) being imported
                 for alias in node.names:

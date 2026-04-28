@@ -1,8 +1,9 @@
-from ..message import Message
-from enum import Enum
-from ..loader import Parameter, PrimitiveType, Loader, PackageType
-from .llmconnector import LLMConnector
 import random
+from enum import Enum
+
+from ..loader import Loader, PackageType, Parameter, PrimitiveType
+from ..message import Message
+from .llmconnector import LLMConnector
 
 
 class LLMConnectorMulti(LLMConnector):
@@ -19,31 +20,52 @@ class LLMConnectorMulti(LLMConnector):
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
-        avail_llms = Loader((PackageType.LLMConnector, ), [cls.get_short_name()]).get_package(PackageType.LLMConnector).get_moduls()
+        avail_llms = (
+            Loader((PackageType.LLMConnector,), [cls.get_short_name()])
+            .get_package(PackageType.LLMConnector)
+            .get_moduls()
+        )
 
         param_dict = {
-            'selection_type': Parameter(short_name='selection_type', type=PrimitiveType.enum, long_name='LLM selection',
-                                        description='How the LLMs will be selected for output generation.',
-                                        enum_options=['random', 'w-random', 'circular'],
-                                        enum_descriptions=['Random', 'Weighted random', 'Circular'], default='random',
-                                        required=True),
-            'llms': Parameter(short_name='llms', long_name='LLM connectors', description='A list of LLM connectors '
-                                                                                         'with weights.',
-                              type=PrimitiveType.list, required=True,
-                              default=[
-                                  {
-                                      'weight': Parameter(short_name='weight', type=PrimitiveType.float,
-                                                          long_name='LLM weight',
-                                                          description='Selection weight for this LLM connector. '
-                                                                      'Ignored in case of random or circular '
-                                                                      'selection type.',
-                                                          default=1., required=True),
-                                      'llm': Parameter(short_name='llm', type=PrimitiveType.enum,
-                                                       long_name='LLM', description='LLM connector',
-                                                       enum_options=avail_llms, required=True),
-                                  }
-                              ]),
-
+            "selection_type": Parameter(
+                short_name="selection_type",
+                type=PrimitiveType.enum,
+                long_name="LLM selection",
+                description="How the LLMs will be selected for output generation.",
+                enum_options=["random", "w-random", "circular"],
+                enum_descriptions=["Random", "Weighted random", "Circular"],
+                default="random",
+                required=True,
+            ),
+            "llms": Parameter(
+                short_name="llms",
+                long_name="LLM connectors",
+                description="A list of LLM connectors with weights.",
+                type=PrimitiveType.list,
+                required=True,
+                default=[
+                    {
+                        "weight": Parameter(
+                            short_name="weight",
+                            type=PrimitiveType.float,
+                            long_name="LLM weight",
+                            description="Selection weight for this LLM connector. "
+                            "Ignored in case of random or circular "
+                            "selection type.",
+                            default=1.0,
+                            required=True,
+                        ),
+                        "llm": Parameter(
+                            short_name="llm",
+                            type=PrimitiveType.enum,
+                            long_name="LLM",
+                            description="LLM connector",
+                            enum_options=avail_llms,
+                            required=True,
+                        ),
+                    }
+                ],
+            ),
         }
 
         return param_dict
@@ -51,12 +73,18 @@ class LLMConnectorMulti(LLMConnector):
     def _init_params(self):
         super()._init_params()
 
-        self._selection_type = self.parameters.get('selection_type', self.get_parameters().get('selection_type').default)
+        self._selection_type = self.parameters.get(
+            "selection_type", self.get_parameters().get("selection_type").default
+        )
         self._llms = []
         self._weights = []
-        for llm in self.parameters.get('llms', []):
-            self._llms.append(Loader().get_package(PackageType.LLMConnector).get_modul_imported(llm['llm']['short_name'])(llm['llm']['parameters']))
-            self._weights.append(llm['weight'])
+        for llm in self.parameters.get("llms", []):
+            self._llms.append(
+                Loader()
+                .get_package(PackageType.LLMConnector)
+                .get_modul_imported(llm["llm"]["short_name"])(llm["llm"]["parameters"])
+            )
+            self._weights.append(llm["weight"])
 
         self._index = 0
         self._llm = None
@@ -68,17 +96,17 @@ class LLMConnectorMulti(LLMConnector):
     def get_role_user(self) -> str:
         if self._llm:
             return self._llm.get_role_user()
-        return 'user'
+        return "user"
 
     def get_role_assistant(self) -> str:
         if self._llm:
             return self._llm.get_role_assistant()
-        return 'assistant'
+        return "assistant"
 
     def get_role_system(self) -> str:
         if self._llm:
             return self._llm.get_role_system()
-        return 'system'
+        return "system"
 
     @classmethod
     def get_short_name(cls) -> str:
@@ -94,10 +122,7 @@ class LLMConnectorMulti(LLMConnector):
 
     @classmethod
     def get_tags(cls) -> dict:
-        return {
-            'input': set(),
-            'output': set()
-        }
+        return {"input": set(), "output": set()}
 
     def send(self, context) -> Message:
         """
@@ -105,11 +130,11 @@ class LLMConnectorMulti(LLMConnector):
         Returns response as Message from LLM.
         """
         match self._selection_type:
-            case 'random':
+            case "random":
                 # Select llm at random
                 self._llm = random.choice(self._llms)
 
-            case 'w-random':
+            case "w-random":
                 # Weighted random selection
                 self._llm = random.choices(self._llms, self._weights)[0]
             case _:
@@ -121,7 +146,6 @@ class LLMConnectorMulti(LLMConnector):
         self._model = self._llm.get_model()
 
         return self._llm.send(context)
-
 
     def get_model(self) -> str:
         if self._model:

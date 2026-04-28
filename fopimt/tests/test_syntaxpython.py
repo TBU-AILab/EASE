@@ -2,22 +2,21 @@ import importlib
 import os
 import sys
 
-from .test import Test
 from ..solutions.solution import Solution
+from .test import Test
 
 
 class TestSyntaxPython(Test):
     """
     Test designed for correct Python syntax.
     """
+
     def _init_params(self):
         super()._init_params()
         self._error_msg = "Test:PythonSyntax: OK"
         self._user_msg = "Test:PythonSyntax: OK"
-        self._error_msg_template = \
-            "I got a syntax error in your generated code. The error message was: {0}. Fix the error."
-        self._user_msg_template = \
-            "There seems to be a Syntax Error in the generated Python code. The error message was {0}."
+        self._error_msg_template = "I got a syntax error in your generated code. The error message was: {0}. Fix the error."
+        self._user_msg_template = "There seems to be a Syntax Error in the generated Python code. The error message was {0}."
 
     ####################################################################
     #########  Public functions
@@ -30,14 +29,13 @@ class TestSyntaxPython(Test):
         """
         self._result = True
         try:
-            compile(solution.get_input(),"temp.py", "exec")
+            compile(solution.get_input(), "temp.py", "exec")
         except Exception as e:
             self._result = False
             self._error_msg = self._error_msg_template.format(repr(e))
             self._user_msg = self._user_msg_template.format(repr(e))
 
         return self._result
-
 
     @classmethod
     def get_short_name(cls) -> str:
@@ -53,10 +51,7 @@ class TestSyntaxPython(Test):
 
     @classmethod
     def get_tags(cls) -> dict:
-        return {
-            'input': {'python'},
-            'output': set()
-        }
+        return {"input": {"python"}, "output": set()}
 
     ####################################################################
     #########  Private functions
