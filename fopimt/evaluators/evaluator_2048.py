@@ -7,7 +7,7 @@ from ..loader_dto import Parameter, PrimitiveType
 from ..resource.game2048.implementation_2048 import new_game, play_2048
 from ..resource.game2048.rendering.renderer2048 import Renderer2048
 from ..solutions.solution import Solution
-from ..task_dto import TaskExecutionContext
+from ..task_dto import OptimizationGoal, TaskExecutionContext
 from ..utils.import_utils import dynamic_import
 from .evaluator import Evaluator, EvaluatorResult
 
@@ -149,7 +149,11 @@ fully functional implementation.""",
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> EvaluatorResult:
+    def evaluate(
+        self,
+        solution: Solution,
+        opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
+    ) -> EvaluatorResult:
         """
         Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:

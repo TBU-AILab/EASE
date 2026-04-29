@@ -494,6 +494,7 @@ class Task:
             system_message=system_message,
             initial_message=initial_message,
             repeating_message=repeating_message,
+            optimization_goal=self._optimization_goal,
         )
 
     def _fill_parameter_values(self, param: Parameter, input_value: Any) -> None:

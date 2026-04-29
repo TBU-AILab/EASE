@@ -14,7 +14,7 @@ from fopimt.message import Message
 from fopimt.modul import Modul
 from fopimt.resource.report.report_dto import ModulVisualizationDto, OutputFormat
 from fopimt.solutions.solution import Solution
-from fopimt.task_dto import TaskExecutionContext
+from fopimt.task_dto import OptimizationGoal, TaskExecutionContext
 
 
 @dataclass(frozen=True)
@@ -245,6 +245,21 @@ class BaseReportDataBuilder:
         content = self._message_to_raw_text(message)
         return self._markdown_to_html(content) if content else ""
 
+    def _get_optimization_goal(self) -> OptimizationGoal:
+        optimization_goal = self._task_context.optimization_goal
+        if optimization_goal is None:
+            logging.warning(
+                "No optimization goal specified in task context, defaulting to minimization."
+            )
+            return OptimizationGoal.MINIMIZATION
+        return optimization_goal
+
+    def _get_optimization_goal_note(self) -> str:
+        optimization_goal = self._get_optimization_goal()
+        if optimization_goal == OptimizationGoal.MINIMIZATION:
+            return "Lower fitness is better (minimization)."
+        return "Higher fitness is better (maximization)."
+
 
 class SolutionReportDataBuilder(BaseReportDataBuilder):
     def build(
@@ -275,7 +290,9 @@ class SolutionReportDataBuilder(BaseReportDataBuilder):
         if solution:
             solution_content = solution.get_input() or ""
             metadata = solution.get_metadata() or {}
-            fitness = solution.get_fitness() or "—"
+            fitness = solution.get_fitness()
+            if fitness is None:
+                fitness = "—"
         else:
             solution_content = ""
             metadata = {}
@@ -295,6 +312,7 @@ class SolutionReportDataBuilder(BaseReportDataBuilder):
             task_id=self._task_context.task_id,
             solution_number=self._task_context.current_iteration,
             fitness=fitness,
+            fitness_note=self._get_optimization_goal_note(),
             solver_name=self._get_solver().get_short_name(),
             evaluator_name=self._get_evaluator().get_short_name(),
             runtime=runtime,
@@ -335,13 +353,15 @@ class TaskReportDataBuilder(BaseReportDataBuilder):
         running_sum = 0.0
         valid_count = 0
         best_so_far: float | None = None
+        optimization_goal = self._get_optimization_goal()
+        select_best = min if optimization_goal == OptimizationGoal.MINIMIZATION else max
 
         for fitness in fitness_values:
             if fitness is not None:
                 running_sum += fitness
                 valid_count += 1
                 best_so_far = (
-                    fitness if best_so_far is None else max(best_so_far, fitness)
+                    fitness if best_so_far is None else select_best(best_so_far, fitness)
                 )
 
             avg_fitness_values.append(
@@ -362,33 +382,37 @@ class TaskReportDataBuilder(BaseReportDataBuilder):
         self,
         solutions: list,
     ) -> tuple[float | None, object | None, int | str, str, str, str]:
-        best_solution = None
-        best_fitness_value = None
+        optimization_goal = self._get_optimization_goal()
 
-        for solution in solutions:
+        solutions_with_fitness = []
+        for index, solution in enumerate(solutions):
             fitness = solution.get_fitness()
-            if best_fitness_value is None or fitness > best_fitness_value:
-                best_fitness_value = fitness
-                best_solution = solution
+            if fitness is not None:
+                solutions_with_fitness.append((fitness, solution, index))
 
-        best_solution_number: int | str = "—"
+        select_best = min if optimization_goal == OptimizationGoal.MINIMIZATION else max
+
+        best_fitness, best_solution, best_solution_number = select_best(
+            solutions_with_fitness,
+            key=lambda item: item[0],
+            default=(None, None, "—"),
+        )
+
         best_solution_id = ""
         best_solution_preview = ""
-        best_runtime: str = "—"
+        best_runtime = "—"
 
         if best_solution is not None:
-            best_solution_number = solutions.index(best_solution)
             best_solution_id = best_solution.get_id() or ""
             best_solution_preview = best_solution.get_input() or ""
 
-            best_time_start = best_solution.get_time_start()
-            best_time_end = best_solution.get_time_end()
             best_runtime = self._calculate_runtime_formatted(
-                best_time_start, best_time_end
+                best_solution.get_time_start(),
+                best_solution.get_time_end(),
             )
 
         return (
-            best_fitness_value,
+            best_fitness,
             best_solution,
             best_solution_number,
             best_solution_id,
@@ -574,6 +598,7 @@ class TaskReportDataBuilder(BaseReportDataBuilder):
             task_id=self._task_context.task_id,
             time_start=time_start_str,
             best_fitness=best_fitness_value if best_fitness_value is not None else "—",
+            best_fitness_note=self._get_optimization_goal_note(),
             used_modules=used_modules_info_viz_items,
             evaluator_name=evaluator_name or TaskReportData.evaluator_name,
             solution_name=solution_name or TaskReportData.solution_name,

@@ -119,3 +119,4 @@ class TaskExecutionContext:
     system_message: Message
     initial_message: Message
     repeating_message: MessageRepeating
+    optimization_goal: Optional[OptimizationGoal]
