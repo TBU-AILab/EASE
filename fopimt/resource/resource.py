@@ -231,6 +231,9 @@ class Resource:
                     "get_description",
                     "get_tags",
                     "get_parameters",
+                    "get_order",
+                    "render_html",
+                    "render_latex",
                 )
             )
         ]

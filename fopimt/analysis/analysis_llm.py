@@ -73,10 +73,11 @@ class AnalysisLLM(Analysis):
                 message=f"{self._llm_prompt}\n{data}",
             )
 
-        msg_response = self._llmconnector.send([msg])
+        result = self._llmconnector.send([msg])
+        msg_response = result.response
 
         # set the feedback from LLM to solution feedback
-        feedback = msg_response.response.get_content()
+        feedback = msg_response.get_content()
         self._feedback = feedback
 
         return AnalysisResult(

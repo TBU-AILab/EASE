@@ -140,7 +140,7 @@ def run(func, dim, bounds, max_evals):
         super()._init_params()
         if self.parameters.get("benchmark"):
             func_to_call = Resource.get_resource_function(
-                self.parameters.get("benchmark"), ResourceType.METABENCHMARK
+                self.parameters.get("benchmark"), "metabenchmark"
             )
             self.functions = func_to_call()
 

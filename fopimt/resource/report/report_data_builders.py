@@ -290,7 +290,7 @@ class SolutionReportDataBuilder(BaseReportDataBuilder):
         return SolutionReportData(
             page_title=f"EASE Solution Report - #{self._task_context.current_iteration}",
             logo_data_uri=logo_data_uri,
-            generated_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"),
             task_name=self._task_context.task_name,
             task_id=self._task_context.task_id,
             solution_number=self._task_context.current_iteration,
@@ -322,7 +322,7 @@ class TaskReportDataBuilder(BaseReportDataBuilder):
 
     def _get_time_start_str(self) -> str:
         time_start = self._task_context.time_start
-        return time_start.strftime("%Y-%m-%d %H:%M:%S") if time_start else "—"
+        return time_start.strftime("%Y-%m-%d %H:%M:%S %Z") if time_start else "—"
 
     def _build_iteration_series(self, solutions: list) -> IterationSeries:
         fitness_values: list[float | None] = [
@@ -569,7 +569,7 @@ class TaskReportDataBuilder(BaseReportDataBuilder):
 
         return TaskReportData(
             logo_data_uri=self._load_logo_data_uri(),
-            generated_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"),
             task_name=self._task_context.task_name,
             task_id=self._task_context.task_id,
             time_start=time_start_str,

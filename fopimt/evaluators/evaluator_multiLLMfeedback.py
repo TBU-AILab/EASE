@@ -142,7 +142,8 @@ class EvaluatorMultiLlmFeedback(Evaluator):
                     message=llm["instruction"] + f"\n{data}",
                 )
 
-            msg_response = llm["llm"].send([msg])
+            result = llm["llm"].send([msg])
+            msg_response = result.response
 
             # set the feedback from LLM to solution feedback
             single_feedback = msg_response.get_content()

@@ -539,10 +539,10 @@
   <div class="grid-2">
     <div class="subcard message-card">
       <h3>System message</h3>
-      {% if system_message_html %}
+      {% if system_message_rendered %}
         <div class="message-box">
           <div class="message-markdown">
-            {{ system_message_html | safe }}
+            {{ system_message_rendered | safe }}
           </div>
         </div>
       {% else %}
@@ -552,10 +552,10 @@
 
     <div class="subcard message-card">
       <h3>Initial message</h3>
-      {% if initial_message_html %}
+      {% if initial_message_rendered %}
         <div class="message-box">
           <div class="message-markdown">
-            {{ initial_message_html | safe }}
+            {{ initial_message_rendered | safe }}
           </div>
         </div>
       {% else %}

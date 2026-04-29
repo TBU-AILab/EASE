@@ -87,7 +87,8 @@ class EvaluatorLlmFeedback(Evaluator):
                 message=f"{self._feedback_prompt}\n{data}",
             )
 
-        msg_response = self._llmconnector.send([msg])
+        result = self._llmconnector.send([msg])
+        msg_response = result.response
 
         # set the feedback from LLM to solution feedback
         feedback = msg_response.get_content()
