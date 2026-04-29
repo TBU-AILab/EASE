@@ -3,19 +3,11 @@ import os
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
-<<<<<<< HEAD
 
 from fopimt.task_dto import TaskExecutionContext
 
 from ..solutions.solution import Solution
 from .stat import Stat, StatResult
-=======
-import pandas as pd
-from scipy.stats import ranksums
-
-from ..solutions.solution import Solution
-from .stat import Stat
->>>>>>> origin/main
 
 
 def _plot_points_in_triangle(fitness: float, points: np.ndarray, filepath: str):
@@ -68,15 +60,11 @@ class StatHeilbronn(Stat):
     ####################################################################
     #########  Public functions
     ####################################################################
-<<<<<<< HEAD
     def evaluate_statistic(
         self,
         solutions: list[Solution],
         task_execution_context: TaskExecutionContext,
     ) -> StatResult:
-=======
-    def evaluate_statistic(self, solutions: list[Solution]):
->>>>>>> origin/main
         best_fitness = -1
         for solution in solutions:
             if solution.get_metadata():
@@ -97,14 +85,11 @@ class StatHeilbronn(Stat):
                             best_fitness = (
                                 solution.get_metadata().get("results").get("fitness")
                             )
-<<<<<<< HEAD
 
         return StatResult(
             class_ref=type(self),
             metadata={"data": self._data},
         )
-=======
->>>>>>> origin/main
 
     def export(self, path: str):
         if self._data:

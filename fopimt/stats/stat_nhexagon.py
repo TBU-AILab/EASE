@@ -1,19 +1,6 @@
 import math
 import os
 import sys
-<<<<<<< HEAD
-=======
-
-import matplotlib.patches as patches
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-from scipy.stats import ranksums
-
-from ..solutions.solution import Solution
-from .stat import Stat
-
->>>>>>> origin/main
 
 import matplotlib.pyplot as plt
 
@@ -119,15 +106,11 @@ class StatHexagon(Stat):
     ####################################################################
     #########  Public functions
     ####################################################################
-<<<<<<< HEAD
     def evaluate_statistic(
         self,
         solutions: list[Solution],
         task_execution_context: TaskExecutionContext,
     ) -> StatResult:
-=======
-    def evaluate_statistic(self, solutions: list[Solution]):
->>>>>>> origin/main
         self._data = {}
 
         best_fitness = sys.float_info.max
@@ -181,14 +164,11 @@ class StatHexagon(Stat):
                                 .get("results")
                                 .get("outer_hex_angle_degrees"),
                             }
-<<<<<<< HEAD
 
         return StatResult(
             class_ref=type(self),
             metadata={"data": self._data},
         )
-=======
->>>>>>> origin/main
 
     def export(self, path: str):
         if self._data:

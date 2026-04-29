@@ -4,15 +4,10 @@ import numpy as np
 import pandas as pd
 from scipy.stats import ranksums
 
-<<<<<<< HEAD
 from fopimt.task_dto import TaskExecutionContext
 
 from ..solutions.solution import Solution
 from .stat import Stat, StatResult
-=======
-from ..solutions.solution import Solution
-from .stat import Stat
->>>>>>> origin/main
 
 
 class StatMetaheuristic(Stat):
@@ -36,14 +31,11 @@ class StatMetaheuristic(Stat):
         df = self._organize_results(solutions)
         self._data = self._get_statistics(df)
 
-<<<<<<< HEAD
         return StatResult(
             class_ref=type(self),
             metadata={"data": self._data},
         )
 
-=======
->>>>>>> origin/main
     def export(self, path: str):
         results, rank_dims, df_pairwise, desc_stats, df_rank_all = self._data
 
