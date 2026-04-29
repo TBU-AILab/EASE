@@ -4,7 +4,8 @@ from typing import Union
 
 from .loader import Loader
 from .loader_dto import ModulAPI, PackageType
-from .task import Task, TaskData, TaskInfo, TaskState
+from .task import Task
+from .task_dto import TaskData, TaskInfo, TaskState
 from .task_manager import TaskManager
 from .utils.package_manager import PackageManager
 
@@ -138,7 +139,14 @@ class Magic:
         return result
 
     def task_finished_callback(self, task: Task):
+        # keep Magic's pool in sync
         self._tasks[task.id] = task
+
+        # IMPORTANT: TaskManager keeps a private in-memory dict "_tasks"
+        # Remove terminal tasks from TaskManager so they don't accumulate in RAM.
+        if task.get_state() in (TaskState.FINISH, TaskState.BREAK, TaskState.STOP):
+            with self._task_manager.lock:
+                self._task_manager._tasks.pop(task.id, None)
 
     def task_run(self, uid: str) -> bool:
         # 1) Check existence of the task and if not init return False
@@ -225,6 +233,8 @@ class Magic:
         new_task.initialize(self._loader, orig_task._init_config)
         new_task._init_config.name = new_name
         new_task._name = new_name
+        new_task.pickle_me()
+
         return new_task
 
     def get_llm_connectors(self) -> list[ModulAPI]:

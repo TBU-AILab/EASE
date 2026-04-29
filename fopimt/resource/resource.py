@@ -3,6 +3,7 @@ import inspect
 import json
 import logging
 import os
+from enum import Enum
 from typing import Optional
 
 from ..modul import Modul

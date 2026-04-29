@@ -2,7 +2,7 @@ import asyncio
 import logging
 import os
 from io import StringIO
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import sentry_sdk
 import uvicorn
@@ -15,7 +15,12 @@ from fopimt import Magic
 from fopimt.loader_dto import ModulAPI, PackageType
 from fopimt.task import Task
 from fopimt.task_dto import TaskConfig, TaskData, TaskFull, TaskInfo
-from fopimt.utils.connector_utils import update_all_models
+from fopimt.utils.connector_utils import (
+    read_json,
+    update_all_models,
+    validate_models_structure,
+    write_json,
+)
 from fopimt.utils.package_manager import PythonPackage
 
 # How to run server:
@@ -142,6 +147,35 @@ def update_models():
     try:
         update_all_models()
         return {"status": "success", "message": "Models updated successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/available-models")
+def get_available_models_config() -> dict:
+    """
+    GET - returns the current content of available_models.json
+    """
+    try:
+        return read_json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/available-models")
+def update_available_models_config(models: Dict[str, Any]):
+    """
+    PUT - replaces the content of available_models.json with the provided data
+    """
+    errors = validate_models_structure(models)
+    if errors:
+        raise HTTPException(status_code=422, detail=errors)
+    try:
+        write_json(models)
+        return {
+            "status": "success",
+            "message": "Available models configuration updated successfully.",
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -348,15 +382,6 @@ def task_options_new() -> list[ModulAPI]:
 
 @app.put("/task/{task_id}")
 def task_init(task_id: str, task_configuration: TaskConfig) -> TaskInfo:
-    # log output_format parameter if present
-    module = [
-        modul
-        for modul in task_configuration.modules or []
-        if modul.short_name == "stat.report_task"
-    ][0]
-    logging.info(
-        f"Output format: {module.parameters.get('output_format', 'Not specified')}"
-    )
     task = _get_task(task_id)
     try:
         task.initialize(

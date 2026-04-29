@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 from fopimt.task_dto import TaskExecutionContext
 from fopimt.utils.render_utils import DefaultStatRenderer
 
+=======
+from ..loader import Parameter
+>>>>>>> origin/main
 from ..modul import Modul
 from ..modul_dto import StatResult
 from ..solutions.solution import Solution

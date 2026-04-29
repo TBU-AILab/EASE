@@ -25,6 +25,7 @@ from .stoppingconditions.stopping_condition import StoppingCondition
 from .task_dto import (
     ModulData,
     ModulInfo,
+    OptimizationGoal,
     TaskConfig,
     TaskData,
     TaskExecutionContext,
@@ -58,6 +59,8 @@ class Task:
             self._max_context_size = task_config.max_context_size
         if task_config.feedback_from_solution is not None:
             self._spec_feedback_from_solution = task_config.feedback_from_solution
+        if task_config.optimization_goal is not None:
+            self._optimization_goal = task_config.optimization_goal
 
         # Moduls
         self._clear_modules()
@@ -140,7 +143,7 @@ class Task:
                     ["Task:run: Task is not completely defined."]
                 )
 
-        self._init_config = task_config
+        self._init_config = copy.deepcopy(task_config)
         self.pickle_me()
 
     def _clear_modules(self):
@@ -188,6 +191,7 @@ class Task:
             ConfigTask.COND: [],
             ConfigTask.STAT: [],
             ConfigTask.REP_MESSAGE: None,
+            ConfigTask.OPTIMIZATION_GOAL: OptimizationGoal.MINIMIZATION,
         }
 
         task = cls(config)
@@ -291,6 +295,9 @@ class Task:
         ]  # Option: send feedback
         # to LLM from solution
         self._spec_stat: list[Stat] = config[ConfigTask.STAT]  # Optional Statistics
+        self._optimization_goal = config[
+            ConfigTask.OPTIMIZATION_GOAL
+        ]  # Minimization/Maximization
 
         # Set encoding of Messages based on the LLMConnector.model
         # Only if specified LLM is set
@@ -360,6 +367,7 @@ class Task:
             iterations_invalid_consecutive=self._iteration_invalid_cons,
             incompatible=self._incompatible_modules,
             log=self._log_error,
+            optimization_goal=self._optimization_goal,
         )
 
     def get_full(self) -> TaskFull:
@@ -1130,7 +1138,9 @@ class Task:
 
             # 10) evaluation, only if no ERROR
             if state == "OK":
-                evaluator_result = self._spec_evaluator.evaluate(solution)
+                evaluator_result = self._spec_evaluator.evaluate(
+                    solution, self._optimization_goal
+                )
                 _add_modul_result(evaluator_result)
                 if self._spec_feedback_from_solution:
                     buffer_message.put(solution.get_feedback())

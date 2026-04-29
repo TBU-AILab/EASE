@@ -3,6 +3,8 @@ import logging
 import math
 import sys
 
+from fopimt.task_dto import OptimizationGoal
+
 from ..loader_dto import Parameter, PrimitiveType
 from ..resource.resource import Resource
 from ..solutions.solution import Solution
@@ -303,7 +305,11 @@ Avoid any form of testing or logging. Only return the best valid configuration y
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> EvaluatorResult:
+    def evaluate(
+        self,
+        solution: Solution,
+        opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
+    ) -> EvaluatorResult:
         """
         Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:

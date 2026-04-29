@@ -98,10 +98,11 @@ class GNBG:
                     self.Mu[k, :],
                     self.Omega[k, :],
                 )
-                f[k] = (
+                val = (
                     self.CompSigma[k]
                     + (a @ np.diag(self.CompH[k, :]) @ b) ** self.Lambda[k]
                 )
+                f[k] = val[0, 0]
 
             result[jj] = np.min(f)
             if self.FE > (self.MaxEvals - 1):

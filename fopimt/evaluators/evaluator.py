@@ -1,4 +1,4 @@
-from fopimt.task_dto import TaskExecutionContext
+from fopimt.task_dto import OptimizationGoal, TaskExecutionContext
 from fopimt.utils.render_utils import DefaultEvaluatorRenderer
 
 from ..loader_dto import Parameter, PrimitiveType
@@ -65,7 +65,11 @@ class Evaluator(Modul):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> EvaluatorResult:
+    def evaluate(
+        self,
+        solution: Solution,
+        opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
+    ) -> EvaluatorResult:
         """
         Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:

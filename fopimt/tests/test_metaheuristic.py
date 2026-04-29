@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 
+from ..loader import Parameter, PrimitiveType
 from ..resource.metahuristic.metaheuristic_runner import Runner
 from ..solutions.solution import Solution
 from ..utils.import_utils import dynamic_import

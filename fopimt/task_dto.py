@@ -16,6 +16,11 @@ if TYPE_CHECKING:
     from .solutions.solution import Solution
 
 
+class OptimizationGoal(Enum):
+    MINIMIZATION = 0
+    MAXIMIZATION = 1
+
+
 class TaskState(Enum):
     """
     Enum for multiprocessing states
@@ -46,6 +51,8 @@ class TaskConfig(BaseModel):
     system_message: Optional[str] = None
     repeated_message: Optional[MessageRepeatingConfig] = None
 
+    optimization_goal: Optional[OptimizationGoal] = None
+
     modules: Optional[list[TaskModulConfig]] = None
 
 
@@ -62,6 +69,7 @@ class TaskInfo(BaseModel):
         list[list[str]] | None
     )  # list of shortnames of incompatible ModuleAPIs, always in pair
     log: list[str] | None  # error log, i.e. STATE == BREAK
+    optimization_goal: Optional[OptimizationGoal] = None
 
 
 class TaskData(BaseModel):

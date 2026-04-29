@@ -1,6 +1,8 @@
 import copy
 import re
 
+from fopimt.task_dto import OptimizationGoal
+
 from ..loader import Loader
 from ..loader_dto import PackageType, Parameter, PrimitiveType
 from ..message import Message
@@ -68,7 +70,11 @@ class EvaluatorLlmFeedback(Evaluator):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> EvaluatorResult:
+    def evaluate(
+        self,
+        solution: Solution,
+        opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
+    ) -> EvaluatorResult:
         """
         Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:

@@ -4,6 +4,8 @@ import logging
 
 import numpy as np
 
+from fopimt.task_dto import OptimizationGoal
+
 from ..loader_dto import Parameter, PrimitiveType
 from ..resource.resource import Resource
 from ..solutions.solution import Solution
@@ -196,7 +198,11 @@ def run(n, fitness_func, check_inside_triangle_func, max_time):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> EvaluatorResult:
+    def evaluate(
+        self,
+        solution: Solution,
+        opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
+    ) -> EvaluatorResult:
         """
         Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:

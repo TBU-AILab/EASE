@@ -4,6 +4,8 @@ import logging
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
+from fopimt.task_dto import OptimizationGoal
+
 from ..loader_dto import Parameter, PrimitiveType
 from ..resource.resource import Resource
 from ..solutions.solution import Solution
@@ -85,7 +87,11 @@ class EvaluatorClassification(Evaluator):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> EvaluatorResult:
+    def evaluate(
+        self,
+        solution: Solution,
+        opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
+    ) -> EvaluatorResult:
         """
         Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:

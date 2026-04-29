@@ -76,11 +76,51 @@ import requests
 #######################################################
 
 
+def read_json() -> dict:
+    with open(os.path.join("fopimt", "utils", "available_models.json"), "r") as f:
+        return json.load(f)
+
+
 def write_json(data):
     with open(
         os.path.join("fopimt", "utils", "available_models.json"), "w"
     ) as json_file:
         json.dump(data, json_file, indent=2)
+
+
+def validate_models_structure(data) -> list[str]:
+    """
+    Validates the structure of available_models.json data.
+    Returns a list of validation error messages (empty if valid).
+    """
+    errors = []
+    if not isinstance(data, dict):
+        errors.append("Root must be a JSON object.")
+        return errors
+
+    for key, value in data.items():
+        if not isinstance(key, str):
+            errors.append(f"Key '{key}' must be a string.")
+            continue
+        if not isinstance(value, list):
+            errors.append(f"Value for '{key}' must be a list.")
+            continue
+        for i, entry in enumerate(value):
+            if not isinstance(entry, dict):
+                errors.append(f"Entry {i} in '{key}' must be an object.")
+                continue
+            if "url" not in entry:
+                errors.append(f"Entry {i} in '{key}' is missing 'url' field.")
+            elif not isinstance(entry["url"], str):
+                errors.append(f"Entry {i} in '{key}': 'url' must be a string.")
+            if "models" not in entry:
+                errors.append(f"Entry {i} in '{key}' is missing 'models' field.")
+            elif not isinstance(entry["models"], list):
+                errors.append(f"Entry {i} in '{key}': 'models' must be a list.")
+            elif not all(isinstance(m, str) for m in entry["models"]):
+                errors.append(f"Entry {i} in '{key}': all model names must be strings.")
+
+    return errors
 
 
 def get_available_models(connector_shortname: str) -> dict:

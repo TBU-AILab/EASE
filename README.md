@@ -114,16 +114,18 @@ http://localhost:8086/docs
 ## Frontend Implementation
 
 For your convenience, we have also prepared a heavy-weight state aware frontend [frontEASE](https://github.com/TBU-AILab/frontEASE)
-<!--
+
 ## Contributing
 
-Contributions are welcome! Please follow these steps:
+Before opening a pull request, format the code with Ruff using the settings from [pyproject.toml](pyproject.toml):
 
-1. Fork the repository.
-2. Create a feature branch.
-3. Commit your changes.
-4. Submit a pull request.
--->
+```sh
+python -m pip install ruff
+ruff format .
+ruff check --fix .
+```
+
+These commands apply the repository formatting rules, including 88-character lines, double quotes, spaces for indentation, and import sorting.
 ## License
 
 This work is licensed under a [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).

@@ -1,5 +1,7 @@
 import copy
 
+from fopimt.task_dto import OptimizationGoal
+
 from ..solutions.solution import Solution
 from .evaluator import Evaluator, EvaluatorResult
 
@@ -8,7 +10,11 @@ class EvaluatorDummy(Evaluator):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution) -> EvaluatorResult:
+    def evaluate(
+        self,
+        solution: Solution,
+        opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
+    ) -> EvaluatorResult:
         """
         Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:
