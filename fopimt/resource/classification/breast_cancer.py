@@ -1,10 +1,10 @@
-from sklearn.model_selection import train_test_split
-from ...modul import Modul
 from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+
+from ...modul import Modul
 
 
 class BreastCancer(Modul):
-
     @classmethod
     def get_short_name(cls) -> str:
         return "resource.breast_cancer"
@@ -34,4 +34,3 @@ class BreastCancer(Modul):
             "train_data": {"X": train["data"], "y": train["target"]},
             "test_data": {"X": test["data"], "y": test["target"]},
         }
-

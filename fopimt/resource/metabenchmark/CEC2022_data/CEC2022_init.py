@@ -5,9 +5,11 @@ Created on Sat Jan  1 16:49:21 2022
 @author: Abhishek Kumar
 @email: abhishek.kumar.eee13@iitbhu.ac.in
 """
-import os.path
-import numpy as np
+
 import logging
+import os.path
+
+import numpy as np
 
 INF = 1.0e99
 EPS = 1.0e-14
@@ -80,7 +82,7 @@ def rastrigin_func(x, nx, Os, Mr, s_flag, r_flag):
 
     z = sr_func(x, nx, Os, Mr, 5.12 / 100.0, s_flag, r_flag)
     for i in range(nx):
-        f += (z[i] * z[i] - 10.0 * np.cos(2.0 * PI * z[i]) + 10.0)
+        f += z[i] * z[i] - 10.0 * np.cos(2.0 * PI * z[i]) + 10.0
     return f
 
 
@@ -90,18 +92,22 @@ def schwefel_func(x, nx, Os, Mr, s_flag, r_flag):
     z = sr_func(x, nx, Os, Mr, 1000.0 / 100.0, s_flag, r_flag)
 
     for i in range(nx):
-        z[i] += 4.209687462275036e+002
+        z[i] += 4.209687462275036e002
         if z[i] > 500:
-            f -= (500.0 - np.fmod(z[i], 500)) * np.sin(pow(500.0 - np.fmod(z[i], 500), 0.5))
+            f -= (500.0 - np.fmod(z[i], 500)) * np.sin(
+                pow(500.0 - np.fmod(z[i], 500), 0.5)
+            )
             tmp = (z[i] - 500.0) / 100
             f += tmp * tmp / nx
-        elif (z[i] < -500):
-            f -= (-500.0 + np.fmod(np.fabs(z[i]), 500)) * np.sin(pow(500.0 - np.fmod(np.fabs(z[i]), 500), 0.5))
+        elif z[i] < -500:
+            f -= (-500.0 + np.fmod(np.fabs(z[i]), 500)) * np.sin(
+                pow(500.0 - np.fmod(np.fabs(z[i]), 500), 0.5)
+            )
             tmp = (z[i] + 500.0) / 100
             f += tmp * tmp / nx
         else:
             f -= z[i] * np.sin(pow(np.fabs(z[i]), 0.5))
-    f += 4.189828872724338e+002 * nx
+    f += 4.189828872724338e002 * nx
     return f
 
 
@@ -165,7 +171,11 @@ def hgbat_func(x, nx, Os, Mr, s_flag, r_flag):
         r2 += z[i] * z[i]
         sum_z += z[i]
 
-    f = pow(np.fabs(pow(r2, 2.0) - pow(sum_z, 2.0)), 2 * alpha) + (0.5 * r2 + sum_z) / nx + 0.5
+    f = (
+        pow(np.fabs(pow(r2, 2.0) - pow(sum_z, 2.0)), 2 * alpha)
+        + (0.5 * r2 + sum_z) / nx
+        + 0.5
+    )
     return f
 
 
@@ -183,13 +193,13 @@ def schaffer_F7_func(x, nx, Os, Mr, s_flag, r_flag):
 def step_rastrigin_func(x, nx, Os, Mr, s_flag, r_flag):
     f = 0.0
     for i in range(nx):
-        if (np.fabs(y[i] - Os[i]) > 0.5):
+        if np.fabs(y[i] - Os[i]) > 0.5:
             y[i] = Os[i] + np.floor(2 * (y[i] - Os[i]) + 0.5) / 2
 
     z = sr_func(x, nx, Os, Mr, 5.12 / 100.0, s_flag, r_flag)
 
     for i in range(nx):
-        f += (z[i] * z[i] - 10.0 * np.cos(2.0 * PI * z[i]) + 10.0)
+        f += z[i] * z[i] - 10.0 * np.cos(2.0 * PI * z[i]) + 10.0
     return f
 
 
@@ -213,7 +223,7 @@ def levy_func(x, nx, Os, Mr, s_flag, r_flag):
         newv = pow((wi - 1), 2) * (1 + 10 * pow((np.sin(PI * wi + 1)), 2))
         Sum = Sum + newv
     f = term1 + Sum + term3
-    del (w)
+    del w
     return f
 
 
@@ -271,11 +281,11 @@ def hf02(x, nx, Os, Mr, S, s_flag, r_flag):
     for i in range(nx):
         y[i] = z[S[i] - 1]
     i = 0
-    fit[i] = bent_cigar_func(y[G[i]:G[i + 1]], G_nx[i], Os, Mr, 0, 0)
+    fit[i] = bent_cigar_func(y[G[i] : G[i + 1]], G_nx[i], Os, Mr, 0, 0)
     i = 1
-    fit[i] = hgbat_func(y[G[i]:G[i + 1]], G_nx[i], Os, Mr, 0, 0)
+    fit[i] = hgbat_func(y[G[i] : G[i + 1]], G_nx[i], Os, Mr, 0, 0)
     i = 2
-    fit[i] = rastrigin_func(y[G[i]:nx], G_nx[i], Os, Mr, 0, 0)
+    fit[i] = rastrigin_func(y[G[i] : nx], G_nx[i], Os, Mr, 0, 0)
 
     f = 0.0
     for i in range(cf_num):
@@ -306,17 +316,17 @@ def hf10(x, nx, Os, Mr, S, s_flag, r_flag):
         y[i] = z[S[i] - 1]
 
     i = 0
-    fit[i] = hgbat_func(y[G[i]:G[i + 1]], G_nx[i], Os, Mr, 0, 0)
+    fit[i] = hgbat_func(y[G[i] : G[i + 1]], G_nx[i], Os, Mr, 0, 0)
     i = 1
-    fit[i] = katsuura_func(y[G[i]:G[i + 1]], G_nx[i], Os, Mr, 0, 0)
+    fit[i] = katsuura_func(y[G[i] : G[i + 1]], G_nx[i], Os, Mr, 0, 0)
     i = 2
-    fit[i] = ackley_func(y[G[i]:G[i + 1]], G_nx[i], Os, Mr, 0, 0)
+    fit[i] = ackley_func(y[G[i] : G[i + 1]], G_nx[i], Os, Mr, 0, 0)
     i = 3
-    fit[i] = rastrigin_func(y[G[i]:G[i + 1]], G_nx[i], Os, Mr, 0, 0)
+    fit[i] = rastrigin_func(y[G[i] : G[i + 1]], G_nx[i], Os, Mr, 0, 0)
     i = 4
-    fit[i] = schwefel_func(y[G[i]:G[i + 1]], G_nx[i], Os, Mr, 0, 0)
+    fit[i] = schwefel_func(y[G[i] : G[i + 1]], G_nx[i], Os, Mr, 0, 0)
     i = 5
-    fit[i] = schaffer_F7_func(y[G[i]:nx], G_nx[i], Os, Mr, 0, 0)
+    fit[i] = schaffer_F7_func(y[G[i] : nx], G_nx[i], Os, Mr, 0, 0)
 
     f = 0.0
     for i in range(cf_num):
@@ -346,15 +356,15 @@ def hf06(x, nx, Os, Mr, S, s_flag, r_flag):
     for i in range(nx):
         y[i] = z[S[i] - 1]
     i = 0
-    fit[i] = katsuura_func(y[G[i]:G[i + 1]], G_nx[i], Os, Mr, 0, 0)
+    fit[i] = katsuura_func(y[G[i] : G[i + 1]], G_nx[i], Os, Mr, 0, 0)
     i = 1
-    fit[i] = happycat_func(y[G[i]:G[i + 1]], G_nx[i], Os, Mr, 0, 0)
+    fit[i] = happycat_func(y[G[i] : G[i + 1]], G_nx[i], Os, Mr, 0, 0)
     i = 2
-    fit[i] = grie_rosen_func(y[G[i]:G[i + 1]], G_nx[i], Os, Mr, 0, 0)
+    fit[i] = grie_rosen_func(y[G[i] : G[i + 1]], G_nx[i], Os, Mr, 0, 0)
     i = 3
-    fit[i] = schwefel_func(y[G[i]:G[i + 1]], G_nx[i], Os, Mr, 0, 0)
+    fit[i] = schwefel_func(y[G[i] : G[i + 1]], G_nx[i], Os, Mr, 0, 0)
     i = 4
-    fit[i] = ackley_func(y[G[i]:nx], G_nx[i], Os, Mr, 0, 0)
+    fit[i] = ackley_func(y[G[i] : nx], G_nx[i], Os, Mr, 0, 0)
     f = 0.0
     for i in range(cf_num):
         f += fit[i]
@@ -368,20 +378,30 @@ def cf01(x, nx, Os, Mr, s_flag, r_flag):
     bias = [0, 200, 300, 100, 400]
 
     i = 0
-    fit[i] = rosenbrock_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
-    fit[i] = 10000 * fit[i] / 1e+4
+    fit[i] = rosenbrock_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
+    fit[i] = 10000 * fit[i] / 1e4
     i = 1
-    fit[i] = ellips_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
-    fit[i] = 10000 * fit[i] / 1e+10
+    fit[i] = ellips_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
+    fit[i] = 10000 * fit[i] / 1e10
     i = 2
-    fit[i] = bent_cigar_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
-    fit[i] = 10000 * fit[i] / 1e+30
+    fit[i] = bent_cigar_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
+    fit[i] = 10000 * fit[i] / 1e30
     i = 3
-    fit[i] = discus_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
-    fit[i] = 10000 * fit[i] / 1e+10
+    fit[i] = discus_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
+    fit[i] = 10000 * fit[i] / 1e10
     i = 4
-    fit[i] = ellips_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, 0)
-    fit[i] = 10000 * fit[i] / 1e+10
+    fit[i] = ellips_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, 0
+    )
+    fit[i] = 10000 * fit[i] / 1e10
     f = cf_cal(x, nx, Os, delta, bias, fit, cf_num)
     return f
 
@@ -393,11 +413,17 @@ def cf02(x, nx, Os, Mr, s_flag, r_flag):
     bias = [0, 200, 100]
 
     i = 0
-    fit[i] = schwefel_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, 0)
+    fit[i] = schwefel_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, 0
+    )
     i = 1
-    fit[i] = rastrigin_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
+    fit[i] = rastrigin_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
     i = 2
-    fit[i] = hgbat_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
+    fit[i] = hgbat_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
     f = cf_cal(x, nx, Os, delta, bias, fit, cf_num)
     return f
 
@@ -408,18 +434,28 @@ def cf06(x, nx, Os, Mr, s_flag, r_flag):
     delta = [20, 20, 30, 30, 20]
     bias = [0, 200, 300, 400, 200]
     i = 0
-    fit[i] = escaffer6_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
-    fit[i] = 10000 * fit[i] / 2e+7
+    fit[i] = escaffer6_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
+    fit[i] = 10000 * fit[i] / 2e7
     i = 1
-    fit[i] = schwefel_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
+    fit[i] = schwefel_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
     i = 2
-    fit[i] = griewank_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
+    fit[i] = griewank_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
     fit[i] = 1000 * fit[i] / 100
     i = 3
-    fit[i] = rosenbrock_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
+    fit[i] = rosenbrock_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
     i = 4
-    fit[i] = rastrigin_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
-    fit[i] = 10000 * fit[i] / 1e+3
+    fit[i] = rastrigin_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
+    fit[i] = 10000 * fit[i] / 1e3
     f = cf_cal(x, nx, Os, delta, bias, fit, cf_num)
     return f
 
@@ -430,23 +466,35 @@ def cf07(x, nx, Os, Mr, s_flag, r_flag):
     delta = [10, 20, 30, 40, 50, 60]
     bias = [0, 300, 500, 100, 400, 200]
     i = 0
-    fit[i] = hgbat_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
+    fit[i] = hgbat_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
     fit[i] = 10000 * fit[i] / 1000
     i = 1
-    fit[i] = rastrigin_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
-    fit[i] = 10000 * fit[i] / 1e+3
+    fit[i] = rastrigin_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
+    fit[i] = 10000 * fit[i] / 1e3
     i = 2
-    fit[i] = schwefel_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
-    fit[i] = 10000 * fit[i] / 4e+3
+    fit[i] = schwefel_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
+    fit[i] = 10000 * fit[i] / 4e3
     i = 3
-    fit[i] = bent_cigar_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
-    fit[i] = 10000 * fit[i] / 1e+30
+    fit[i] = bent_cigar_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
+    fit[i] = 10000 * fit[i] / 1e30
     i = 4
-    fit[i] = ellips_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
-    fit[i] = 10000 * fit[i] / 1e+10
+    fit[i] = ellips_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
+    fit[i] = 10000 * fit[i] / 1e10
     i = 5
-    fit[i] = escaffer6_func(x, nx, Os[i * nx:(i + 1) * nx], Mr[i * nx:(i + 1) * nx, 0:nx], 1, r_flag)
-    fit[i] = 10000 * fit[i] / 2e+7
+    fit[i] = escaffer6_func(
+        x, nx, Os[i * nx : (i + 1) * nx], Mr[i * nx : (i + 1) * nx, 0:nx], 1, r_flag
+    )
+    fit[i] = 10000 * fit[i] / 2e7
     f = cf_cal(x, nx, Os, delta, bias, fit, cf_num)
     return f
 
@@ -471,8 +519,8 @@ def sr_func(x, nx, Os, Mr, sh_rate, s_flag, r_flag):
     sr_x = [None] * (nx)
 
     nx = int(nx)
-    if (s_flag == 1):
-        if (r_flag == 1):
+    if s_flag == 1:
+        if r_flag == 1:
             y = shiftfunc(x, nx, Os)
             for i in range(nx):
                 y[i] = y[i] * sh_rate
@@ -483,7 +531,7 @@ def sr_func(x, nx, Os, Mr, sh_rate, s_flag, r_flag):
             for i in range(nx):
                 sr_x[i] = sr_x[i] * sh_rate
     else:
-        if (r_flag == 1):
+        if r_flag == 1:
             for i in range(nx):
                 y[i] = x[i] * sh_rate
             sr_x = rotatefunc(y, nx, Mr)
@@ -496,24 +544,24 @@ def sr_func(x, nx, Os, Mr, sh_rate, s_flag, r_flag):
 
 def asyfunc(x, xasy, nx, beta):
     for i in range(nx):
-        if (x[i] > 0):
+        if x[i] > 0:
             xasy[i] = pow(x[i], 1.0 + beta * i / (nx - 1) * pow(x[i], 0.5))
 
 
 def oszfunc(x, xosz, nx):
     for i in range(nx):
-        if (i == 0 or i == nx - 1):
-            if (x[i] != 0):
+        if i == 0 or i == nx - 1:
+            if x[i] != 0:
                 xx = np.log(np.fabs(x[i]))
-            if (x[i] > 0):
+            if x[i] > 0:
                 c1 = 10
                 c2 = 7.9
             else:
                 c1 = 5.5
                 c2 = 3.1
-            if (x[i] > 0):
+            if x[i] > 0:
                 sx = 1
-            elif (x[i] == 0):
+            elif x[i] == 0:
                 sx = 0
             else:
                 sx = -1
@@ -531,23 +579,23 @@ def cf_cal(x, nx, Os, delta, bias, fit, cf_num):
         w[i] = 0
         for j in range(nx):
             w[i] += pow(x[j] - Os[i * nx + j], 2.0)
-        if (w[i] != 0):
+        if w[i] != 0:
             w[i] = pow(1.0 / w[i], 0.5) * np.exp(-w[i] / 2.0 / nx / pow(delta[i], 2.0))
         else:
             w[i] = INF
-        if (w[i] > w_max):
+        if w[i] > w_max:
             w_max = w[i]
 
     for i in range(cf_num):
         w_sum = w_sum + w[i]
-    if (w_max == 0):
+    if w_max == 0:
         for i in range(cf_num):
             w[i] = 1
         w_sum = cf_num
     f = 0.0
     for i in range(cf_num):
         f = f + w[i] / w_sum * fit[i]
-    del (w)
+    del w
     return f
 
 
@@ -565,22 +613,22 @@ def cec22_test_func(x, nx, mx, func_num):
     SS = None
     cf_num = 10
     if (func_num < 1) or (func_num > 12):
-        print('\nError: Test function %d is not defined.\n' % func_num)
+        print("\nError: Test function %d is not defined.\n" % func_num)
     if ini_flag == 1:
         if (n_flag != nx) or (func_flag != func_num):
             ini_flag = 0
 
     if ini_flag == 0:
-        del (M)
-        del (OShift)
-        del (y)
-        del (z)
-        del (x_bound)
+        del M
+        del OShift
+        del y
+        del z
+        del x_bound
         y = [0] * nx
         z = [None] * nx
         x_bound = [100.0] * nx
 
-        if (nx != 2 and nx != 10 and nx != 20):
+        if nx != 2 and nx != 10 and nx != 20:
             logging.error("\nError: Test functions are only defined for D=2,10,20.\n")
 
         if (nx == 2) and (func_num == 6 or func_num == 7 or func_num == 8):
@@ -590,31 +638,34 @@ def cec22_test_func(x, nx, mx, func_num):
         folder_path = os.path.join(current_dir)
 
         # Load M matrix
-        FileName = 'M_%d_D%d.txt' % (func_num, nx)
+        FileName = "M_%d_D%d.txt" % (func_num, nx)
         try:
             M = np.loadtxt(os.path.join(folder_path, FileName))
         except:
-            logging.error("\n Error: Cannot open M_%d_D%d.txt for reading \n" % (func_num, nx))
+            logging.error(
+                "\n Error: Cannot open M_%d_D%d.txt for reading \n" % (func_num, nx)
+            )
         #    if M==None:
         #      print("\nError: there is insufficient memory available!\n")
-        del (FileName)
+        del FileName
 
         # Shift data
-        #FileName = os.path.join(os.path.dirname(__file__), "CEC2022_data/shift_data_%d.txt" % func_num)
+        # FileName = os.path.join(os.path.dirname(__file__), "CEC2022_data/shift_data_%d.txt" % func_num)
         FileName = "shift_data_%d.txt" % func_num
         try:
             OShift_temp = np.loadtxt(os.path.join(folder_path, FileName))
         except:
-            logging.error("\n Error: Cannot open shift_data_%d.txt for reading \n" % func_num)
+            logging.error(
+                "\n Error: Cannot open shift_data_%d.txt for reading \n" % func_num
+            )
         #    if OShift == None:
         #      print("\nError: there is insufficient memory available!\n")
-        del (FileName)
-        if (func_num < 9):
+        del FileName
+        if func_num < 9:
             OShift = np.zeros((nx,))
             for i in range(nx):
                 OShift[i] = OShift_temp[i]
         else:
-
             OShift = np.zeros((cf_num - 1, nx))
             for i in range(cf_num - 1):
                 for j in range(nx):
@@ -626,9 +677,12 @@ def cec22_test_func(x, nx, mx, func_num):
             try:
                 SS = np.loadtxt(os.path.join(folder_path, FileName))
             except:
-                logging.error("\n Error: Cannot open shuffle_data_%d_D%d.txt for reading \n" % (func_num, nx))
+                logging.error(
+                    "\n Error: Cannot open shuffle_data_%d_D%d.txt for reading \n"
+                    % (func_num, nx)
+                )
 
-            del (FileName)
+            del FileName
 
         n_flag = nx
         func_flag = func_num
@@ -684,15 +738,16 @@ def cec22_test_func(x, nx, mx, func_num):
                 f[i] = ff
                 break
             else:
-                logging.error("\nError: There are only 10 test functions in this test suite!\n")
+                logging.error(
+                    "\nError: There are only 10 test functions in this test suite!\n"
+                )
                 f[i] = 0.0
                 break
 
         return f
 
 
-class cec2022_func():
-
+class cec2022_func:
     def __init__(self, func_num):
         self.func = func_num
 
@@ -707,17 +762,15 @@ class cec2022_func():
 
 
 class CEC2022function:
-
     def __init__(self, funcNum, dim):
         self.func = funcNum
         self.dim = dim
 
     def get_bounds(self):
-        return np.array([[-100, 100]]*self.dim)
+        return np.array([[-100, 100]] * self.dim)
 
     def evaluate(self, x):
         return cec22_test_func(x, len(x), 1, self.func)[0]
 
     def __str__(self) -> str:
         return str(self.func)
-

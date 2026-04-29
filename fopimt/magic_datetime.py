@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+
 class TaskTimeRun:
     def __init__(self):
         """
@@ -29,13 +30,13 @@ class TaskTimeRun:
 
     def get_end(self):
         return self._end
+
     ####################################################################
     #########  Private functions
     ####################################################################
 
 
 class DateTime:
-
     def __init__(self):
         """
         Class for DateTime handling of the Task.
@@ -100,11 +101,10 @@ class DateTime:
         return self._task_created.strftime("%Y%m%d-%H%M%S")
 
     def get_created_DateTime(self):
-        return self._task_created.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-
+        return self._task_created.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
     def get_updated_DateTime(self):
-        return self._task_last_used.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        return self._task_last_used.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 def convert_to_datetime(date_str: str) -> datetime:
@@ -134,4 +134,3 @@ def is_newer_than(date1: datetime, date2: datetime) -> bool:
     ####################################################################
     #########  Private functions
     ####################################################################
-

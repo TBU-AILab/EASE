@@ -1,5 +1,7 @@
-import numpy as np
 import copy as cp
+
+import numpy as np
+
 
 ### GAME PLAY FUNCTIONS ###
 # adds given value to total score
@@ -95,10 +97,10 @@ def check_game_over(grid):
     for row in range(4):
         for col in range(4):
             if row != 3:
-                if (grid[row, col] == grid[row + 1, col]):
+                if grid[row, col] == grid[row + 1, col]:
                     return False
             if col != 3:
-                if (grid[row, col] == grid[row, col + 1]):
+                if grid[row, col] == grid[row, col + 1]:
                     return False
 
     return True
@@ -118,13 +120,13 @@ def play_2048(grid, move, score):
     if check_game_over(grid):
         raise RuntimeError("GO")
 
-    if move == 'left':
+    if move == "left":
         grid, score = move_left(grid, score)
-    elif move == 'right':
+    elif move == "right":
         grid, score = move_right(grid, score)
-    elif move == 'up':
+    elif move == "up":
         grid, score = move_up(grid, score)
-    elif move == 'down':
+    elif move == "down":
         grid, score = move_down(grid, score)
     else:
         raise ValueError(f"Invalid move: {move}")
@@ -150,7 +152,7 @@ def new_game():
 
 # print of the grid
 def print_grid(grid, score):
-    print('Score: ', score)
+    print("Score: ", score)
     print("+----+----+----+----+")
     for i in range(4):
         line = "|"
@@ -161,5 +163,6 @@ def print_grid(grid, score):
                 line += "{:4d}|".format(grid[i, j])
         print(line)
         print("+----+----+----+----+")
+
 
 ### END - GAME PLAY FUNCTIONS ###
