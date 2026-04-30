@@ -361,7 +361,9 @@ class TaskReportDataBuilder(BaseReportDataBuilder):
                 running_sum += fitness
                 valid_count += 1
                 best_so_far = (
-                    fitness if best_so_far is None else select_best(best_so_far, fitness)
+                    fitness
+                    if best_so_far is None
+                    else select_best(best_so_far, fitness)
                 )
 
             avg_fitness_values.append(
