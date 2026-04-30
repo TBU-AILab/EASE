@@ -14,6 +14,15 @@ class MessageRepeatingTypeEnum(Enum):
     RANDOM_WEIGHTED = 2
     CIRCULAR = 3
 
+    def __str__(self) -> str:
+        labels = {
+            MessageRepeatingTypeEnum.SINGLE: "Single",
+            MessageRepeatingTypeEnum.RANDOM: "Random",
+            MessageRepeatingTypeEnum.RANDOM_WEIGHTED: "Random (Weighted)",
+            MessageRepeatingTypeEnum.CIRCULAR: "Circular",
+        }
+        return labels[self]
+
 
 class MessageRepeatingConfig(BaseModel):
     type: MessageRepeatingTypeEnum = Field(

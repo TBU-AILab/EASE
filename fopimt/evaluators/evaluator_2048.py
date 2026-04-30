@@ -3,19 +3,26 @@ import logging
 
 import numpy as np
 
-from ..loader import Parameter, PrimitiveType
-from ..modul import Modul
+from ..loader_dto import Parameter, PrimitiveType
 from ..resource.game2048.implementation_2048 import new_game, play_2048
-from ..resource.resource import Resource, ResourceType
+from ..resource.game2048.rendering.renderer2048 import Renderer2048
 from ..solutions.solution import Solution
+from ..task_dto import OptimizationGoal, TaskExecutionContext
 from ..utils.import_utils import dynamic_import
-from .evaluator import Evaluator, OptimizationGoal
+from .evaluator import Evaluator, EvaluatorResult
 
 
 def play_the_game(move) -> dict:
     returndict = {}
 
     grid, score = new_game()
+    history = [
+        {
+            "board": grid.tolist(),
+            "move": None,
+            "score": score,
+        }
+    ]
     i = 0
     invalid_move_counter = 0
     while True:
@@ -24,6 +31,14 @@ def play_the_game(move) -> dict:
         try:
             orig_grid = copy.deepcopy(grid)
             grid, score = play_2048(grid, direction, score)
+
+            history.append(
+                {
+                    "board": grid.tolist(),
+                    "move": direction,
+                    "score": score,
+                }
+            )
 
             if (orig_grid == grid).all():
                 invalid_move_counter += 1
@@ -48,6 +63,7 @@ def play_the_game(move) -> dict:
     returndict["score"] = score
     returndict["moves"] = i
     returndict["max_tile"] = np.max(grid)
+    returndict["history"] = history
 
     return returndict
 
@@ -137,9 +153,9 @@ fully functional implementation.""",
         self,
         solution: Solution,
         opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
-    ) -> float:
+    ) -> EvaluatorResult:
         """
-        Evaluation function. Returns quality of solution as float number.
+        Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:
             solution: Solution  -- Solution that will be evaluated.
         """
@@ -184,15 +200,26 @@ fully functional implementation.""",
                 "loses": 0,
                 "errors": 0,
             }
+            playthroughs = []
 
             for i in range(self._games):
                 result = play_the_game(move)
 
-                logging.info(f"Eval:2048:{i + 1}. result: {result}")
+                logging.info(
+                    "Eval:2048:%s. result: %s",
+                    i + 1,
+                    {
+                        "score": result.get("score"),
+                        "moves": result.get("moves"),
+                        "max_tile": result.get("max_tile"),
+                        "outcome": result.get("outcome"),
+                    },
+                )
 
                 stats["scores"].append(result["score"])
                 stats["max_tiles"].append(result["max_tile"])
                 stats["steps"].append(result["moves"])
+                playthroughs.append(result["history"])
 
                 match result["outcome"]:
                     case -1:
@@ -231,6 +258,7 @@ fully functional implementation.""",
             errors_txt = f"The number of times when the solver was stuck or returned invalid move = {results['errors']}\n"
 
             solution.add_metadata("results", results)
+            solution.add_metadata("playthroughs", playthroughs)
 
             self._keys = {
                 "avg_score": avg_score_txt,
@@ -249,6 +277,17 @@ fully functional implementation.""",
             solution.set_fitness(results["avg_score"])
             fitness = results["avg_score"]
 
+            result_metadata = {
+                "solution_id": solution.get_id(),
+                "results": results,
+                "playthroughs": playthroughs,
+            }
+            evaluator_result = EvaluatorResult(
+                class_ref=type(self),
+                fitness=fitness,
+                metadata=result_metadata,
+            )
+
             self._check_if_best(solution)
 
         except Exception as e:
@@ -257,7 +296,24 @@ fully functional implementation.""",
             )
             raise e
 
-        return fitness
+        return evaluator_result
+
+    @staticmethod
+    def render_html(
+        modul_result: EvaluatorResult,
+        task_execution_context: TaskExecutionContext,
+        output_dir: str,
+    ) -> str:
+        """
+        Returns HTML representation of the evaluation. Used for visualization.
+        :return: HTML string
+        """
+        renderer = Renderer2048()
+        return renderer.render_custom_visualization_html(
+            modul_result,
+            task_execution_context,
+            output_dir,
+        )
 
     @classmethod
     def get_short_name(cls) -> str:

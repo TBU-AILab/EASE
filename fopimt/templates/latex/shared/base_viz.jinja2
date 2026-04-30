@@ -1,0 +1,52 @@
+{% block main_result %}
+\textbf{Main Result}
+
+\vspace{0.4em}
+
+\noindent
+\begin{tabular}{@{}l p{0.72\linewidth}@{}}
+\textbf{ {{ main_result_label|default("Value")|latex_escape }}: } &
+{\large \textbf{ {{ main_result_value|default("—")|latex_escape }} }}
+\end{tabular}
+
+{% if main_result_note %}
+\vspace{0.35em}
+
+{\small \textit{Interpretation:} {{ main_result_note|latex_escape }}}
+{% endif %}
+
+{% block main_result_extra %}{% endblock %}
+{% endblock %}
+
+{% block description %}
+{% if description %}
+
+\vspace{1em}
+\textbf{About this module}
+
+\vspace{0.3em}
+{{ description|latex_escape }}
+
+{% endif %}
+{% endblock %}
+
+{% block metadata %}
+
+\vspace{1em}
+\textbf{Module Metadata}
+
+\vspace{0.3em}
+This is the raw technical metadata provided by the module.
+
+{% if metadata_lang %}
+\vspace{0.3em}
+{\small \textit{Metadata Format:} \texttt{ {{ metadata_lang|latex_escape }} }}
+{% endif %}
+
+\vspace{0.4em}
+\begin{lstlisting}
+{{ metadata_text|default("{}") }}
+\end{lstlisting}
+{% endblock %}
+
+{% block extra_sections %}{% endblock %}

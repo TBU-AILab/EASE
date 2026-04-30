@@ -1,18 +1,25 @@
-from ..modul import Modul, Parameter
+from fopimt.utils.render_utils import DefaultAnalysisRenderer
 
-# from ..loader import Modul, Parameter
+from ..modul import Modul
+from ..modul_dto import AnalysisResult
 from ..solutions.solution import Solution
+from ..task_dto import TaskExecutionContext
 
 
 class Analysis(Modul):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate_analysis(self, solution: Solution) -> None:
+    def evaluate_analysis(
+        self,
+        solution: Solution,
+        task_execution_context: TaskExecutionContext,
+    ) -> AnalysisResult:
         """
         Analyse the Solution.
         :param solution: Instance of the Solution.
-        :return: None
+        :param task_execution_context: Instance of the TaskExecutionContext.
+        :return: AnalysisResult object containing the analysis results in metadata.
         """
         raise NotImplementedError("Function needs to be overridden by child class")
 
@@ -30,6 +37,36 @@ class Analysis(Modul):
         If needed. The child class may override this to get feedback back into loop.
         """
         return ""
+
+    @staticmethod
+    def render_html(
+        modul_result: AnalysisResult,
+        task_execution_context: TaskExecutionContext,
+        output_dir: str,
+    ) -> str:
+        """
+        Returns HTML representation of the evaluation. Used for visualization.
+        :return: HTML string
+        """
+        return DefaultAnalysisRenderer.render_template(
+            modul_result,
+            output_format="html",
+        )
+
+    @staticmethod
+    def render_latex(
+        modul_result: AnalysisResult,
+        task_execution_context: TaskExecutionContext,
+        output_dir: str,
+    ) -> str:
+        """
+        Returns LaTeX representation of the evaluation. Used for visualization.
+        :return: LaTeX string
+        """
+        return DefaultAnalysisRenderer.render_template(
+            modul_result,
+            output_format="latex",
+        )
 
     ####################################################################
     #########  Private functions

@@ -1,12 +1,13 @@
 import copy
 import re
 
-from ..llmconnectors.llmconnector import LLMConnector
-from ..loader import Loader, PackageType, Parameter, PrimitiveType
+from fopimt.task_dto import OptimizationGoal
+
+from ..loader import Loader
+from ..loader_dto import PackageType, Parameter, PrimitiveType
 from ..message import Message
 from ..solutions.solution import Solution
-from ..solutions.solution_image import SolutionImage
-from .evaluator import Evaluator, OptimizationGoal
+from .evaluator import Evaluator, EvaluatorResult
 
 
 class EvaluatorLlmFeedback(Evaluator):
@@ -73,9 +74,9 @@ class EvaluatorLlmFeedback(Evaluator):
         self,
         solution: Solution,
         opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
-    ) -> float:
+    ) -> EvaluatorResult:
         """
-        Evaluation function. Returns quality of solution as float number.
+        Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:
             solution: Solution  -- Solution that will be evaluated.
         """
@@ -92,7 +93,8 @@ class EvaluatorLlmFeedback(Evaluator):
                 message=f"{self._feedback_prompt}\n{data}",
             )
 
-        msg_response = self._llmconnector.send([msg])
+        result = self._llmconnector.send([msg])
+        msg_response = result.response
 
         # set the feedback from LLM to solution feedback
         feedback = msg_response.get_content()
@@ -105,7 +107,11 @@ class EvaluatorLlmFeedback(Evaluator):
 
         self._check_if_best(solution)
 
-        return fitness
+        return EvaluatorResult(
+            class_ref=type(self),
+            fitness=fitness,
+            metadata={"feedback": feedback},
+        )
 
     @classmethod
     def get_short_name(cls) -> str:

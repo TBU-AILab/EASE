@@ -1,9 +1,9 @@
 import anthropic
 
-from ..loader import Parameter, PrimitiveType
+from ..loader_dto import Parameter, PrimitiveType
 from ..message import Message
 from ..utils.connector_utils import get_available_models
-from .llmconnector import LLMConnector
+from .llmconnector import LLMConnector, LLMConnectorResult
 
 
 class LLMConnectorAnthropic(LLMConnector):
@@ -30,7 +30,9 @@ class LLMConnectorAnthropic(LLMConnector):
         av_models = get_available_models(cls.get_short_name())
 
         return {
-            "token": Parameter(short_name="token", type=PrimitiveType.str),
+            "token": Parameter(
+                short_name="token", type=PrimitiveType.str, sensitive=True
+            ),
             "model": Parameter(
                 short_name="model",
                 type=PrimitiveType.enum,
@@ -76,7 +78,7 @@ class LLMConnectorAnthropic(LLMConnector):
         """
         return "assistant"
 
-    def send(self, context) -> Message:
+    def send(self, context) -> LLMConnectorResult:
         msgs = self._extract_messages(context)
 
         HARD_MAX_TOKENS = 65536  # 64k per-call output
@@ -146,7 +148,10 @@ class LLMConnectorAnthropic(LLMConnector):
         if total_output_tokens:
             msg.set_tokens(total_output_tokens)
 
-        return msg
+        return LLMConnectorResult(
+            class_ref=type(self),
+            response=msg,
+        )
 
     def get_model(self) -> str:
         """

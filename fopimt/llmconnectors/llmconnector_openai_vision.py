@@ -1,9 +1,9 @@
 from openai import OpenAI
 
-from ..loader import Parameter, PrimitiveType
+from ..loader_dto import Parameter, PrimitiveType
 from ..message import Message
 from ..utils.connector_utils import get_available_models
-from .llmconnector import LLMConnector
+from .llmconnector import LLMConnector, LLMConnectorResult
 
 
 class LLMConnectorOpenAIvision(LLMConnector):
@@ -25,7 +25,9 @@ class LLMConnectorOpenAIvision(LLMConnector):
         av_models = get_available_models(cls.get_short_name())
 
         return {
-            "token": Parameter(short_name="token", type=PrimitiveType.str),
+            "token": Parameter(
+                short_name="token", type=PrimitiveType.str, sensitive=True
+            ),
             "model": Parameter(
                 short_name="model",
                 type=PrimitiveType.enum,
@@ -50,7 +52,7 @@ class LLMConnectorOpenAIvision(LLMConnector):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def send(self, context: list[Message]) -> Message:
+    def send(self, context: list[Message]) -> LLMConnectorResult:
         completion = self._client.chat.completions.create(
             model=self._model, messages=self._extract_messages(context)
         )
@@ -62,7 +64,10 @@ class LLMConnectorOpenAIvision(LLMConnector):
         )
         msg.set_tokens(completion.usage.completion_tokens)
 
-        return msg
+        return LLMConnectorResult(
+            class_ref=type(self),
+            response=msg,
+        )
 
     def get_role_user(self) -> str:
         return "user"

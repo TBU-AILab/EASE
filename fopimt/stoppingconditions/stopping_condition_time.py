@@ -1,4 +1,5 @@
-from ..loader import Parameter, PrimitiveType
+from ..loader_dto import Parameter, PrimitiveType
+from ..modul_dto import StoppingConditionResult
 from .stopping_condition import StoppingCondition
 
 
@@ -18,8 +19,12 @@ class StoppingConditionTime(StoppingCondition):
     #########  Public functions
     ####################################################################
 
-    def is_satisfied(self) -> bool:
-        return self._satisfied
+    def is_satisfied(self) -> StoppingConditionResult:
+        return StoppingConditionResult(
+            class_ref=type(self),
+            is_satisfied=self._satisfied,
+            metadata={"max_time": self._max_time},
+        )
 
     def update(self, task) -> None:
         from ..task import Task

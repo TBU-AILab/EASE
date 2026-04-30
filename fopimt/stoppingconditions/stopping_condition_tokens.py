@@ -1,4 +1,5 @@
-from ..loader import Parameter, PrimitiveType
+from ..loader_dto import Parameter, PrimitiveType
+from ..modul_dto import StoppingConditionResult
 from .stopping_condition import StoppingCondition
 
 
@@ -18,13 +19,18 @@ class StoppingConditionTokens(StoppingCondition):
     #########  Public functions
     ####################################################################
     def pretty(self) -> str:
-        if self.is_satisfied():
+        result = self.is_satisfied()
+        if result.is_satisfied:
             return f"Stopping condition <Tokens>: Stopped at token count at least {self._max_tokens}."
         else:
             return f"Stopping condition <Tokens>: Not triggered at token count at least {self._max_tokens}."
 
-    def is_satisfied(self) -> bool:
-        return self._satisfied
+    def is_satisfied(self) -> StoppingConditionResult:
+        return StoppingConditionResult(
+            class_ref=type(self),
+            is_satisfied=self._satisfied,
+            metadata={"max_tokens": self._max_tokens},
+        )
 
     def update(self, task) -> None:
         from ..task import Task

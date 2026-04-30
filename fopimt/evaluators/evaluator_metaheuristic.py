@@ -6,12 +6,14 @@ import numpy as np
 import pandas as pd
 from scipy.stats import ranksums
 
-from ..loader import Parameter, PrimitiveType
+from fopimt.task_dto import OptimizationGoal
+
+from ..loader_dto import Parameter, PrimitiveType
 from ..resource.metahuristic.metaheuristic_runner import Runner
-from ..resource.resource import Resource, ResourceType
+from ..resource.resource import Resource
 from ..solutions.solution import Solution
 from ..utils.import_utils import dynamic_import
-from .evaluator import Evaluator, OptimizationGoal
+from .evaluator import Evaluator, EvaluatorResult
 
 
 class EvaluatorMetaheuristic(Evaluator):
@@ -23,7 +25,7 @@ class EvaluatorMetaheuristic(Evaluator):
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
-        benchmarks = Resource.get_resources(ResourceType.METABENCHMARK)
+        benchmarks = Resource.get_resources("metabenchmark")
         return {
             "feedback_msg_template": Parameter(
                 short_name="feedback_msg_template",
@@ -140,16 +142,20 @@ def run(func, dim, bounds, max_evals):
         super()._init_params()
         if self.parameters.get("benchmark"):
             func_to_call = Resource.get_resource_function(
-                self.parameters.get("benchmark"), ResourceType.METABENCHMARK
+                self.parameters.get("benchmark"), "metabenchmark"
             )
             self.functions = func_to_call()
 
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate(self, solution: Solution, opt_goal: OptimizationGoal) -> float:
+    def evaluate(
+        self,
+        solution: Solution,
+        opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
+    ) -> EvaluatorResult:
         """
-        Evaluation function. Returns quality of solution as float number.
+        Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:
             solution: Solution  -- Solution that will be evaluated.
         """
@@ -251,7 +257,11 @@ def run(func, dim, bounds, max_evals):
             )
             raise e
 
-        return fitness
+        return EvaluatorResult(
+            class_ref=type(self),
+            fitness=fitness,
+            metadata={"results": df_results, "exceptions": exceptions},
+        )
 
     @classmethod
     def get_short_name(cls) -> str:

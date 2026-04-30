@@ -3,10 +3,10 @@ import json
 from google import genai
 from google.genai import types
 
-from ..loader import Parameter, PrimitiveType
+from ..loader_dto import Parameter, PrimitiveType
 from ..message import Message
 from ..utils.connector_utils import get_available_models
-from .llmconnector import LLMConnector
+from .llmconnector import LLMConnector, LLMConnectorResult
 
 
 class LLMConnectorGoogle(LLMConnector):
@@ -28,7 +28,9 @@ class LLMConnectorGoogle(LLMConnector):
         av_models = get_available_models(cls.get_short_name())
 
         return {
-            "token": Parameter(short_name="token", type=PrimitiveType.str),
+            "token": Parameter(
+                short_name="token", type=PrimitiveType.str, sensitive=True
+            ),
             "model": Parameter(
                 short_name="model",
                 type=PrimitiveType.enum,
@@ -54,7 +56,7 @@ class LLMConnectorGoogle(LLMConnector):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def send(self, context: list[Message]) -> Message:
+    def send(self, context: list[Message]) -> LLMConnectorResult:
         msgs = self._extract_messages(context)
         completion = self._client.models.generate_content(
             model=self._model,
@@ -72,7 +74,10 @@ class LLMConnectorGoogle(LLMConnector):
         ):
             msg.set_tokens(completion.usage_metadata.total_token_count)
 
-        return msg
+        return LLMConnectorResult(
+            class_ref=type(self),
+            response=msg,
+        )
 
     def get_role_user(self) -> str:
         return "user"

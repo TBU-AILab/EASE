@@ -4,11 +4,13 @@ import logging
 
 import numpy as np
 
-from ..loader import Parameter, PrimitiveType
-from ..resource.resource import Resource, ResourceType
+from fopimt.task_dto import OptimizationGoal
+
+from ..loader_dto import Parameter, PrimitiveType
+from ..resource.resource import Resource
 from ..solutions.solution import Solution
 from ..utils.import_utils import dynamic_import
-from .evaluator import Evaluator, OptimizationGoal
+from .evaluator import Evaluator, EvaluatorResult
 
 
 def _check_inside_triangle(points: np.ndarray) -> bool:
@@ -73,7 +75,7 @@ class EvaluatorHeilbronn(Evaluator):
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
-        benchmarks = Resource.get_resources(ResourceType.METABENCHMARK)
+        benchmarks = Resource.get_resources("metabenchmark")
         return {
             "feedback_msg_template": Parameter(
                 short_name="feedback_msg_template",
@@ -200,9 +202,9 @@ def run(n, fitness_func, check_inside_triangle_func, max_time):
         self,
         solution: Solution,
         opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
-    ) -> float:
+    ) -> EvaluatorResult:
         """
-        Evaluation function. Returns quality of solution as float number.
+        Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:
             solution: Solution  -- Solution that will be evaluated.
         """
@@ -275,7 +277,12 @@ def run(n, fitness_func, check_inside_triangle_func, max_time):
             )
             raise e
 
-        return fitness
+        result_metadata = {"results": {"coordinates": coordinates, "fitness": fitness}}
+        return EvaluatorResult(
+            class_ref=type(self),
+            fitness=fitness,
+            metadata=result_metadata,
+        )
 
     @classmethod
     def get_short_name(cls) -> str:

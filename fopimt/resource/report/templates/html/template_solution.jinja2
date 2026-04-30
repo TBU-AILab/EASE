@@ -1,0 +1,130 @@
+{# ============================================================
+   EASE Offline HTML Report (Jinja2 Template) — Base Layout Only
+   - Dark theme default
+   - Custom visualization HTML injected inside fenced container
+   - Raw metadata toggle via <details> (no JS)
+   - Solution output supports text or code (no external deps)
+   ============================================================ #}
+<!DOCTYPE html>
+<html lang="en"{% if theme and theme|lower == "light" %} class="light"{% endif %}>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{ page_title|default("EASE Report") }}</title>
+
+{% include "base_styles.jinja2" %}
+
+{# Local Plotly (minified) #}
+<script defer src="assets/plotly.min.js"></script>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="brandbar">
+        <div class="brand-left">
+          <div class="logo">
+            <img src="{{ logo_data_uri }}" alt="EASE Logo">
+          </div>
+          <div class="brand-title">
+            <h1>EASE</h1>
+            <p class="subtitle">Effortless Algorithmic Solution Evolution</p>
+          </div>
+        </div>
+        <div class="chip" style="position:relative;">
+          Generated: <span>{{ generated_at|default("—") }}</span>
+        </div>
+      </div>
+
+      <div class="header-meta">
+        <div class="taskline">
+          <p class="taskname">{{ task_name|default("Unnamed task") }}</p>
+          <div class="chips">
+            <span class="chip">Solution #{{ solution_number|default(1) }}</span>
+            <span class="chip">Task ID: {{ task_id|default("task_unknown") }}</span>
+          </div>
+        </div>
+
+        <div class="main-result">
+          <div>
+            <p class="label">Fitness</p>
+            <p class="value">{{ fitness|default("—") }}</p>
+            <p class="note">{{ fitness_note|default("Higher is better (as defined by the task/solver)") }}</p>
+          </div>
+          <div class="chips">
+            <span class="chip">Solver: {{ solver_name|default("unknown") }}</span>
+            <span class="chip">Evaluator: {{ evaluator_name|default("unknown") }}</span>
+            <span class="chip">Runtime: {{ runtime|default("—") }}</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Solution Visualization (custom module fence) -->
+    <section class="section">
+      <h2>Evaluator Result Visualization</h2>
+
+      <div class="viz-fence">
+        <div class="viz-head">
+          <div class="left">
+            <p class="title">{{ viz_title|default("Result summary") }}</p>
+          </div>
+          <span class="tag">{{ viz_module_name|default("ease.viz.module") }}</span>
+        </div>
+
+        <div class="viz-body">
+          {# The visualization module returns HTML as a string. #}
+          {% if custom_viz_rendered %}
+            {{ custom_viz_rendered | safe }}
+          {% else %}
+            <div class="card">
+              <p style="margin:0; color: var(--fg-muted); font-size: 13px;">
+                No visualization module output was provided for this solution.
+              </p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <!-- Raw metadata toggle -->
+    <section class="section">
+      <h2>Raw Metadata</h2>
+
+      <details {% if raw_metadata_open %}open{% endif %}>
+        <summary>Raw metadata JSON</summary>
+        <div class="codewrap">
+          <div class="code-header">
+            <p class="code-title">Metadata</p>
+            <span class="langpill">json</span>
+          </div>
+          <pre><code class="language-json">{{ raw_metadata_json|default("{}") }}</code></pre>
+        </div>
+      </details>
+    </section>
+
+    <!-- Solution output -->
+    <section class="section">
+      <h2>Solution Output</h2>
+
+      <details {% if solution_open %}open{% endif %}>
+        <summary>Solution output</summary>
+        <div class="codewrap">
+          <div class="code-header">
+            <p class="code-title">{{ solution_title|default("generated solution") }}</p>
+          </div>
+
+          <pre><code>{{ solution_content|default("") }}</code></pre>
+        </div>
+      </details>
+    </section>
+
+
+    <div class="footer">
+      EASE Report · Generated <span>{{ generated_at|default("—") }}</span>
+    </div>
+  </div>
+</body>
+</html>

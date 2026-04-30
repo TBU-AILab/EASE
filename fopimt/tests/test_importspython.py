@@ -2,7 +2,7 @@ import ast
 
 from ..solutions.solution import Solution
 from ..utils.import_utils import dynamic_install
-from .test import Test
+from .test import Test, TestResult
 
 
 class TestImportsPython(Test):
@@ -24,13 +24,14 @@ class TestImportsPython(Test):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def test(self, solution: Solution) -> bool:
+    def test(self, solution: Solution) -> TestResult:
         """
         This function exports all imported modules from the python script in solution
         :param solution: Solution to test
         :return: Returns test result (True = test was OK, False = test was not OK)
         """
         self._result = True
+        libraries = []
         try:
             libraries = self._extract_imports(solution.get_input())
             solution.add_metadata(name="modules", value=libraries)
@@ -43,7 +44,15 @@ class TestImportsPython(Test):
             self._error_msg = self._error_msg_template.format(repr(e))
             self._user_msg = self._user_msg_template.format(repr(e))
 
-        return self._result
+        return TestResult(
+            class_ref=type(self),
+            passed=self._result,
+            metadata={
+                "modules": libraries,
+                "error_msg": self._error_msg,
+                "user_msg": self._user_msg,
+            },
+        )
 
     @classmethod
     def get_short_name(cls) -> str:

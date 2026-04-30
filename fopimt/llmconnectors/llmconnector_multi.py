@@ -1,9 +1,8 @@
 import random
-from enum import Enum
 
-from ..loader import Loader, PackageType, Parameter, PrimitiveType
-from ..message import Message
-from .llmconnector import LLMConnector
+from ..loader import Loader
+from ..loader_dto import PackageType, Parameter, PrimitiveType
+from .llmconnector import LLMConnector, LLMConnectorResult
 
 
 class LLMConnectorMulti(LLMConnector):
@@ -124,7 +123,7 @@ class LLMConnectorMulti(LLMConnector):
     def get_tags(cls) -> dict:
         return {"input": set(), "output": set()}
 
-    def send(self, context) -> Message:
+    def send(self, context) -> LLMConnectorResult:
         """
         Send context to LLM.
         Returns response as Message from LLM.

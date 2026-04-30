@@ -1,10 +1,11 @@
-import copy
 import os.path
 
-from ..loader import Loader, PackageType, Parameter, PrimitiveType
+from ..loader import Loader
+from ..loader_dto import PackageType, Parameter, PrimitiveType
 from ..message import Message
 from ..solutions.solution import Solution
-from .analysis import Analysis
+from ..task import TaskExecutionContext
+from .analysis import Analysis, AnalysisResult
 
 
 class AnalysisLLM(Analysis):
@@ -48,10 +49,15 @@ class AnalysisLLM(Analysis):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate_analysis(self, solution: Solution) -> None:
+    def evaluate_analysis(
+        self,
+        solution: Solution,
+        task_execution_context: TaskExecutionContext,
+    ) -> AnalysisResult:
         """
         Capture the state of the solution for analysis.
         :param solution: Instance of the Solution.
+        :param task_execution_context: Instance of the TaskExecutionContext.
         :return: None
         """
         # get LLM feedback
@@ -67,11 +73,17 @@ class AnalysisLLM(Analysis):
                 message=f"{self._llm_prompt}\n{data}",
             )
 
-        msg_response = self._llmconnector.send([msg])
+        result = self._llmconnector.send([msg])
+        msg_response = result.response
 
         # set the feedback from LLM to solution feedback
         feedback = msg_response.get_content()
         self._feedback = feedback
+
+        return AnalysisResult(
+            class_ref=type(self),
+            metadata={"feedback": self._feedback},
+        )
 
     def export(self, path: str, id: str) -> None:
         """

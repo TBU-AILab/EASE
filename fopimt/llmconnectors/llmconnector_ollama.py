@@ -1,11 +1,9 @@
-from enum import Enum
-
 import requests
 
-from ..loader import Parameter, PrimitiveType
+from ..loader_dto import Parameter, PrimitiveType
 from ..message import Message
 from ..utils.connector_utils import get_available_models
-from .llmconnector import LLMConnector
+from .llmconnector import LLMConnector, LLMConnectorResult
 
 """
 Requires connection via url to the llama model
@@ -72,7 +70,7 @@ class LLMConnectorOllama(LLMConnector):
         """
         raise NotImplementedError("This method should be overridden by subclasses.")
 
-    def send(self, context: list[Message]) -> Message:
+    def send(self, context: list[Message]) -> LLMConnectorResult:
         data = {"model": self._model, "stream": False}
 
         headers = {"Content-Type": "application/json"}
@@ -90,7 +88,10 @@ class LLMConnectorOllama(LLMConnector):
 
         msg.set_tokens(response.json()["eval_count"])
 
-        return msg
+        return LLMConnectorResult(
+            class_ref=type(self),
+            response=msg,
+        )
 
     def get_role_user(self) -> str:
         return "user"
