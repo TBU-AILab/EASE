@@ -1,18 +1,12 @@
-import copy
 import logging
 import os
 from typing import Union
 
-from .analysis.analysis import Analysis
-from .evaluators.evaluator import Evaluator
-from .loader import Loader, ModulAPI, Package, PackageType
-from .magic_datetime import convert_to_datetime, is_newer_than
-from .message import Message
-from .message_repeating import MessageRepeating, MessageRepeatingTypeEnum
-from .stoppingconditions.stopping_condition import StoppingCondition
-from .task import Task, TaskData, TaskInfo, TaskState
+from .loader import Loader
+from .loader_dto import ModulAPI, PackageType
+from .task import Task
+from .task_dto import TaskData, TaskInfo, TaskState
 from .task_manager import TaskManager
-from .tests.test import Test
 from .utils.package_manager import PackageManager
 
 

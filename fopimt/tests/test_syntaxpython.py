@@ -1,9 +1,5 @@
-import importlib
-import os
-import sys
-
 from ..solutions.solution import Solution
-from .test import Test
+from .test import Test, TestResult
 
 
 class TestSyntaxPython(Test):
@@ -21,7 +17,7 @@ class TestSyntaxPython(Test):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def test(self, solution: Solution) -> bool:
+    def test(self, solution: Solution) -> TestResult:
         """
         This function tests whether the solution file is a python script without syntax errors
         :param solution: Solution to test
@@ -35,7 +31,14 @@ class TestSyntaxPython(Test):
             self._error_msg = self._error_msg_template.format(repr(e))
             self._user_msg = self._user_msg_template.format(repr(e))
 
-        return self._result
+        return TestResult(
+            class_ref=type(self),
+            passed=self._result,
+            metadata={
+                "error_msg": self._error_msg,
+                "user_msg": self._user_msg,
+            },
+        )
 
     @classmethod
     def get_short_name(cls) -> str:

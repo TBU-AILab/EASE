@@ -1,21 +1,20 @@
 import asyncio
 import logging
 import os
-import sys
 from io import StringIO
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import sentry_sdk
 import uvicorn
 from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 
 from fopimt import Magic
-from fopimt.loader import Loader, ModulAPI, PackageType
-from fopimt.task import Task, TaskConfig, TaskData, TaskFull, TaskInfo, TaskState
+from fopimt.loader_dto import ModulAPI, PackageType
+from fopimt.task import Task
+from fopimt.task_dto import TaskConfig, TaskData, TaskFull, TaskInfo
 from fopimt.utils.connector_utils import (
     read_json,
     update_all_models,

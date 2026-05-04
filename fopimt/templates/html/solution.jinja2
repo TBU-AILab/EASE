@@ -1,0 +1,24 @@
+{# ============================================================
+   Default Solution Visualization
+   - Uses shared/base_viz.jinja2
+   - Shows only available data:
+       - evaluator_input_serialized
+       - metadata
+   ============================================================ #}
+
+{% extends "shared/base_viz.jinja2" %}
+
+{% block extra_sections %}
+
+<details style="margin-top:12px;" open>
+  <summary>Evaluator input</summary>
+  <div class="codewrap">
+    <div class="code-header">
+      <p class="code-title">Evaluator input</p>
+      <span class="langpill">json</span>
+    </div>
+    <pre class="viz-pre"><code class="language-json">{{ evaluator_input_serialized }}</code></pre>
+  </div>
+</details>
+
+{% endblock %}

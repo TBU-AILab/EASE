@@ -1,14 +1,10 @@
-from enum import Enum
-from typing import Optional
+from fopimt.task_dto import OptimizationGoal, TaskExecutionContext
+from fopimt.utils.render_utils import DefaultEvaluatorRenderer
 
-from ..loader import Parameter, PrimitiveType
+from ..loader_dto import Parameter, PrimitiveType
 from ..modul import Modul
+from ..modul_dto import EvaluatorResult
 from ..solutions.solution import Solution
-
-
-class OptimizationGoal(Enum):
-    MINIMIZATION = 0
-    MAXIMIZATION = 1
 
 
 class Evaluator(Modul):
@@ -73,9 +69,9 @@ class Evaluator(Modul):
         self,
         solution: Solution,
         opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
-    ) -> float:
+    ) -> EvaluatorResult:
         """
-        Evaluation function. Returns quality of solution as float number.
+        Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:
             solution: Solution  -- Solution that will be evaluated.
         """
@@ -107,6 +103,36 @@ class Evaluator(Modul):
         :return:
         """
         return self._feedback_msg_template
+
+    @staticmethod
+    def render_html(
+        modul_result: EvaluatorResult,
+        task_execution_context: TaskExecutionContext,
+        output_dir: str,
+    ) -> str:
+        """
+        Returns HTML representation of the evaluation. Used for visualization.
+        :return: HTML string
+        """
+        return DefaultEvaluatorRenderer.render_template(
+            modul_result,
+            output_format="html",
+        )
+
+    @staticmethod
+    def render_latex(
+        modul_result: EvaluatorResult,
+        task_execution_context: TaskExecutionContext,
+        output_dir: str,
+    ) -> str:
+        """
+        Returns LaTeX representation of the evaluation. Used for visualization.
+        :return: LaTeX string
+        """
+        return DefaultEvaluatorRenderer.render_template(
+            modul_result,
+            output_format="latex",
+        )
 
     ####################################################################
     #########  Private functions

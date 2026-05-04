@@ -1,0 +1,357 @@
+\documentclass[11pt,a4paper]{article}
+
+% --------------------------------------------------
+% Packages
+% --------------------------------------------------
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{listings}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+
+% --------------------------------------------------
+% Code blocks
+% --------------------------------------------------
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    columns=fullflexible,
+    frame=single,
+    keepspaces=true,
+    showstringspaces=false
+}
+
+% --------------------------------------------------
+% Helpers
+% --------------------------------------------------
+{% raw %}
+\newcommand{\reportsection}[1]{
+    \section*{#1}
+}
+
+\newcommand{\reportsubsection}[1]{
+    \subsection*{#1}
+}
+
+\newcommand{\reportlabel}[1]{
+    \textbf{#1}
+}
+
+\newcommand{\sectiondivider}{
+    \vspace{0.8em}
+    \hrule
+    \vspace{0.8em}
+}
+
+\newcommand{\vizitemheader}[3]{
+    \noindent
+    \begin{tabular}{@{}p{0.24\linewidth}p{0.72\linewidth}@{}}
+    \textbf{Visualization Title} & \textbf{#1} \\
+    \textbf{Source Module} & \texttt{#2} \\
+    \textbf{Context} & #3 \\
+    \end{tabular}
+}
+{% endraw %}
+
+\begin{document}
+
+% ==================================================
+% HEADER
+% ==================================================
+
+\begin{center}
+{\LARGE \textbf{EASE Task Report}}\\
+\vspace{0.3em}
+{\large {{ task_name | default("Unnamed task") | latex_escape }}}\\
+\texttt{ {{ task_id | default("task_unknown") | latex_escape }} }\\
+Generated: {{ generated_at | default("—") | latex_escape }}
+\end{center}
+
+\vspace{1em}
+
+\begin{tabular}{ll}
+Author & {{ task_author | default("") | latex_escape }} \\
+Solver & {{ solution_name | default("unknown") | latex_escape }} \\
+Evaluator & {{ evaluator_name | default("unknown") | latex_escape }} \\
+Best Fitness & {{ best_fitness | default("—") | latex_escape }} \\
+\end{tabular}
+
+\vspace{1.5em}
+
+% ==================================================
+% TASK SUMMARY
+% ==================================================
+
+\reportsection{Task Summary}
+
+\begin{tabular}{ll}
+Runtime & {{ total_runtime | default("—") | latex_escape }} \\
+Start Time & {{ time_start | default("—") | latex_escape }} \\
+Tokens Used & {{ tokens_used | default(0) | latex_escape }} \\
+Valid Iterations & {{ valid_iterations | default(0) | latex_escape }} \\
+Invalid Iterations & {{ invalid_iterations | default(0) | latex_escape }} \\
+Best Fitness Iteration & {{ best_solution_number | default("—") | latex_escape }} \\
+\end{tabular}
+
+% ==================================================
+% SYSTEM MESSAGE
+% ==================================================
+
+\reportsubsection{System Message}
+
+{% if system_message %}
+\begin{lstlisting}
+{{ system_message }}
+\end{lstlisting}
+{% else %}
+No system message provided.
+{% endif %}
+
+% ==================================================
+% INITIAL MESSAGE
+% ==================================================
+
+\reportsubsection{Initial Message}
+
+{% if initial_message %}
+\begin{lstlisting}
+{{ initial_message }}
+\end{lstlisting}
+{% else %}
+No initial message provided.
+{% endif %}
+
+% ==================================================
+% REPEATED MESSAGE
+% ==================================================
+
+\reportsubsection{Repeated Message}
+
+{% if repeated_message_messages and repeated_message_messages|length > 0 %}
+
+\begin{tabular}{ll}
+Message Type & {{ repeated_message_type | default("—") | latex_escape }} \\
+Message Count & {{ repeated_message_messages|length }} \\
+\end{tabular}
+
+\vspace{0.8em}
+
+{% for msg in repeated_message_messages %}
+
+\noindent
+\textbf{Repeated Message {{ loop.index }}}\\
+\textit{Weight: {{ (repeated_message_weights[loop.index0] if repeated_message_weights and repeated_message_weights|length > loop.index0 else "—") | latex_escape }}}
+
+\vspace{0.3em}
+\textbf{Content:}
+
+\begin{lstlisting}
+{{ msg }}
+\end{lstlisting}
+
+{% if not loop.last %}
+\vspace{0.8em}
+\hrule
+\vspace{0.8em}
+{% endif %}
+
+{% endfor %}
+
+{% else %}
+No repeated message provided.
+{% endif %}
+
+% ==================================================
+% USED MODULES
+% ==================================================
+
+\reportsubsection{Used Modules}
+
+{% if used_modules and used_modules|length > 0 %}
+
+{% for mod in used_modules %}
+
+\noindent
+\textbf{Module:} \texttt{ {{ mod.modul_name | latex_escape }} }\\
+\textbf{Module Parameters (JSON):}
+
+\begin{lstlisting}
+{{ mod.parameters_json }}
+\end{lstlisting}
+
+{% if not loop.last %}
+\vspace{0.8em}
+\hrule
+\vspace{0.8em}
+{% endif %}
+
+{% endfor %}
+
+{% else %}
+No used modules were provided.
+{% endif %}
+
+% ==================================================
+% ITERATION OVERVIEW
+% ==================================================
+
+\reportsection{Iteration Overview}
+
+\begin{tabular}{ll}
+Valid Iterations & {{ valid_iterations | default(0) | latex_escape }} \\
+Invalid Iterations & {{ invalid_iterations | default(0) | latex_escape }} \\
+Total Iterations & {{ ((valid_iterations | default(0)) + (invalid_iterations | default(0))) | latex_escape }} \\
+\end{tabular}
+
+\vspace{1em}
+
+{% if iteration_series and iteration_series.columns and iteration_series.columns.iteration %}
+
+\begin{longtable}{rrrr}
+\toprule
+Iteration & Fitness & Avg Fitness & Convergence \\
+\midrule
+\endhead
+
+{% for i in range(iteration_series.columns.iteration | length) %}
+{{ iteration_series.columns.iteration[i] }} &
+{{ iteration_series.columns.fitness[i] }} &
+{{ iteration_series.columns.avg_fitness[i] }} &
+{{ iteration_series.columns.fitness_convergence[i] }} \\
+{% endfor %}
+
+\bottomrule
+\end{longtable}
+
+{% else %}
+No iteration series data provided.
+{% endif %}
+
+% ==================================================
+% BEST SOLUTION
+% ==================================================
+
+\reportsection{Best Solution}
+
+\begin{tabular}{ll}
+Solution Number & \#{{ best_solution_number | default("—") | latex_escape }} \\
+Fitness & {{ best_fitness | default("—") | latex_escape }} \\
+{% if best_runtime %}
+Reported Runtime & {{ best_runtime | latex_escape }} \\
+{% endif %}
+{% if best_solution_id %}
+Solution ID & \texttt{ {{ best_solution_id | latex_escape }} } \\
+{% endif %}
+\end{tabular}
+
+{% if best_solution_preview %}
+
+\vspace{0.8em}
+\textbf{Solution Preview:}
+
+\begin{lstlisting}
+{{ best_solution_preview }}
+\end{lstlisting}
+
+{% else %}
+No best solution preview provided.
+{% endif %}
+
+% ==================================================
+% MODULE VISUALIZATIONS
+% ==================================================
+
+\reportsection{Module Visualizations}
+
+{% if viz_items_by_iteration %}
+
+This section shows visualization outputs produced by modules during individual iterations.
+Each item below is presented as a separate visualization block with its result, explanation, and technical metadata.
+
+{% for it_idx, items in viz_items_by_iteration|dictsort %}
+
+\vspace{1em}
+\reportsubsection{Iteration {{ it_idx }}}
+
+{% for item in items %}
+
+\sectiondivider
+
+\vizitemheader
+    { {{ item.title | default("Untitled visualization") | latex_escape }} }
+    { {{ item.module | default("unknown") | latex_escape }} }
+    { Iteration {{ it_idx }} }
+
+\vspace{0.8em}
+
+{% if item.rendered_content %}
+{{ item.rendered_content }}
+{% else %}
+\textbf{Visualization Content}\\
+Visualization not available.
+{% endif %}
+
+{% if not loop.last %}
+\vspace{0.8em}
+{% endif %}
+
+{% endfor %}
+
+{% endfor %}
+
+{% else %}
+No module visualizations were provided.
+{% endif %}
+
+% ==================================================
+% STATISTICS VISUALIZATIONS
+% ==================================================
+
+\reportsection{Statistics Visualizations}
+
+{% if stats_viz_items %}
+
+This section shows higher-level statistical visualizations that summarize task-wide behavior.
+
+{% for item in stats_viz_items %}
+
+\sectiondivider
+
+\vizitemheader
+    { {{ item.title | default("Untitled statistics visualization") | latex_escape }} }
+    { {{ item.module | default("unknown") | latex_escape }} }
+    { Task-wide statistics }
+
+\vspace{0.8em}
+
+{% if item.rendered_content %}
+{{ item.rendered_content }}
+{% else %}
+\textbf{Visualization Content}\\
+Visualization not available.
+{% endif %}
+
+{% endfor %}
+
+{% else %}
+No statistics visualizations were provided.
+{% endif %}
+
+\vfill
+
+\begin{center}
+{\small EASE Task Report - Generated {{ generated_at | default("—") | latex_escape }}}
+\end{center}
+
+\end{document}

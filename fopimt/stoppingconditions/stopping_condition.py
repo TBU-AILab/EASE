@@ -1,4 +1,8 @@
+from fopimt.task_dto import TaskExecutionContext
+from fopimt.utils.render_utils import DefaultStoppingConditionRenderer
+
 from ..modul import Modul
+from ..modul_dto import StoppingConditionResult
 
 
 class StoppingCondition(Modul):
@@ -19,7 +23,7 @@ class StoppingCondition(Modul):
         """
         raise NotImplementedError("This method should be overridden by subclasses.")
 
-    def is_satisfied(self) -> bool:
+    def is_satisfied(self) -> StoppingConditionResult:
         """
         Function that will return bool value if stopping condition was satisfied.
         """
@@ -37,6 +41,36 @@ class StoppingCondition(Modul):
             raise NotImplementedError("This method should be overridden by subclasses.")
         else:
             raise TypeError("Function update needs Task")
+
+    @staticmethod
+    def render_html(
+        modul_result: StoppingConditionResult,
+        task_execution_context: TaskExecutionContext,
+        output_dir: str,
+    ) -> str:
+        """
+        Returns HTML representation of the evaluation. Used for visualization.
+        :return: HTML string
+        """
+        return DefaultStoppingConditionRenderer.render_template(
+            modul_result,
+            output_format="html",
+        )
+
+    @staticmethod
+    def render_latex(
+        modul_result: StoppingConditionResult,
+        task_execution_context: TaskExecutionContext,
+        output_dir: str,
+    ) -> str:
+        """
+        Returns LaTeX representation of the evaluation. Used for visualization.
+        :return: LaTeX string
+        """
+        return DefaultStoppingConditionRenderer.render_template(
+            modul_result,
+            output_format="latex",
+        )
 
     ####################################################################
     #########  Private functions

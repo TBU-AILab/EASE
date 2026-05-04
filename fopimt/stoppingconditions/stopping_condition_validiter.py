@@ -1,4 +1,5 @@
-from ..loader import Parameter, PrimitiveType
+from ..loader_dto import Parameter, PrimitiveType
+from ..modul_dto import StoppingConditionResult
 from .stopping_condition import StoppingCondition
 
 
@@ -20,13 +21,19 @@ class StoppingConditionValidIter(StoppingCondition):
     #########  Public functions
     ####################################################################
     def pretty(self) -> str:
-        if self.is_satisfied():
+        result = self.is_satisfied()
+        if result.is_satisfied:
             return f"Stopping condition <Valid Iterations>: Stopped at iteration number {self._iters}."
         else:
             return f"Stopping condition <Valid Iterations>: Not triggered at iteration number {self._iters}."
 
-    def is_satisfied(self) -> bool:
-        return self._iters >= self._max_iters
+    def is_satisfied(self) -> StoppingConditionResult:
+        is_satisfied = self._iters >= self._max_iters
+        return StoppingConditionResult(
+            class_ref=type(self),
+            is_satisfied=is_satisfied,
+            metadata={"iters": self._iters, "max_iters": self._max_iters},
+        )
 
     def update(self, task) -> None:
         from ..task import Task

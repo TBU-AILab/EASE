@@ -1,7 +1,9 @@
 import copy
 
+from fopimt.task_dto import OptimizationGoal
+
 from ..solutions.solution import Solution
-from .evaluator import Evaluator, OptimizationGoal
+from .evaluator import Evaluator, EvaluatorResult
 
 
 class EvaluatorDummy(Evaluator):
@@ -12,9 +14,9 @@ class EvaluatorDummy(Evaluator):
         self,
         solution: Solution,
         opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
-    ) -> float:
+    ) -> EvaluatorResult:
         """
-        Evaluation function. Returns quality of solution as float number.
+        Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:
             solution: Solution  -- Solution that will be evaluated.
         """
@@ -28,7 +30,10 @@ class EvaluatorDummy(Evaluator):
 
         self._check_if_best(solution)
 
-        return fitness
+        result_metadata = {"OK": True}
+        return EvaluatorResult(
+            class_ref=type(self), fitness=fitness, metadata=result_metadata
+        )
 
     @classmethod
     def get_short_name(cls) -> str:

@@ -1,5 +1,8 @@
-from ..loader import Parameter, PrimitiveType
+from fopimt.task_dto import TaskExecutionContext
+from fopimt.utils.render_utils import DefaultTestRenderer
+
 from ..modul import Modul
+from ..modul_dto import TestResult
 from ..solutions.solution import Solution
 
 
@@ -31,7 +34,7 @@ class Test(Modul):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def test(self, solution: Solution) -> bool:
+    def test(self, solution: Solution) -> TestResult:
         """
         This method tests the given solution for errors
         Needs to be overwritten in child classes
@@ -81,6 +84,30 @@ class Test(Modul):
         :return: User defined message (str).
         """
         return self._user_msg
+
+    @staticmethod
+    def render_html(
+        modul_result: TestResult,
+        task_execution_context: TaskExecutionContext,
+        output_dir: str,
+    ) -> str:
+        """
+        Returns HTML representation of the evaluation. Used for visualization.
+        :return: HTML string
+        """
+        return DefaultTestRenderer.render_template(modul_result, output_format="html")
+
+    @staticmethod
+    def render_latex(
+        modul_result: TestResult,
+        task_execution_context: TaskExecutionContext,
+        output_dir: str,
+    ) -> str:
+        """
+        Returns LaTeX representation of the evaluation. Used for visualization.
+        :return: LaTeX string
+        """
+        return DefaultTestRenderer.render_template(modul_result, output_format="latex")
 
     ####################################################################
     #########  Private functions

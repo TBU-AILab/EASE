@@ -1,5 +1,4 @@
-import os
-from sys import prefix
+from fopimt.modul_dto import SolutionResult
 
 from ..message import Message
 from .solution import Solution
@@ -20,7 +19,7 @@ class SolutionCodePython(Solution):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def get_input_from_msg(self, msg: Message):
+    def get_input_from_msg(self, msg: Message) -> SolutionResult:
         plain = msg.get_content()
         state = "TEXT"
         out = ""
@@ -45,6 +44,13 @@ class SolutionCodePython(Solution):
             self._input = plain
         else:
             self._input = out
+
+        return SolutionResult(
+            class_ref=type(self),
+            metadata=self.get_metadata(),
+            evaluator_input=self._input,
+            evaluator_input_serialized=self._input,
+        )
 
     @classmethod
     def get_short_name(cls) -> str:

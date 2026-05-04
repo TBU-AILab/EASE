@@ -1,17 +1,15 @@
 import copy
-import itertools
 import logging
 import math
 import sys
 
-import matplotlib.pyplot as plt
-import numpy as np
+from fopimt.task_dto import OptimizationGoal
 
-from ..loader import Parameter, PrimitiveType
-from ..resource.resource import Resource, ResourceType
+from ..loader_dto import Parameter, PrimitiveType
+from ..resource.resource import Resource
 from ..solutions.solution import Solution
 from ..utils.import_utils import dynamic_import
-from .evaluator import Evaluator, OptimizationGoal
+from .evaluator import Evaluator, EvaluatorResult
 
 
 def hexagon_vertices(
@@ -204,7 +202,7 @@ class EvaluatorHexagon(Evaluator):
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
-        benchmarks = Resource.get_resources(ResourceType.METABENCHMARK)
+        benchmarks = Resource.get_resources("metabenchmark")
         return {
             "feedback_msg_template": Parameter(
                 short_name="feedback_msg_template",
@@ -311,9 +309,9 @@ Avoid any form of testing or logging. Only return the best valid configuration y
         self,
         solution: Solution,
         opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
-    ) -> float:
+    ) -> EvaluatorResult:
         """
-        Evaluation function. Returns quality of solution as float number.
+        Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:
             solution: Solution  -- Solution that will be evaluated.
         """
@@ -369,16 +367,14 @@ Avoid any form of testing or logging. Only return the best valid configuration y
                 fitness = sys.float_info.max
             solution.set_fitness(fitness)
 
-            solution.add_metadata(
-                "results",
-                {
-                    "inner_hex_data": inner_hex_data,
-                    "outer_hex_center": outer_hex_center,
-                    "outer_hex_side_length": outer_hex_side_length,
-                    "outer_hex_angle_degrees": outer_hex_angle_degrees,
-                    "viable": viable,
-                },
-            )
+            metadata_value = {
+                "inner_hex_data": inner_hex_data,
+                "outer_hex_center": outer_hex_center,
+                "outer_hex_side_length": outer_hex_side_length,
+                "outer_hex_angle_degrees": outer_hex_angle_degrees,
+                "viable": viable,
+            }
+            solution.add_metadata("results", metadata_value)
 
             self._check_if_best(solution)
 
@@ -418,7 +414,11 @@ Avoid any form of testing or logging. Only return the best valid configuration y
             logging.error("Evaluator:Hexagon: Error during Task evaluation: " + repr(e))
             raise e
 
-        return outer_hex_side_length
+        return EvaluatorResult(
+            class_ref=type(self),
+            fitness=outer_hex_side_length,
+            metadata={"results": metadata_value},
+        )
 
     @classmethod
     def get_short_name(cls) -> str:

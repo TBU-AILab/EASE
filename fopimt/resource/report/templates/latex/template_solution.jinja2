@@ -1,0 +1,181 @@
+\documentclass[11pt,a4paper]{article}
+
+% --------------------------------------------------
+% Packages
+% --------------------------------------------------
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{listings}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+
+% --------------------------------------------------
+% Code blocks
+% --------------------------------------------------
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    columns=fullflexible,
+    frame=single,
+    keepspaces=true,
+    showstringspaces=false
+}
+
+% --------------------------------------------------
+% Helpers
+% --------------------------------------------------
+{% raw %}
+\newcommand{\reportsection}[1]{
+    \section*{#1}
+}
+
+\newcommand{\reportsubsection}[1]{
+    \subsection*{#1}
+}
+
+\newcommand{\reportlabel}[1]{
+    \textbf{#1}
+}
+
+\newcommand{\sectiondivider}{
+    \vspace{0.8em}
+    \hrule
+    \vspace{0.8em}
+}
+{% endraw %}
+
+\begin{document}
+
+% ==================================================
+% HEADER
+% ==================================================
+
+\begin{center}
+{\LARGE \textbf{EASE Solution Report}}\\
+\vspace{0.3em}
+{\large {{ task_name | default("Unnamed task") | latex_escape }}}\\
+\texttt{ {{ task_id | default("task_unknown") | latex_escape }} }\\
+Generated: {{ generated_at | default("—") | latex_escape }}
+\end{center}
+
+\vspace{1em}
+
+\begin{tabular}{@{}ll@{}}
+Solution Number & \#{{ solution_number | default(1) | latex_escape }} \\
+Solver & {{ solver_name | default("unknown") | latex_escape }} \\
+Evaluator & {{ evaluator_name | default("unknown") | latex_escape }} \\
+Reported Runtime & {{ runtime | default("—") | latex_escape }} \\
+\end{tabular}
+
+\vspace{1.2em}
+
+% ==================================================
+% MAIN RESULT
+% ==================================================
+
+\reportsection{Result Summary}
+
+\noindent
+\begin{tabular}{@{}l p{0.72\linewidth}@{}}
+\textbf{Fitness:} &
+{\large \textbf{ {{ fitness | default("—") | latex_escape }} }}
+\end{tabular}
+
+{% if fitness_note %}
+\vspace{0.35em}
+{\small \textit{Interpretation:} {{ fitness_note | latex_escape }}}
+{% else %}
+\vspace{0.35em}
+{\small \textit{Interpretation:} Higher is better (as defined by the task or solver).}
+{% endif %}
+
+\vspace{0.8em}
+
+\begin{tabular}{@{}p{0.23\linewidth}p{0.73\linewidth}@{}}
+\textbf{Task Name} & {{ task_name | default("Unnamed task") | latex_escape }} \\
+\textbf{Task ID} & \texttt{ {{ task_id | default("task_unknown") | latex_escape }} } \\
+\textbf{Solution Number} & \#{{ solution_number | default(1) | latex_escape }} \\
+\textbf{Solver} & {{ solver_name | default("unknown") | latex_escape }} \\
+\textbf{Evaluator} & {{ evaluator_name | default("unknown") | latex_escape }} \\
+\textbf{Reported Runtime} & {{ runtime | default("—") | latex_escape }} \\
+\end{tabular}
+
+% ==================================================
+% EVALUATOR RESULT VISUALIZATION
+% ==================================================
+
+\reportsection{Evaluator Result Visualization}
+
+This section shows the primary evaluator visualization for this solution. It is intended to help the reader understand the result quickly before looking at raw details.
+
+\vspace{0.8em}
+\sectiondivider
+
+\noindent
+\begin{tabular}{@{}p{0.24\linewidth}p{0.72\linewidth}@{}}
+\textbf{Visualization Title} & \textbf{ {{ viz_title | default("Result summary") | latex_escape }} } \\
+\textbf{Source Module} & \texttt{ {{ viz_module_name | default("ease.viz.module") | latex_escape }} } \\
+\textbf{Context} & Solution \#{{ solution_number | default(1) | latex_escape }} for task {{ task_name | default("Unnamed task") | latex_escape }} \\
+\end{tabular}
+
+\vspace{0.8em}
+
+{% if custom_viz_rendered %}
+{{ custom_viz_rendered }}
+{% else %}
+\textbf{Visualization Content}
+
+\vspace{0.35em}
+No visualization module output was provided for this solution.
+{% endif %}
+
+% ==================================================
+% RAW METADATA
+% ==================================================
+
+\reportsection{Raw Metadata}
+
+This section contains the raw metadata associated with this solution report. It is primarily technical reference data.
+
+\vspace{0.6em}
+\textbf{Metadata Format:} \texttt{json}
+
+\begin{lstlisting}
+{{ raw_metadata_json | default("{}") }}
+\end{lstlisting}
+
+% ==================================================
+% SOLUTION OUTPUT
+% ==================================================
+
+\reportsection{Solution Output}
+
+This section contains the generated solution content.
+
+{% if solution_title %}
+\vspace{0.4em}
+\textbf{Output Label:} {{ solution_title | latex_escape }}
+{% endif %}
+
+\begin{lstlisting}
+{{ solution_content | default("") }}
+\end{lstlisting}
+
+\vfill
+
+\begin{center}
+{\small EASE Solution Report · Generated {{ generated_at | default("—") | latex_escape }}}
+\end{center}
+
+\end{document}

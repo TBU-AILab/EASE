@@ -1,0 +1,172 @@
+{# ============================================================
+   EASE 2048 Evaluator Visualization Module (Injected HTML)
+   — Error / Fallback Template
+   Shown when visualization data fails to load or render.
+   Expected inputs (all optional):
+   - error_title: str        (default: "Visualization Error")
+   - error_message: str      (default: "Failed to load evaluator results.")
+   - error_details: str      (default: ""  // stack trace / debug info)
+   - hint: str               (default: "Check logs and ensure the evaluator produced valid output artifacts.")
+   ============================================================ #}
+
+<style>
+  /* Scoped to avoid collisions */
+  .ease-viz-err{
+    display:grid;
+    gap: 12px;
+  }
+
+  .ease-viz-err .panel{
+    border: 1px solid var(--border);
+    background: linear-gradient(to bottom, var(--raised), var(--surface));
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow-1);
+  }
+
+  .ease-viz-err .headline{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 12px;
+    flex-wrap:wrap;
+    margin-bottom: 10px;
+  }
+
+  .ease-viz-err h3{
+    margin:0;
+    font-size: 14px;
+    letter-spacing: 0.2px;
+  }
+
+  .ease-viz-err .subtle{
+    margin: 6px 0 0 0;
+    color: var(--fg-muted);
+    font-size: 12.5px;
+    line-height: 1.35;
+  }
+
+  .ease-viz-err .chip{
+    font-size: 12px;
+    color: var(--fg-muted);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--surface) 70%, transparent);
+    white-space: nowrap;
+  }
+
+  .ease-viz-err .alert{
+    border: 1px solid color-mix(in oklab, var(--danger) 55%, var(--border));
+    background:
+      radial-gradient(900px 240px at 10% 0%, color-mix(in oklab, var(--danger) 14%, transparent), transparent 60%),
+      linear-gradient(to bottom, var(--raised), var(--surface));
+    border-radius: 16px;
+    padding: 12px 12px;
+    display:flex;
+    gap: 10px;
+    align-items:flex-start;
+  }
+
+  .ease-viz-err .icon{
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    border: 1px solid color-mix(in oklab, var(--danger) 55%, var(--border));
+    background: color-mix(in oklab, var(--danger) 10%, transparent);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex: 0 0 auto;
+    font-weight: 800;
+    color: color-mix(in oklab, var(--danger) 78%, var(--fg));
+  }
+
+  .ease-viz-err .msg{
+    margin:0;
+    font-size: 13px;
+    font-weight: 650;
+  }
+
+  .ease-viz-err .hint{
+    margin: 6px 0 0 0;
+    color: var(--fg-muted);
+    font-size: 12.5px;
+    line-height: 1.35;
+  }
+
+  /* Details block consistent with base template */
+  .ease-viz-err details{
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: linear-gradient(to bottom, var(--raised), var(--surface));
+    box-shadow: var(--shadow-1);
+    overflow:hidden;
+  }
+  .ease-viz-err summary{
+    cursor: pointer;
+    padding: 12px 14px;
+    font-weight: 650;
+    font-size: 13px;
+    color: var(--fg);
+    list-style: none;
+  }
+  .ease-viz-err summary::-webkit-details-marker{ display:none; }
+  .ease-viz-err summary::after{
+    content: "▾";
+    float: right;
+    color: var(--fg-muted);
+    transform: translateY(1px);
+  }
+  .ease-viz-err details[open] summary::after{ content:"▴"; }
+
+  .ease-viz-err .codewrap{
+    padding: 12px 14px 14px;
+    border-top: 1px solid var(--border-soft);
+  }
+  .ease-viz-err pre{
+    margin:0;
+    padding: 12px 12px;
+    border-radius: 14px;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    overflow:auto;
+  }
+  .ease-viz-err code{
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: color-mix(in oklab, var(--fg) 92%, transparent);
+    white-space: pre;
+  }
+</style>
+
+<div class="ease-viz-err">
+  <div class="panel">
+    <div class="headline">
+      <div>
+        <h3>{{ error_title|default("Visualization Error") }}</h3>
+        <p class="subtle">
+          The visualization module could not load the data required to render the 2048 evaluator report.
+        </p>
+      </div>
+      <span class="chip">Status: error</span>
+    </div>
+
+    <div class="alert" role="alert" aria-live="polite">
+      <div class="icon">!</div>
+      <div>
+        <p class="msg">{{ error_message|default("Failed to load evaluator results.") }}</p>
+        <p class="hint">{{ hint|default("Check logs and ensure the evaluator produced valid output artifacts.") }}</p>
+      </div>
+    </div>
+  </div>
+
+  {% if error_details %}
+    <details>
+      <summary>Show / hide error details</summary>
+      <div class="codewrap">
+        <pre><code>{{ error_details }}</code></pre>
+      </div>
+    </details>
+  {% endif %}
+</div>

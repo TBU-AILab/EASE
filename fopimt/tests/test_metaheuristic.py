@@ -6,7 +6,7 @@ from ..loader import Parameter, PrimitiveType
 from ..resource.metahuristic.metaheuristic_runner import Runner
 from ..solutions.solution import Solution
 from ..utils.import_utils import dynamic_import
-from .test import Test
+from .test import Test, TestResult
 
 
 class TestMetaheuristic(Test):
@@ -49,7 +49,7 @@ class TestMetaheuristic(Test):
     def get_tags(cls) -> dict:
         return {"input": {"python"}, "output": set()}
 
-    def test(self, solution: Solution) -> bool:
+    def test(self, solution: Solution) -> TestResult:
         """
         This method tests the given solution for bound crossing
 
@@ -75,7 +75,14 @@ class TestMetaheuristic(Test):
             self._error_msg = self._user_msg = (
                 f"Test:Metaheuristic: Algorithm could not be checked due to the following error: {repr(e)}"
             )
-            return self._test_result
+            return TestResult(
+                class_ref=type(self),
+                passed=self._test_result,
+                metadata={
+                    "error_msg": self._error_msg,
+                    "user_msg": self._user_msg,
+                },
+            )
 
         try:
             # Merge exec_globals and exec_locals to ensure functions can access each other
@@ -104,7 +111,14 @@ class TestMetaheuristic(Test):
                 f"Test:Metaheuristic: Algorithm could not be checked due to the "
                 f"following error: {repr(e)}"
             )
-            return self._test_result
+            return TestResult(
+                class_ref=type(self),
+                passed=self._test_result,
+                metadata={
+                    "error_msg": self._error_msg,
+                    "user_msg": self._user_msg,
+                },
+            )
 
         # Check for any errors during evaluation
         # Maximum evaluations exceeded - not severe
@@ -135,7 +149,14 @@ class TestMetaheuristic(Test):
             )
             self._test_result = False
 
-        return self._test_result
+        return TestResult(
+            class_ref=type(self),
+            passed=self._test_result,
+            metadata={
+                "error_msg": self._error_msg,
+                "user_msg": self._user_msg,
+            },
+        )
 
     class InvertedSphere:
         def __init__(self, dim):

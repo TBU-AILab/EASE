@@ -1,0 +1,61 @@
+{# base_viz.jinja2
+   ------------------------------------------------------------
+   Base Visualization Wrapper (Self-contained)
+   - Assumes base_styles.jinja2 is present globally (viz-fence, viz-head, details, pre, code, etc.)
+   - Adds only tiny, scoped utilities needed for truncation + spacing
+   ------------------------------------------------------------ #}
+
+<style>
+  /* Scoped utilities for the base viz wrapper only */
+  .viz-desc{
+    margin: 0;
+    color: var(--fg-muted);
+    font-size: 13px;
+  }
+  .viz-pre{
+    max-height: 520px;
+  }
+</style>
+
+{% block custom_styles %}{% endblock %}
+
+
+{% block main_result %}
+<div class="main-result" style="margin-top: 0px">
+    <div>
+    <p class="label">{{ main_result_label|default("Value") }}</p>
+    <p class="value" style="font-size:22px; font-weight:750; letter-spacing:-0.2px;">
+        {{ main_result_value|default("—") }}
+    </p>
+    <p class="note">{{ main_result_note|default("") }}</p>
+
+    {% block main_result_extra %}{% endblock %}
+    </div>
+</div>
+{% endblock %}
+
+{% block description %}
+    {% if description %}
+    <details style="margin-top:12px;">
+        <summary>About this module</summary>
+        <div class="codewrap">
+        <p class="viz-desc">{{ description }}</p>
+        </div>
+    </details>
+    {% endif %}
+{% endblock %}
+
+{% block metadata %}
+    <details style="margin-top:12px;" {% if metadata_open %}open{% endif %}>
+    <summary>Module metadata</summary>
+    <div class="codewrap">
+        <div class="code-header">
+        <p class="code-title">Metadata</p>
+        {% if metadata_lang %}<span class="langpill">{{ metadata_lang }}</span>{% endif %}
+        </div>
+        <pre class="viz-pre"><code class="language-json">{{ metadata_text|default("{}") }}</code></pre>
+    </div>
+    </details>
+{% endblock %}
+
+{% block extra_sections %}{% endblock %}

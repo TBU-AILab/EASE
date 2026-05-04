@@ -2,14 +2,12 @@ import math
 import os
 import sys
 
-import matplotlib.patches as patches
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-from scipy.stats import ranksums
+
+from fopimt.task_dto import TaskExecutionContext
 
 from ..solutions.solution import Solution
-from .stat import Stat
+from .stat import Stat, StatResult
 
 
 def hexagon_vertices(
@@ -108,7 +106,11 @@ class StatHexagon(Stat):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate_statistic(self, solutions: list[Solution]):
+    def evaluate_statistic(
+        self,
+        solutions: list[Solution],
+        task_execution_context: TaskExecutionContext,
+    ) -> StatResult:
         self._data = {}
 
         best_fitness = sys.float_info.max
@@ -162,6 +164,11 @@ class StatHexagon(Stat):
                                 .get("results")
                                 .get("outer_hex_angle_degrees"),
                             }
+
+        return StatResult(
+            class_ref=type(self),
+            metadata={"data": self._data},
+        )
 
     def export(self, path: str):
         if self._data:

@@ -2,15 +2,15 @@ import copy
 import logging
 
 import numpy as np
-import pandas as pd
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
-from ..loader import Parameter, PrimitiveType
-from ..modul import Modul
-from ..resource.resource import Resource, ResourceType
+from fopimt.task_dto import OptimizationGoal
+
+from ..loader_dto import Parameter, PrimitiveType
+from ..resource.resource import Resource
 from ..solutions.solution import Solution
 from ..utils.import_utils import dynamic_import
-from .evaluator import Evaluator, OptimizationGoal
+from .evaluator import Evaluator, EvaluatorResult
 
 
 class EvaluatorClassification(Evaluator):
@@ -22,7 +22,7 @@ class EvaluatorClassification(Evaluator):
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
-        datasets = Resource.get_resources(ResourceType.CLASSIFICATION)
+        datasets = Resource.get_resources("classification")
         return {
             "feedback_msg_template": Parameter(
                 short_name="feedback_msg_template",
@@ -68,7 +68,7 @@ class EvaluatorClassification(Evaluator):
         super()._init_params()
         if self.parameters.get("dataset"):
             func_to_call = Resource.get_resource_function(
-                self.parameters.get("dataset"), ResourceType.CLASSIFICATION
+                self.parameters.get("dataset"), "classification"
             )
             self._dataset = func_to_call()
 
@@ -91,9 +91,9 @@ class EvaluatorClassification(Evaluator):
         self,
         solution: Solution,
         opt_goal: OptimizationGoal = OptimizationGoal.MINIMIZATION,
-    ) -> float:
+    ) -> EvaluatorResult:
         """
-        Evaluation function. Returns quality of solution as float number.
+        Evaluation function. Returns quality of solution as EvaluatorResult.
         Arguments:
             solution: Solution  -- Solution that will be evaluated.
         """
@@ -152,7 +152,7 @@ class EvaluatorClassification(Evaluator):
                     f"input: {err['x']}, target: {err['t']}, prediction: {err['y']}\n"
                 )
 
-            accuracy = accuracy_score(y_true, y_pred)
+            accuracy = float(accuracy_score(y_true, y_pred))
             precision = precision_score(y_true, y_pred, average="macro")
             recall = recall_score(y_true, y_pred, average="macro")
             f1 = f1_score(y_true, y_pred, average="macro")
@@ -186,6 +186,13 @@ class EvaluatorClassification(Evaluator):
             solution.set_fitness(accuracy)
             fitness = accuracy
 
+            result_metadata = {"results": results}
+            evaluator_result = EvaluatorResult(
+                class_ref=type(self),
+                fitness=fitness,
+                metadata=results,
+            )
+
             self._check_if_best(solution)
 
         except Exception as e:
@@ -194,7 +201,7 @@ class EvaluatorClassification(Evaluator):
             )
             raise e
 
-        return fitness
+        return evaluator_result
 
     @classmethod
     def get_short_name(cls) -> str:

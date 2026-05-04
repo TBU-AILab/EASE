@@ -1,0 +1,50 @@
+{% extends "shared/base_viz.jinja2" %}
+
+{% block main_result_extra %}
+
+\vspace{0.9em}
+\textbf{Response Context}
+
+\vspace{0.35em}
+\noindent
+\begin{tabular}{@{}p{0.26\linewidth}p{0.70\linewidth}@{}}
+\textbf{Module Name} & \texttt{ {{ module_name|default("—")|latex_escape }} } \\
+\textbf{Class Reference} & \texttt{ {{ module_class_ref|default("—")|latex_escape }} } \\
+\textbf{Message Role} & \texttt{ {{ message_role|default("—")|latex_escape }} } \\
+\textbf{Model} & \texttt{ {{ message_model|default("—")|latex_escape }} } \\
+\textbf{Token Count} & {{ message_tokens|default("—")|latex_escape }} \\
+\textbf{Created At} & {{ message_created_at|default("—")|latex_escape }} \\
+\textbf{Message ID} & \texttt{ {{ message_id|default("—")|latex_escape }} } \\
+\end{tabular}
+
+{% endblock %}
+
+{% block extra_sections %}
+
+\vspace{1em}
+\textbf{Response Content}
+
+\vspace{0.35em}
+The following block contains the raw text response produced by the LLM connector.
+
+\begin{lstlisting}
+{{ response_text|default("") }}
+\end{lstlisting}
+
+\vspace{1em}
+\textbf{Message Metadata}
+
+\vspace{0.35em}
+This is the raw technical metadata associated with the generated message.
+
+{% if message_metadata_lang %}
+\vspace{0.3em}
+{\small \textit{Metadata Format:} \texttt{ {{ message_metadata_lang|latex_escape }} }}
+{% endif %}
+
+\vspace{0.4em}
+\begin{lstlisting}
+{{ message_metadata_text|default("{}") }}
+\end{lstlisting}
+
+{% endblock %}

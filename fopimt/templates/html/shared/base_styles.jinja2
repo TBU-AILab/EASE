@@ -1,0 +1,382 @@
+<style>
+  :root{
+    --bg: #0b0b10;
+    --surface: #12121a;
+    --raised: #1a1a24;
+
+    --fg: #f3f4f8;
+    --fg-muted: #b4b7c6;
+
+    --border: #2a2a3a;
+    --border-soft: #232332;
+
+    /* Brand: Tailwind violet-500 (OKLCH) */
+    --brand: oklch(60.6% 0.25 292.717);
+    --brand-2: oklch(54.1% 0.281 293.009);
+    --brand-plot: #8b5cf6;
+
+    /* Semantic */
+    --success: #3fb950;
+    --warning: #d29922;
+    --danger: #f85149;
+
+    --shadow-1: 0 1px 0 rgb(255 255 255 / 0.06);
+    --shadow-2: 0 18px 55px rgb(0 0 0 / 0.55);
+
+    --code-bg: #0f0f16;
+    --code-border: #2d2d3d;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  html.light{
+    --bg: #fafafe;
+    --surface: #ffffff;
+    --raised: #ffffff;
+
+    --fg: #0c0c12;
+    --fg-muted: #555a6b;
+
+    --border: #e6e7ef;
+    --border-soft: #ececf3;
+
+    --shadow-1: 0 1px 0 rgb(0 0 0 / 0.05);
+    --shadow-2: 0 22px 60px rgb(0 0 0 / 0.12);
+
+    --code-bg: #fafafe;
+    --code-border: #e6e7ef;
+  }
+
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.45;
+  }
+
+  .wrap{
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 18px 60px;
+  }
+
+  /* =========================
+     Header / Branding
+     ========================= */
+  .header{
+    border: 1px solid var(--border);
+    background: linear-gradient(to bottom, var(--raised), var(--surface));
+    border-radius: 16px;
+    box-shadow: var(--shadow-1), var(--shadow-2);
+    overflow: hidden;
+  }
+
+  .brandbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 18px 18px;
+    border-bottom: 1px solid var(--border-soft);
+    position: relative;
+  }
+
+  .brandbar::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(600px 180px at 20% -20%, color-mix(in oklab, var(--brand) 35%, transparent), transparent 60%),
+      radial-gradient(600px 180px at 80% -20%, color-mix(in oklab, var(--brand-2) 30%, transparent), transparent 60%);
+    pointer-events:none;
+    opacity: 0.9;
+  }
+
+  .brand-left{
+    display:flex;
+    gap: 12px;
+    align-items:center;
+    position:relative;
+  }
+
+  .logo{
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: none;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo img{
+    width: 75%;
+    height: 75%;
+    object-fit: contain;
+  }
+
+  .brand-title{
+    display:flex;
+    flex-direction:column;
+    gap: 2px;
+  }
+
+  .brand-title h1{
+    font-size: 18px;
+    margin:0;
+    letter-spacing: 0.2px;
+  }
+
+  .brand-title .subtitle{
+    margin:0;
+    color: var(--fg-muted);
+    font-size: 12.5px;
+  }
+
+  .header-meta{
+    padding: 14px 18px 18px;
+  }
+
+  .taskline{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 10px;
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  .taskname{
+    font-weight: 600;
+    font-size: 16px;
+    margin:0;
+  }
+
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 8px;
+  }
+
+  .chip{
+    font-size: 12px;
+    color: var(--fg-muted);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--surface) 70%, transparent);
+  }
+
+  /* Main result block */
+  .main-result{
+    margin-top: 14px;
+    display:flex;
+    gap: 12px;
+    align-items:flex-end;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    padding: 14px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background:
+      radial-gradient(900px 240px at 10% 0%, color-mix(in oklab, var(--brand) 22%, transparent), transparent 60%),
+      linear-gradient(to bottom, var(--raised), var(--surface));
+  }
+
+  .main-result .label{
+    color: var(--fg-muted);
+    font-size: 12px;
+    margin:0;
+  }
+  .main-result .value{
+    font-size: 34px;
+    font-weight: 750;
+    margin: 0;
+    letter-spacing: -0.6px;
+  }
+  .main-result .note{
+    color: var(--fg-muted);
+    font-size: 12px;
+    margin:0;
+  }
+
+  /* =========================
+     Sections
+     ========================= */
+  .section{
+    margin-top: 18px;
+  }
+  .section h2{
+    margin: 22px 4px 10px;
+    font-size: 14px;
+    color: var(--fg-muted);
+    letter-spacing: 0.2px;
+    text-transform: uppercase;
+  }
+
+  .card{
+    border: 1px solid var(--border);
+    background: linear-gradient(to bottom, var(--raised), var(--surface));
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow-1);
+  }
+
+  /* =========================
+     Custom visualization fence
+     ========================= */
+  .viz-fence{
+    position: relative;
+    border-radius: 18px;
+    border: 1px dashed color-mix(in oklab, var(--brand) 45%, var(--border));
+    overflow: hidden;
+    background:
+      linear-gradient(to bottom, color-mix(in oklab, var(--surface) 88%, transparent), var(--surface));
+  }
+
+  .viz-fence::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        color-mix(in oklab, var(--brand) 6%, transparent),
+        color-mix(in oklab, var(--brand) 6%, transparent) 1px,
+        transparent 1px,
+        transparent 22px
+      );
+    opacity: 0.7;
+    pointer-events:none;
+  }
+
+  .viz-head{
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px dashed color-mix(in oklab, var(--brand) 35%, var(--border));
+  }
+
+  .viz-head .left{
+    display:flex;
+    flex-direction:column;
+    gap: 2px;
+  }
+  .viz-head .title-row{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+  }
+  .viz-head .title{
+    margin:0;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.2px;
+  }
+  .viz-head .hint{
+    margin:0;
+    font-size: 12px;
+    color: var(--fg-muted);
+  }
+  .viz-head .tag{
+    font-family: var(--mono);
+    font-size: 10px;
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--surface) 55%, transparent);
+    color: var(--fg-muted);
+    opacity: 0.9;
+    margin-left: 2px;
+  }
+
+  .viz-body{
+    position:relative;
+    padding: 14px;
+  }
+
+  /* =========================
+     Raw metadata toggle
+     ========================= */
+  details{
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: linear-gradient(to bottom, var(--raised), var(--surface));
+    box-shadow: var(--shadow-1);
+    overflow: hidden;
+  }
+  summary{
+    cursor: pointer;
+    padding: 12px 14px;
+    font-weight: 650;
+    font-size: 13px;
+    color: var(--fg);
+    list-style: none;
+  }
+  summary::-webkit-details-marker{ display:none; }
+  details > summary::after{
+    content: "▾";
+    float: right;
+    color: var(--fg-muted);
+    transform: translateY(1px);
+  }
+  details[open] > summary::after{ content:"▴"; }
+
+  /* =========================
+     Code blocks (solution + metadata)
+     ========================= */
+  .codewrap{
+    padding: 12px 14px 14px;
+    border-top: 1px solid var(--border-soft);
+  }
+
+  pre{
+    margin:0;
+    padding: 12px 12px;
+    border-radius: 14px;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    overflow:auto;
+  }
+  code{
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: color-mix(in oklab, var(--fg) 92%, transparent);
+    white-space: pre;
+  }
+
+  .code-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+    margin: 0 0 10px 0;
+  }
+  .code-title{
+    margin:0;
+    font-size: 12px;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.18px;
+  }
+  .langpill{
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--fg-muted);
+    border: 1px solid var(--border);
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--surface) 70%, transparent);
+  }
+
+  .footer{
+    margin-top: 22px;
+    color: var(--fg-muted);
+    font-size: 12px;
+    padding: 0 4px;
+  }
+</style>

@@ -1,6 +1,9 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from .loader import Parameter
+from .loader_dto import Parameter
+
+if TYPE_CHECKING:
+    from fopimt.task_dto import TaskExecutionContext
 
 
 class Modul:
@@ -35,6 +38,35 @@ class Modul:
     def get_parameters(cls) -> dict[str, Parameter]:
         # Maybe overriden by subsequent class
         return dict()
+
+    @classmethod
+    def get_order(cls) -> int:
+        """Return order of execution in pipeline. Lower number means earlier execution."""
+        return 0
+
+    @staticmethod
+    def render_html(
+        modul_result,
+        task_execution_context: "TaskExecutionContext",
+        output_dir: str,
+    ) -> str:
+        """
+        Returns HTML representation of the evaluation. Used for visualization.
+        :return: HTML string
+        """
+        raise NotImplementedError("HTML rendering not implemented for this modul")
+
+    @staticmethod
+    def render_latex(
+        modul_result,
+        task_execution_context: "TaskExecutionContext",
+        output_dir: str,
+    ) -> str:
+        """
+        Returns LaTeX representation of the evaluation. Used for visualization.
+        :return: LaTeX string
+        """
+        raise NotImplementedError("LaTeX rendering not implemented for this modul")
 
     ####################################################################
     #########  Private functions

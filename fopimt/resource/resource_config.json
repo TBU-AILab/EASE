@@ -1,0 +1,16 @@
+{
+  "resources": {
+    "classification": {
+      "path": "fopimt/resource/classification",
+      "discovery_mode": "methods"
+    },
+    "data": {
+      "path": "fopimt/resource/data",
+      "discovery_mode": "methods"
+    },
+    "metabenchmark": {
+      "path": "fopimt/resource/metabenchmark",
+      "discovery_mode": "methods"
+    }
+  }
+}

@@ -3,96 +3,39 @@ import csv
 import io
 import logging
 import os
-import pathlib
 import pickle
-import re
 import uuid
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
 from queue import Queue
-from typing import Any, Optional
-
-from pandas.core.arrays.period import raise_on_incompatible
-from pydantic import BaseModel
+from typing import Any
 
 from .analysis.analysis import Analysis
 from .config_task import ConfigTask
-from .evaluators.evaluator import Evaluator, OptimizationGoal
+from .evaluators.evaluator import Evaluator
 from .llmconnectors.llmconnector import LLMConnector
-from .loader import Loader, ModulAPI, PackageType, Parameter, PrimitiveType
+from .loader import Loader
+from .loader_dto import ModulAPI, PackageType, Parameter, PrimitiveType
 from .magic_datetime import DateTime, convert_to_datetime, is_newer_than
-from .message import Message, MessageAPI
-from .message_repeating import MessageRepeating, MessageRepeatingConfig
-from .solutions.solution import Solution, SolutionAPI
+from .message import Message
+from .message_repeating import MessageRepeating
+from .modul_dto import ModulResult
+from .solutions.solution import Solution
 from .stats.stat import Stat
 from .stoppingconditions.stopping_condition import StoppingCondition
+from .task_dto import (
+    ModulData,
+    ModulInfo,
+    OptimizationGoal,
+    TaskConfig,
+    TaskData,
+    TaskExecutionContext,
+    TaskFull,
+    TaskInfo,
+    TaskState,
+)
 from .tests.test import Test
 from .user import User
 from .utils.tools import get_zip_buffer as zip_it
-
-
-class TaskState(Enum):
-    """
-    Enum for multiprocessing states
-    """
-
-    CREATED = 0
-    INIT = 1
-    RUN = 2
-    PAUSED = 3
-    STOP = 4
-    FINISH = 5
-    BREAK = 6
-
-
-# Basic description of configurable task modules
-class TaskModulConfig(BaseModel):
-    short_name: str
-    parameters: dict[str, Any]  # Parameter defined by short_name and its value
-
-
-class TaskConfig(BaseModel):
-    name: Optional[str] = None
-    author: Optional[str] = None
-    max_context_size: Optional[int] = None
-    feedback_from_solution: Optional[bool] = None
-
-    initial_message: Optional[str] = None
-    system_message: Optional[str] = None
-    repeated_message: Optional[MessageRepeatingConfig] = None
-
-    optimization_goal: Optional[OptimizationGoal] = None
-
-    modules: Optional[list[TaskModulConfig]] = None
-
-
-class TaskInfo(BaseModel):
-    id: str | None  # uuid
-    name: str | None
-    date_updated: str | None
-    date_created: str | None
-    state: TaskState | None
-    current_iteration: int | None
-    iterations_valid: int | None
-    iterations_invalid_consecutive: int | None
-    incompatible: (
-        list[list[str]] | None
-    )  # list of shortnames of incompatible ModuleAPIs, always in pair
-    log: list[str] | None  # error log, i.e. STATE == BREAK
-    optimization_goal: Optional[OptimizationGoal] = None
-
-
-class TaskData(BaseModel):
-    id: str | None  # uuid
-    messages: list[MessageAPI]
-    solutions: list[SolutionAPI]
-
-
-class TaskFull(BaseModel):
-    task_info: Optional[TaskInfo] = None
-    task_data: Optional[TaskData] = None
-    task_modules: Optional[list[ModulAPI]] = None
-    task_config: Optional[TaskConfig] = None
 
 
 class TaskInitializationException(Exception):
@@ -215,6 +158,10 @@ class Task:
         self._spec_cond = []
         self._spec_stat = []
 
+        # Cached module API definitions used for task sync/context
+        # TODO: IS THIS OKAY?
+        self._init_config_modulAPI = []
+
     def _replace_or_append(self, collection: list, new_instance):
         for i, existing in enumerate(collection):
             if type(existing) == type(new_instance):
@@ -312,7 +259,7 @@ class Task:
         # Author of the Task #TODO redo to config
 
         # Task specifications
-        self._spec_system_message: Optional[Message] = config[
+        self._spec_system_message: Message | None = config[
             ConfigTask.SYSTEM_MESSAGE
         ]  # Initial code/prompt, using Message class, may be empty if needed
         self._spec_init_message: Message = config[
@@ -447,6 +394,107 @@ class Task:
             ),  # I want to load all messages
             task_modules=modules,
             task_config=self.task_config(),
+        )
+
+    def get_execution_context(
+        self,
+        moduls_results: dict[int, list[ModulResult]],
+    ) -> TaskExecutionContext:
+        loader = Loader()
+        modules_out: list[ModulInfo] = []
+        modules_data_by_iteration: dict[int, list[ModulData]] = {}
+        module_package_by_ref: dict[type, PackageType] = {}
+
+        modules = copy.deepcopy(self._init_config_modulAPI)
+
+        # Fill parameter values for modules inside the config modulAPI
+        for module in modules:
+            _init_config_modules = self._init_config.modules or []
+            modul_with_value = next(
+                x for x in _init_config_modules if x.short_name == module.short_name
+            )
+            for key, param in module.parameters.items():
+                input_value = modul_with_value.parameters.get(key)
+                if input_value is not None:
+                    self._fill_parameter_values(param, input_value)
+
+        for module in modules:
+            _result = loader.get_modul_by_name(module.short_name)
+            if _result is None:
+                continue
+            module_ref, package_type = _result
+
+            modul_info = ModulInfo(
+                class_ref=module_ref,
+                package_type=package_type,
+                parameters=module.parameters,
+            )
+            modules_out.append(modul_info)
+            module_package_by_ref[module_ref] = package_type
+
+        for iteration, results in (moduls_results or {}).items():
+            iteration_data: list[ModulData] = []
+            seen_module_refs: set[type] = set()
+
+            # Keep incoming order of ModulResults for this iteration
+            for result in results:
+                package_type = module_package_by_ref.get(result.class_ref)
+                if package_type is None:
+                    continue
+
+                iteration_data.append(
+                    ModulData(
+                        class_ref=result.class_ref,
+                        package_type=package_type,
+                        result=result,
+                    )
+                )
+                seen_module_refs.add(result.class_ref)
+
+            modules_data_by_iteration[iteration] = iteration_data
+
+        if not self._time_start:
+            raise ValueError("TaskExecutionContext requires time_start to be set")
+
+        null_message = Message(role="", message="", model_encoding="")
+        null_repeating_message = MessageRepeating(role="", msgs="")
+        system_message = (
+            copy.deepcopy(self.spec_system_message)
+            if self.spec_system_message
+            else null_message
+        )
+        initial_message = (
+            copy.deepcopy(self.spec_init_message)
+            if self.spec_init_message
+            else null_message
+        )
+        repeating_message = (
+            copy.deepcopy(self.spec_rep_message)
+            if self.spec_rep_message
+            else null_repeating_message
+        )
+
+        if not isinstance(repeating_message, MessageRepeating):
+            repeating_message = null_repeating_message
+            logging.warning(
+                "Expected repeating_message to be of type MessageRepeating. Using empty MessageRepeating instead."
+            )
+
+        return TaskExecutionContext(
+            task_id=self._id,
+            task_name=self._name,
+            used_modules=modules_out,
+            modules_data_by_iteration=modules_data_by_iteration,
+            current_iteration=self._iteration,
+            solutions=copy.deepcopy(self._history_solution),
+            time_start=self._time_start,
+            used_tokens=self.get_used_tokens(),
+            valid_iterations=self._iteration_valid,
+            invalid_iterations=self._iteration - self._iteration_valid,
+            system_message=system_message,
+            initial_message=initial_message,
+            repeating_message=repeating_message,
+            optimization_goal=self._optimization_goal,
         )
 
     def _fill_parameter_values(self, param: Parameter, input_value: Any) -> None:
@@ -878,7 +926,7 @@ class Task:
 
     def get_time(self) -> int:
         start = self._date.get_task_history()[-1].get_start()
-        end = datetime.now(timezone.utc)
+        end = datetime.now(UTC)
         duration = end - start
         return duration.seconds
 
@@ -993,7 +1041,7 @@ class Task:
         """
 
         # save task time
-        self._time_start = datetime.now(timezone.utc)
+        self._time_start = datetime.now(UTC)
 
         state = "INIT"
         if self._spec_system_message is not None:
@@ -1008,6 +1056,18 @@ class Task:
 
         if self._spec_init_message is not None:
             self._spec_init_message.update_timestamp()
+
+        moduls_results: dict[int, list[ModulResult]] = {}
+
+        def _add_modul_result(
+            modul_result: ModulResult,
+            iteration: int | None = None,
+        ):
+            if iteration is None:
+                iteration = self._iteration
+            if iteration not in moduls_results:
+                moduls_results[iteration] = []
+            moduls_results[iteration].append(modul_result)
 
         while state != "STOP":
             # 1) get context
@@ -1039,15 +1099,19 @@ class Task:
             self._add_to_history(msg)
 
             # 3) pass context to LLM & # 4) get response from LLM
-            response = self._spec_llm.send(context)
+            llm_connector_result = self._spec_llm.send(context)
+            _add_modul_result(llm_connector_result)
 
             # 5) create a solution
             solution = copy.deepcopy(self._spec_solution)
-            solution.get_input_from_msg(response)
-            solution.set_message_id(response.get_id())
+            solution.set_id(str(self._iteration))
+            solution.set_time_start(datetime.now(UTC))
+            solution_result = solution.get_input_from_msg(llm_connector_result.response)
+            _add_modul_result(solution_result)
+            solution.set_message_id(llm_connector_result.response.get_id())
 
             # 5.5) add response to history
-            self._add_to_history(response)
+            self._add_to_history(llm_connector_result.response)
 
             # export solution
             if self._spec_save_to_disk:
@@ -1059,8 +1123,11 @@ class Task:
 
             # 6) check for errors/unit testing
             state = "OK"
-            for test in self._spec_test:
-                if not test.test(solution):
+            sorted_tests = sorted(self._spec_test, key=lambda x: x.get_order())
+            for test in sorted_tests:
+                test_result = test.test(solution)
+                _add_modul_result(test_result)
+                if not test_result.passed:
                     logging.error(f"Task[{self._id}]: {test.get_user_msg()}")
                     buffer_message.put(test.get_error_msg())
                     state = "ERROR"
@@ -1070,23 +1137,34 @@ class Task:
             # 7) if state of the errors is 'OK' (i.e. no errors) GOTO 9)
             # 8) if state of the errors is 'ERROR' GOTO 1)
 
-            # 9) check for optional analysis
-            if state == "OK":
-                for anal in self._spec_analysis:
-                    anal.evaluate_analysis(solution)
-                    anal.export(path=self._dir_anal, id="anal_" + str(self._iteration))
-
             # 10) evaluation, only if no ERROR
             if state == "OK":
-                self._spec_evaluator.evaluate(solution, self._optimization_goal)
+                evaluator_result = self._spec_evaluator.evaluate(
+                    solution, self._optimization_goal
+                )
+                _add_modul_result(evaluator_result)
                 if self._spec_feedback_from_solution:
                     buffer_message.put(solution.get_feedback())
-                    for anal in self._spec_analysis:
-                        buffer_message.put(anal.get_feedback())
+
+            # save end time of the solution
+            solution.set_time_end(datetime.now(UTC))
 
             # export metadata of evaluated solution
             if self._spec_save_to_disk:
                 solution.export_meta()
+
+            # 9) check for optional analysis
+            if state == "OK":
+                sorted_analysis = sorted(
+                    self._spec_analysis, key=lambda x: x.get_order()
+                )
+                for anal in sorted_analysis:
+                    anal_result = anal.evaluate_analysis(
+                        solution, self.get_execution_context(moduls_results)
+                    )
+                    _add_modul_result(anal_result)
+                    anal.export(path=self._dir_anal, id=f"anal_{self._iteration}")
+                    buffer_message.put(anal.get_feedback())
 
             # copy so the saved solution in history does not change
             self._history_solution.append(copy.deepcopy(solution))
@@ -1101,7 +1179,9 @@ class Task:
                 self._iteration_invalid_cons += 1
             for cond in self._spec_cond:
                 cond.update(self)
-                if cond.is_satisfied():
+                cond_result = cond.is_satisfied()
+                _add_modul_result(cond_result, self._iteration - 1)
+                if cond_result.is_satisfied:
                     state = "STOP"
 
             # 12) if state of the condition is 'OK' (i.e. no stopping) GOTO 1)
@@ -1116,12 +1196,19 @@ class Task:
         self._spec_solution = self._spec_evaluator.get_best()
 
         # 14.5) Optional statistic
-        for stat in self._spec_stat:
-            stat.evaluate_statistic(solutions=self._history_solution)
+        # stats_results: list[ModulResult] = []
+        sorted_statistics = sorted(self._spec_stat, key=lambda x: x.get_order())
+        for stat in sorted_statistics:
+            stat_result = stat.evaluate_statistic(
+                self._history_solution,
+                self.get_execution_context(moduls_results),
+            )
+            _add_modul_result(stat_result)
+            # stats_results.append(stat_result)
             stat.export(self._dir_stat)
 
         # save end time
-        self._time_end = datetime.now(timezone.utc)
+        self._time_end = datetime.now(UTC)
 
     def is_init(self) -> bool:
         """

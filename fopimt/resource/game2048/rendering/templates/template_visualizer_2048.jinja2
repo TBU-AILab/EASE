@@ -1,0 +1,348 @@
+{# ============================================================
+   EASE 2048 Evaluator Visualization Module (Injected HTML)
+   - Pure HTML/CSS (no external deps)
+   - Uses styles consistent with parent template:
+     relies on parent CSS variables: --surface, --raised, --border, --fg, --fg-muted, --shadow-1, etc.
+   - Expected inputs:
+     results: dict-like with keys:
+       avg_score, max_score, min_score, avg_max_tile, avg_steps, wins, loses, errors
+     videos: list of dicts (optional), each item:
+       title (optional), src (required), poster (optional), note (optional)
+   ============================================================ #}
+
+<style>
+  /* Scope everything to avoid collisions with the base report */
+  .ease-viz{
+    display: grid;
+    gap: 12px;
+  }
+
+  .ease-viz .grid{
+    display:grid;
+    gap: 12px;
+  }
+
+  /* Cards consistent with base .card look, but slightly “richer” */
+  .ease-viz .panel{
+    border: 1px solid var(--border);
+    background: linear-gradient(to bottom, var(--raised), var(--surface));
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow-1);
+  }
+
+  .ease-viz .headline{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 12px;
+    flex-wrap:wrap;
+    margin-bottom: 10px;
+  }
+  .ease-viz .headline h3{
+    margin:0;
+    font-size: 14px;
+    letter-spacing: 0.2px;
+  }
+  .ease-viz .subtle{
+    margin:0;
+    color: var(--fg-muted);
+    font-size: 12.5px;
+    line-height: 1.35;
+  }
+
+  .ease-viz .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 8px;
+    align-items:center;
+  }
+  .ease-viz .chip{
+    font-size: 12px;
+    color: var(--fg-muted);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--surface) 70%, transparent);
+    white-space: nowrap;
+  }
+
+  /* Metrics grid */
+  .ease-viz .metrics{
+    display:grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  @media (min-width: 780px){
+    .ease-viz .metrics{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+
+  .ease-viz .metric{
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+    padding: 12px 12px;
+    background: color-mix(in oklab, var(--surface) 82%, transparent);
+  }
+  .ease-viz .metric .k{
+    margin:0;
+    font-size: 12px;
+    color: var(--fg-muted);
+    letter-spacing: 0.15px;
+  }
+  .ease-viz .metric .v{
+    margin: 4px 0 0 0;
+    font-size: 20px;
+    font-weight: 750;
+    letter-spacing: -0.2px;
+  }
+  .ease-viz .metric .hint{
+    margin: 4px 0 0 0;
+    font-size: 12px;
+    color: var(--fg-muted);
+  }
+
+  /* Outcome bar */
+  .ease-viz .outcome{
+    display:grid;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .ease-viz .bar{
+    height: 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    background: color-mix(in oklab, var(--surface) 75%, transparent);
+    display:flex;
+  }
+  .ease-viz .seg{
+    height:100%;
+  }
+  .ease-viz .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 10px 14px;
+    align-items:center;
+    color: var(--fg-muted);
+    font-size: 12px;
+  }
+  .ease-viz .dot{
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    display:inline-block;
+    margin-right: 6px;
+    border: 1px solid var(--border);
+    transform: translateY(1px);
+  }
+
+  /* Use semantic vars from base, but provide fallback mixing */
+  .ease-viz .dot.win{ background: color-mix(in oklab, var(--success) 70%, transparent); }
+  .ease-viz .dot.lose{ background: color-mix(in oklab, var(--warning) 70%, transparent); }
+  .ease-viz .dot.err{ background: color-mix(in oklab, var(--danger) 70%, transparent); }
+
+  .ease-viz .seg.win{ background: color-mix(in oklab, var(--success) 70%, transparent); }
+  .ease-viz .seg.lose{ background: color-mix(in oklab, var(--warning) 70%, transparent); }
+  .ease-viz .seg.err{ background: color-mix(in oklab, var(--danger) 70%, transparent); }
+
+  /* Videos grid */
+  .ease-viz .videos{
+    display:grid;
+    gap: 12px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 780px){
+    .ease-viz .videos{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  .ease-viz .video-card{
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: linear-gradient(to bottom, var(--raised), var(--surface));
+    box-shadow: var(--shadow-1);
+    overflow:hidden;
+  }
+
+  .ease-viz .video-head{
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-soft);
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 10px;
+  }
+
+  .ease-viz .video-title{
+    margin:0;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.15px;
+  }
+  .ease-viz .video-note{
+    margin: 2px 0 0 0;
+    color: var(--fg-muted);
+    font-size: 12px;
+  }
+
+  .ease-viz video{
+    width: 100%;
+    height: auto;
+    display:block;
+    background: #000;
+  }
+
+  .ease-viz .empty{
+    padding: 14px 16px;
+    color: var(--fg-muted);
+    font-size: 13px;
+  }
+</style>
+
+<div class="ease-viz">
+
+  <!-- Results summary -->
+  <div class="panel">
+    <div class="headline">
+      <div>
+        <h3>Evaluator Results</h3>
+        <p class="subtle">
+          Aggregated metrics from the 2048 solver evaluator run.
+        </p>
+      </div>
+      <div class="chips">
+        <span class="chip">Avg score: {{ results.avg_score|default("—") }}</span>
+        <span class="chip">Avg max tile: {{ results.avg_max_tile|default("—") }}</span>
+        <span class="chip">Avg steps: {{ results.avg_steps|default("—") }}</span>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <p class="k">Average score</p>
+        <p class="v">{{ results.avg_score|default("—") }}</p>
+        <p class="hint">Higher is better</p>
+      </div>
+
+      <div class="metric">
+        <p class="k">Max score</p>
+        <p class="v">{{ results.max_score|default("—") }}</p>
+        <p class="hint">Best single run</p>
+      </div>
+
+      <div class="metric">
+        <p class="k">Min score</p>
+        <p class="v">{{ results.min_score|default("—") }}</p>
+        <p class="hint">Worst single run</p>
+      </div>
+
+      <div class="metric">
+        <p class="k">Average max tile</p>
+        <p class="v">{{ results.avg_max_tile|default("—") }}</p>
+        <p class="hint">Tile value reached</p>
+      </div>
+
+      <div class="metric">
+        <p class="k">Average steps</p>
+        <p class="v">{{ results.avg_steps|default("—") }}</p>
+        <p class="hint">Moves per run</p>
+      </div>
+
+      <div class="metric">
+        <p class="k">Wins</p>
+        <p class="v">{{ results.wins|default(0) }}</p>
+        <p class="hint">Reached target</p>
+      </div>
+
+      <div class="metric">
+        <p class="k">Losses</p>
+        <p class="v">{{ results.loses|default(0) }}</p>
+        <p class="hint">No valid moves</p>
+      </div>
+
+      <div class="metric">
+        <p class="k">Errors</p>
+        <p class="v">{{ results.errors|default(0) }}</p>
+        <p class="hint">Runtime failures</p>
+      </div>
+    </div>
+
+    {# Outcome bar (wins/loses/errors). Robust for 0 totals. #}
+    {% set _w = results.wins|default(0)|int %}
+    {% set _l = results.loses|default(0)|int %}
+    {% set _e = results.errors|default(0)|int %}
+    {% set _t = (_w + _l + _e) %}
+    {% if _t > 0 %}
+      {% set pw = (100 * _w / _t) %}
+      {% set pl = (100 * _l / _t) %}
+      {% set pe = (100 * _e / _t) %}
+    {% else %}
+      {% set pw = 0 %}
+      {% set pl = 0 %}
+      {% set pe = 0 %}
+    {% endif %}
+
+    <div class="outcome">
+      <div class="bar" aria-label="Outcome distribution">
+        <div class="seg win" style="width: {{ pw }}%"></div>
+        <div class="seg lose" style="width: {{ pl }}%"></div>
+        <div class="seg err" style="width: {{ pe }}%"></div>
+      </div>
+
+      <div class="legend">
+        <span><span class="dot win"></span>Wins: {{ _w }}</span>
+        <span><span class="dot lose"></span>Losses: {{ _l }}</span>
+        <span><span class="dot err"></span>Errors: {{ _e }}</span>
+        <span class="chip">Total runs: {{ _t }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Videos -->
+  <div class="panel">
+    <div class="headline" style="margin-bottom: 12px;">
+      <div>
+        <h3>Solver Playthroughs</h3>
+        <p class="subtle">
+          Recorded runs produced by the evaluator. Each video is embedded for quick review.
+        </p>
+      </div>
+      {% if videos is defined %}
+        <div class="chips">
+          <span class="chip">Videos: {{ videos|length }}</span>
+        </div>
+      {% endif %}
+    </div>
+
+    {% if videos is defined and videos|length > 0 %}
+      <div class="videos">
+        {% for v in videos %}
+          <div class="video-card">
+            <div class="video-head">
+              <div>
+                <p class="video-title">{{ v.title|default("Run " ~ loop.index) }}</p>
+                {% if v.note %}
+                  <p class="video-note">{{ v.note }}</p>
+                {% endif %}
+              </div>
+              <span class="chip" style="font-family: var(--mono); font-size: 11px;">#{{ loop.index }}</span>
+            </div>
+
+            <video
+              controls
+              preload="metadata"
+              {% if v.poster %}poster="{{ v.poster }}"{% endif %}
+            >
+              <source src="{{ v.src }}" type="{{ v.type|default('video/mp4') }}">
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">
+        No playthrough videos were attached to this report.
+      </div>
+    {% endif %}
+  </div>
+
+</div>

@@ -1,6 +1,7 @@
 import base64
 import os
-from sys import prefix
+
+from fopimt.modul_dto import SolutionResult
 
 from ..message import Message
 from .solution import Solution
@@ -21,9 +22,20 @@ class SolutionImage(Solution):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def get_input_from_msg(self, msg: Message):
+    def get_input_from_msg(self, msg: Message) -> SolutionResult:
         # Images are stored in 'image' metadata in Message
         self._input = msg.get_metadata()["image"]
+        try:
+            input_serialized = str(self._input)
+        except Exception:
+            input_serialized = "Image data (not serializable)"
+
+        return SolutionResult(
+            class_ref=type(self),
+            metadata=self.get_metadata(),
+            evaluator_input=self._input,
+            evaluator_input_serialized=input_serialized,
+        )
 
     def export(self, dir: str, id: str) -> None:
         # export solution itself (code, text, ...)

@@ -1,8 +1,8 @@
-from enum import Enum
+from fopimt.task_dto import TaskExecutionContext
+from fopimt.utils.render_utils import DefaultLLMConnectorRenderer
 
-from ..loader import Parameter, PrimitiveType
-from ..message import Message
 from ..modul import Modul
+from ..modul_dto import LLMConnectorResult
 
 
 class LLMConnector(Modul):
@@ -45,10 +45,10 @@ class LLMConnector(Modul):
         """
         raise NotImplementedError("This method should be overridden by subclasses.")
 
-    def send(self, context) -> Message:
+    def send(self, context) -> LLMConnectorResult:
         """
         Send context to LLM.
-        Returns response as Message from LLM.
+        Returns LLMConnectorResult.
         """
         raise NotImplementedError("This method should be overridden by subclasses.")
 
@@ -57,6 +57,36 @@ class LLMConnector(Modul):
         Returns current LLM model as string.
         """
         raise NotImplementedError("This method should be overridden by subclasses.")
+
+    @staticmethod
+    def render_html(
+        modul_result: LLMConnectorResult,
+        task_execution_context: TaskExecutionContext,
+        output_dir: str,
+    ) -> str:
+        """
+        Returns HTML representation of the evaluation. Used for visualization.
+        :return: HTML string
+        """
+        return DefaultLLMConnectorRenderer.render_template(
+            modul_result,
+            output_format="html",
+        )
+
+    @staticmethod
+    def render_latex(
+        modul_result: LLMConnectorResult,
+        task_execution_context: TaskExecutionContext,
+        output_dir: str,
+    ) -> str:
+        """
+        Returns LaTeX representation of the evaluation. Used for visualization.
+        :return: LaTeX string
+        """
+        return DefaultLLMConnectorRenderer.render_template(
+            modul_result,
+            output_format="latex",
+        )
 
     ####################################################################
     #########  Private functions

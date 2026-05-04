@@ -4,7 +4,7 @@ import time
 
 from ..solutions.solution import Solution
 from ..utils.import_utils import dynamic_import
-from .test import Test
+from .test import Test, TestResult
 
 MAX_EVAL_TIME = 10
 
@@ -40,7 +40,7 @@ class TestHexagon(Test):
     def get_tags(cls) -> dict:
         return {"input": {"python"}, "output": set()}
 
-    def test(self, solution: Solution) -> bool:
+    def test(self, solution: Solution) -> TestResult:
         """
         This method tests the given solution
 
@@ -66,7 +66,14 @@ class TestHexagon(Test):
             self._error_msg = self._user_msg = (
                 f"Test:Hexagon: Algorithm could not be checked due to the following error: {repr(e)}"
             )
-            return self._test_result
+            return TestResult(
+                class_ref=type(self),
+                passed=self._test_result,
+                metadata={
+                    "error_msg": self._error_msg,
+                    "user_msg": self._user_msg,
+                },
+            )
 
         try:
             # Merge exec_globals and exec_locals to ensure functions can access each other
@@ -118,7 +125,14 @@ class TestHexagon(Test):
                 f"Test:Hexagon: Algorithm could not be checked due to the "
                 f"following error: {repr(e)}"
             )
-        return self._test_result
+        return TestResult(
+            class_ref=type(self),
+            passed=self._test_result,
+            metadata={
+                "error_msg": self._error_msg,
+                "user_msg": self._user_msg,
+            },
+        )
 
 
 def hexagon_vertices(

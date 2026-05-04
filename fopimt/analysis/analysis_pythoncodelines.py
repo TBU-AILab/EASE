@@ -1,9 +1,8 @@
-import copy
 import os.path
 
-from ..loader import Parameter
 from ..solutions.solution import Solution
-from .analysis import Analysis
+from ..task import TaskExecutionContext
+from .analysis import Analysis, AnalysisResult
 
 
 class AnalysisPythonCodeLines(Analysis):
@@ -13,10 +12,15 @@ class AnalysisPythonCodeLines(Analysis):
     ####################################################################
     #########  Public functions
     ####################################################################
-    def evaluate_analysis(self, solution: Solution) -> None:
+    def evaluate_analysis(
+        self,
+        solution: Solution,
+        task_execution_context: TaskExecutionContext,
+    ) -> AnalysisResult:
         """
         Capture the state of the solution for analysis.
         :param solution: Instance of the Solution.
+        :param task_execution_context: Instance of the TaskExecutionContext.
         :return: None
         """
         # TODO assuming that Solution is of a type python code... This should be checked somehow
@@ -31,6 +35,11 @@ class AnalysisPythonCodeLines(Analysis):
             if not linet.startswith("#"):
                 count += 1
         self._lines = count
+
+        return AnalysisResult(
+            class_ref=type(self),
+            metadata={"lines": self._lines},
+        )
 
     def export(self, path: str, id: str) -> None:
         """

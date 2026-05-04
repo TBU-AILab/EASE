@@ -1,7 +1,7 @@
-from ..loader import Parameter, PrimitiveType
+from ..loader_dto import Parameter, PrimitiveType
 from ..message import Message
 from ..utils.connector_utils import get_available_models
-from .llmconnector import LLMConnector
+from .llmconnector import LLMConnector, LLMConnectorResult
 
 
 class LLMConnectorMock(LLMConnector):
@@ -53,7 +53,7 @@ class LLMConnectorMock(LLMConnector):
         """
         return "assistant"
 
-    def send(self, context) -> Message:
+    def send(self, context) -> LLMConnectorResult:
         """
         Send context to mock LLM.
         Returns mock response as Message from LLM.
@@ -278,7 +278,10 @@ def predict(X_train, y_train, X_test):
             role=self.get_role_assistant(), model_encoding=None, message=msg_text
         )
         msg.set_tokens(10)  # funny number
-        return msg
+        return LLMConnectorResult(
+            class_ref=type(self),
+            response=msg,
+        )
 
     def get_model(self) -> str:
         """
