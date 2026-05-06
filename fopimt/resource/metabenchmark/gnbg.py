@@ -45,3 +45,21 @@ class GNBG(Modul):
             f_dict = {"func": f, "runs": runs, "dim": f.dim, "max_fes": 1_000}
             functions.append(f_dict)
         return functions
+
+    @staticmethod
+    def f_24() -> dict:
+        """
+        Returns a func n 24
+        """
+
+        func = GNBGfunction(funcNum=24)
+        runs = 30
+
+        # Prepare test functions
+        f_dict = {
+            'func': func,
+            'runs': runs,
+            'dim': func.dim,
+            'max_fes': 1_000_000
+        }
+        return f_dict
