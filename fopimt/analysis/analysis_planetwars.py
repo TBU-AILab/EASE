@@ -139,6 +139,16 @@ class AnalysisPlanetWarsVideos(Analysis):
                 description="Shared volume path visible from backend-core.",
                 default="/planetwars_reports",
             ),
+            "cleanup_staging_after_export": Parameter(
+                short_name="cleanup_staging_after_export",
+                type=PrimitiveType.bool,
+                long_name="Cleanup staging files after export",
+                description=(
+                    "If true, delete generated videos from /planetwars_reports after they "
+                    "are copied into the task analysis/export directory."
+                ),
+                default=True,
+            ),
         }
 
     def _init_params(self):
@@ -148,6 +158,10 @@ class AnalysisPlanetWarsVideos(Analysis):
             "service_url",
             os.getenv("PLANETWARS_EVALUATOR_URL", "http://planetwars-evaluator:8090"),
         ).rstrip("/")
+
+        self._cleanup_staging_after_export = bool(
+            self.parameters.get("cleanup_staging_after_export", True)
+        )
 
         self._class_name = self.parameters.get("class_name", "MyAgent")
         self._n_videos = int(self.parameters.get("n_videos", 3))
@@ -250,6 +264,10 @@ class AnalysisPlanetWarsVideos(Analysis):
             encoding="utf-8",
         )
 
+        if self._cleanup_staging_after_export:
+            self._cleanup_staging_report()
+
+
     def get_feedback(self) -> str:
         if not self._result:
             return ""
@@ -330,3 +348,21 @@ class AnalysisPlanetWarsVideos(Analysis):
         </body>
         </html>
         """
+
+    def _cleanup_staging_report(self) -> None:
+        if not self._result:
+            return
+
+        report_id = self._result.get("report_id")
+        if not report_id:
+            return
+
+        try:
+            requests.delete(
+                f"{self._service_url}/reports/{report_id}",
+                timeout=30,
+            )
+        except Exception:
+            # Cleanup failure should not fail the analysis export.
+            # The generated report has already been copied.
+            pass
