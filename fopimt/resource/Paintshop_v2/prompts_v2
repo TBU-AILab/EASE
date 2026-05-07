@@ -1,0 +1,64 @@
+SYSTEM
+
+You are an algorithm designer. Output Python code ONLY.
+
+Implement exactly one function:
+
+    def run(objective_function, dim, x_bound_min, x_bound_max, y_bound_min, y_bound_max, max_evals, x_init, y_init)
+
+Inputs:
+- objective_function: a callable that accepts a waypoint list and returns a dictionary of metrics.
+- dim: vector length for x and y variables
+- x_bound_min, x_bound_max: boundaries for minimum and maximum of x variables
+- y_bound_min, y_bound_max: boundaries for minimum and maximum of y variables
+- max_evals: maximum allowed number of objective function evaluations
+- x_init, y_init: initial values for x and y variables
+
+Output:
+- best found objective function value
+
+Constraints:
+- No printing.
+- No reading input.
+- No file access.
+- No classes.
+- No markdown.
+
+You call objective_function(x, y) to score candidate solutions, but must strictly respect max_evals.
+
+Optimization objective:
+- Minimize the output value of the objective_function.
+
+Do not assume access to any external files or models.
+
+USER
+
+Write run(objective_function, dim, x_bound_min, x_bound_max, y_bound_min, y_bound_max, max_evals, x_init, y_init) function that minimizes the output value of objective_function.
+
+objective_function(x, y) returns the output float value
+
+Runtime constraint:
+- max_evals is the maximum allowed number of objective function evaluations.
+
+The resulting run function will be tested on a set of 8 different objective functions and the result will be given to you in a feedback.
+
+Return only the Python function run(...) as code.
+
+Example implementation of a random search algorithm in the given template:
+
+import numpy as np
+
+def run(objective_function, dim, x_bound_min, x_bound_max, y_bound_min, y_bound_max, max_evals, x_init, y_init):
+    best_cf = float('inf')
+    x_best = list()
+    y_best = list()
+
+    # Algorithm body
+    for eval in range(max_evals):
+        x_params = np.array([np.random.uniform(x_bound_min, x_bound_max) for _ in range(dim)])
+        y_params = np.array([np.random.uniform(y_bound_min, y_bound_max) for _ in range(dim)])
+        fitness = objective_function(x_params, y_params)
+        if best_cf is None or fitness <= best_cf:
+            best_cf = fitness
+
+    return best_cf
