@@ -14,6 +14,7 @@ from ..resource.resource import Resource
 from ..solutions.solution import Solution
 from ..task_dto import TaskExecutionContext, OptimizationGoal
 from ..loader_dto import PackageType
+from ..message import Message
 
 from ..resource.metahuristic.metaheuristic_runner import Runner
 
@@ -173,11 +174,29 @@ def run(func, dim, bounds, max_time):
             #'last-sum1', 'best-sum1', 'all-sum1',
             #'last-sum2', 'best-sum2', 'all-sum2'
             sum1_llm='''
+            Write type of a provided code in three words in curly brackets.
+            Example: {Very nice algorithm}
             
             '''
+            sum1_llm += solution.get_input()
             sum2_llm='''
+            Describe in natural language the provided code.
             
             '''
+            sum2_llm += solution.get_input()
+
+            msg1 = Message(
+                role=self._llmconnector.get_role_user(),
+                message=sum1_llm,
+            )
+            sum1 = self._llmconnector.send([msg1]).response.get_content()
+            msg2 = Message(
+                role=self._llmconnector.get_role_user(),
+                message=sum2_llm,
+            )
+            sum2 = self._llmconnector.send([msg2]).response.get_content()
+
+            last_sum1 = sum1 + '\n\n' + sum2
 
 
             # Update text logs
@@ -203,7 +222,8 @@ def run(func, dim, bounds, max_time):
                 'min': min_txt,
                 'last': last_txt,
                 'best': best_txt,
-                'all': all_txt
+                'all': all_txt,
+                'last-sum1': last_sum1
             }
 
             feedback = self.get_feedback_msg_template().format(**self._keys)
