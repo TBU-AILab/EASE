@@ -130,6 +130,40 @@ async def import_module(file: UploadFile = File(...)):
     return {"filename": file.filename, "message": "Import successful"}
 
 
+@app.get("/system/read/{short_name}")
+async def read_module(short_name: str):
+    """
+    GET - read source code content of a system (imported) module
+    """
+    try:
+        content = magic_instance.get_loader().read_module(short_name=short_name)
+        return {"content": content}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ModuleUpdateRequest(BaseModel):
+    content: str
+
+
+@app.put("/system/update/{short_name}")
+async def update_module(short_name: str, body: ModuleUpdateRequest):
+    """
+    PUT - update source code content of a system (imported) module
+    """
+    try:
+        magic_instance.get_loader().update_module(short_name=short_name, content=body.content)
+        return {"status": "success", "message": "Module updated successfully."}
+    except SyntaxError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.delete("/system/delete/{short_name}")
 async def delete_module(short_name: str):
     """
