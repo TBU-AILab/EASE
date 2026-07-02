@@ -2,6 +2,7 @@ import logging
 import os
 from typing import Union
 
+from .hive_manager import HiveManager
 from .loader import Loader
 from .loader_dto import ModulAPI, PackageType
 from .task import Task
@@ -44,6 +45,11 @@ class Magic:
         # USAGE:RUN... probably ;-)
         # self._task_manager.add_task(task)
 
+        # Hive orchestration (groups of cooperating Tasks)
+        self._hive_manager = HiveManager(self)
+        self._hive_manager.load_from_disk()
+        self._hive_manager.start_monitor()
+
     ####################################################################
     #########  Public functions
     ####################################################################
@@ -58,6 +64,9 @@ class Magic:
 
     def get_package_manager(self) -> PackageManager:
         return self._package_manager
+
+    def get_hive_manager(self) -> HiveManager:
+        return self._hive_manager
 
     def get_task_info(self, uid: str) -> list[TaskInfo]:
         if uid is None or uid not in self._tasks:

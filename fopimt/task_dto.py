@@ -70,6 +70,7 @@ class TaskInfo(BaseModel):
     )  # list of shortnames of incompatible ModuleAPIs, always in pair
     log: list[str] | None  # error log, i.e. STATE == BREAK
     optimization_goal: Optional[OptimizationGoal] = None
+    hive_id: Optional[str] = None  # ID of the Hive this Task belongs to
 
 
 class TaskData(BaseModel):

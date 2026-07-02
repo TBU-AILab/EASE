@@ -12,6 +12,8 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from fopimt import Magic
+from fopimt.hive_dto import HiveConfig, HiveInfo, HiveMessageCreate
+from fopimt.hive_manager import HiveInitializationException
 from fopimt.loader_dto import ModulAPI, PackageType
 from fopimt.task import Task
 from fopimt.task_dto import TaskConfig, TaskData, TaskFull, TaskInfo
@@ -605,6 +607,114 @@ def task_delete_batch(task_ids: list[str]) -> bool:
             return False
         task.archive()
     return True
+
+
+###############################################
+########## HIVE END POINTS
+###############################################
+def _get_hive_info(hive_id: str) -> HiveInfo:
+    info = magic_instance.get_hive_manager().get_hive_info(hive_id)
+    if info is None:
+        raise HTTPException(
+            status_code=404, detail=f"Hive with the id {hive_id} not exists."
+        )
+    return info
+
+
+# POST
+# Create a new Hive
+# hive_id: Optional[str] = None - ID of the new Hive, if None, Core will generate one
+# return: HiveInfo - Info of the created Hive, or already existing one
+@app.post("/hive")
+def hive_create(hive_id: Optional[str] = None) -> HiveInfo:
+    hive = magic_instance.get_hive_manager().hive_create(hive_id)
+    if hive is None:
+        raise HTTPException(
+            status_code=406, detail=f"Unable to create Hive with the id {hive_id}."
+        )
+    return _get_hive_info(hive.id)
+
+
+# GET
+# Get info of all Hives
+@app.get("/hive/all/info")
+def hive_all_info() -> list[HiveInfo]:
+    return magic_instance.get_hive_manager().get_hives_info()
+
+
+# GET
+# Get info of a Hive
+@app.get("/hive/{hive_id}/info")
+def hive_info(hive_id: str) -> HiveInfo:
+    return _get_hive_info(hive_id)
+
+
+# PUT
+# Serves for initialization of the Hive. Member Tasks must exist and be
+# fully initialized (INIT state). Once valid, state of the Hive changes to INIT.
+@app.put("/hive/{hive_id}")
+def hive_init(hive_id: str, hive_configuration: HiveConfig) -> HiveInfo:
+    try:
+        magic_instance.get_hive_manager().hive_init(hive_id, hive_configuration)
+    except HiveInitializationException as e:
+        raise HTTPException(status_code=422, detail=e.messages)
+    return _get_hive_info(hive_id)
+
+
+# PATCH
+# Run Hive - runs all member Tasks / resumes a paused Hive
+@app.patch("/hive/{hive_id}/run")
+def hive_run(hive_id: str) -> HiveInfo:
+    ret = magic_instance.get_hive_manager().hive_run(hive_id)
+    if ret is False:
+        logging.warning(f"Hive [{hive_id}] could not be run.")
+    return _get_hive_info(hive_id)
+
+
+# PATCH
+# Pause Hive - pauses all running member Tasks
+@app.patch("/hive/{hive_id}/pause")
+def hive_pause(hive_id: str) -> HiveInfo:
+    ret = magic_instance.get_hive_manager().hive_pause(hive_id)
+    if ret is False:
+        logging.warning(f"Hive [{hive_id}] could not be paused.")
+    return _get_hive_info(hive_id)
+
+
+# PATCH
+# Stop Hive - stops all running/paused member Tasks
+@app.patch("/hive/{hive_id}/stop")
+def hive_stop(hive_id: str) -> HiveInfo:
+    ret = magic_instance.get_hive_manager().hive_stop(hive_id)
+    if ret is False:
+        logging.warning(f"Hive [{hive_id}] could not be stopped.")
+    return _get_hive_info(hive_id)
+
+
+# POST
+# Inject a manual (user) message into a running Hive.
+# recipient: task id of a member, or 'broadcast' for all members
+@app.post("/hive/{hive_id}/message")
+def hive_message(hive_id: str, message: HiveMessageCreate) -> HiveInfo:
+    ret = magic_instance.get_hive_manager().inject_message(
+        hive_id, recipient=message.recipient, payload=message.payload
+    )
+    if ret is False:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Message could not be delivered to Hive [{hive_id}]. "
+            f"The Hive must be running and the recipient must be a member.",
+        )
+    return _get_hive_info(hive_id)
+
+
+# DELETE
+# Delete Hive. Only works for non-running Hives. Renames the hive folder,
+# so it will be archived. Member Tasks are kept (only detached).
+@app.delete("/hive/{hive_id}")
+def hive_delete(hive_id: str) -> bool:
+    _get_hive_info(hive_id)
+    return magic_instance.get_hive_manager().hive_archive(hive_id)
 
 
 @app.get("/images/{filepath:path}")

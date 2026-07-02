@@ -12,6 +12,8 @@ from typing import Any
 from .analysis.analysis import Analysis
 from .config_task import ConfigTask
 from .evaluators.evaluator import Evaluator
+from .hive import TaskPort, render_hive_message
+from .hive_dto import RECIPIENT_HIVE, HiveMessage, HiveMessageType
 from .llmconnectors.llmconnector import LLMConnector
 from .loader import Loader
 from .loader_dto import ModulAPI, PackageType, Parameter, PrimitiveType
@@ -49,6 +51,40 @@ class Task:
         _file_name = os.path.join("out_task", task_folder, "task.pkl")
         with open(_file_name, "rb") as _file:
             return pickle.load(_file)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # The Hive port holds Manager queue proxies which are not valid
+        # across pickling (disk persistence, result queues). It is re-attached
+        # by the HiveManager on every hive run.
+        state["_port"] = None
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # Backward compatibility with Tasks pickled before the Hive feature
+        if "_port" not in self.__dict__:
+            self._port = None
+        if "_hive_id" not in self.__dict__:
+            self._hive_id = None
+
+    def attach_port(self, port: TaskPort) -> None:
+        """
+        Attaches a Hive communication port. Must be called before the Task
+        process is forked (i.e. before TaskManager.add_task).
+        """
+        self._port = port
+
+    def detach_port(self) -> None:
+        self._port = None
+
+    @property
+    def hive_id(self) -> str | None:
+        return getattr(self, "_hive_id", None)
+
+    @hive_id.setter
+    def hive_id(self, value: str | None):
+        self._hive_id = value
 
     def initialize(self, loader: Loader, task_config: TaskConfig):
         if task_config.name is not None:
@@ -252,6 +288,8 @@ class Task:
         ] = []  # Additional members that can view and modify this task, can only be set by
         self._incompatible_modules = []
         self._log_error = []
+        self._hive_id: str | None = None  # ID of the Hive this Task belongs to
+        self._port: TaskPort | None = None  # Hive communication port (transient)
         self._init_config: TaskConfig = None  # Original TaskConfig for easy duplication
         self._init_config_modulAPI: list[
             ModulAPI
@@ -368,6 +406,7 @@ class Task:
             incompatible=self._incompatible_modules,
             log=self._log_error,
             optimization_goal=self._optimization_goal,
+            hive_id=getattr(self, "_hive_id", None),
         )
 
     def get_full(self) -> TaskFull:
@@ -1087,6 +1126,13 @@ class Task:
 
             #####################################################################
 
+            # 0) drain Hive inbox (only when part of a Hive) - messages from
+            # cooperating Tasks become part of the next LLM message
+            port = getattr(self, "_port", None)
+            if port is not None:
+                for hive_msg in port.pump():
+                    buffer_message.put(render_hive_message(hive_msg))
+
             # 1) get context
             context = self._get_context()
 
@@ -1177,6 +1223,13 @@ class Task:
             # invalid iteration counter
             else:
                 self._iteration_invalid_cons += 1
+
+            # 11.5) publish iteration report to the Hive (if part of one).
+            # Published before the stopping conditions so the result of the
+            # final iteration is still shared with cooperating Tasks.
+            if port is not None:
+                self._publish_iteration_report(port, solution, state)
+
             for cond in self._spec_cond:
                 cond.update(self)
                 cond_result = cond.is_satisfied()
@@ -1209,6 +1262,33 @@ class Task:
 
         # save end time
         self._time_end = datetime.now(UTC)
+
+    def _publish_iteration_report(
+        self, port: TaskPort, solution: Solution, state: str
+    ) -> None:
+        """
+        Publishes the result of the finished iteration to the Hive bus.
+        Never raises - Hive plumbing must not break the Task run.
+        """
+        try:
+            report = HiveMessage(
+                sender_id=self._id,
+                recipient=RECIPIENT_HIVE,
+                msg_type=HiveMessageType.ITERATION_REPORT,
+                payload=solution.get_input() or "",
+                metadata={
+                    "task_name": self._name,
+                    "iteration": self._iteration,
+                    "state": state,
+                    "fitness": solution.get_fitness(),
+                    "used_tokens": self.get_used_tokens(),
+                },
+            )
+            port.publish(report)
+        except Exception as e:
+            logging.error(
+                f"Task[{self._id}]: failed to publish Hive iteration report: {e}"
+            )
 
     def is_init(self) -> bool:
         """
