@@ -657,7 +657,8 @@ def hive_init(hive_id: str, hive_configuration: HiveConfig) -> HiveInfo:
     try:
         magic_instance.get_hive_manager().hive_init(hive_id, hive_configuration)
     except HiveInitializationException as e:
-        raise HTTPException(status_code=422, detail=e.messages)
+        # detail=[messages] - same nested shape as task_init for FE parsing
+        raise HTTPException(status_code=422, detail=list(e.args))
     return _get_hive_info(hive_id)
 
 
