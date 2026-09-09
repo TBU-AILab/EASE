@@ -50,7 +50,9 @@ class Task:
         with open(_file_name, "rb") as _file:
             return pickle.load(_file)
 
-    def initialize(self, loader: Loader, task_config: TaskConfig):
+    def initialize(
+        self, loader: Loader, task_config: TaskConfig, persist: bool = True
+    ):
         if task_config.name is not None:
             self._name = task_config.name
         if task_config.author is not None:
@@ -144,7 +146,8 @@ class Task:
                 )
 
         self._init_config = copy.deepcopy(task_config)
-        self.pickle_me()
+        if persist:
+            self.pickle_me()
 
     def _clear_modules(self):
         # Single modules

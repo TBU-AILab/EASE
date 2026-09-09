@@ -13,8 +13,14 @@ from fastapi.staticfiles import StaticFiles
 
 from fopimt import Magic
 from fopimt.loader_dto import ModulAPI, PackageType
-from fopimt.task import Task
-from fopimt.task_dto import TaskConfig, TaskData, TaskFull, TaskInfo
+from fopimt.task import Task, TaskInitializationException
+from fopimt.task_dto import (
+    TaskBulkUpdateItem,
+    TaskConfig,
+    TaskData,
+    TaskFull,
+    TaskInfo,
+)
 from fopimt.utils.connector_utils import (
     read_json,
     update_all_models,
@@ -391,6 +397,20 @@ def task_init(task_id: str, task_configuration: TaskConfig) -> TaskInfo:
         print(e)
         raise HTTPException(status_code=422, detail=list(e.args))
     return task.get_info()
+
+
+@app.put("/batch/task")
+def task_update_batch(updates: list[TaskBulkUpdateItem]) -> list[TaskInfo]:
+    """Validate and apply complete configurations for multiple editable tasks."""
+    try:
+        tasks = magic_instance.task_update_batch(updates)
+    except TaskInitializationException as error:
+        raise HTTPException(status_code=422, detail=[error.messages]) from error
+    except Exception as error:
+        logging.exception("Bulk task update failed.")
+        raise HTTPException(status_code=422, detail=[list(error.args)]) from error
+
+    return [task.get_info() for task in tasks]
 
 
 # POST

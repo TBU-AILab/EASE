@@ -1,11 +1,12 @@
+import copy
 import logging
 import os
 from typing import Union
 
 from .loader import Loader
 from .loader_dto import ModulAPI, PackageType
-from .task import Task
-from .task_dto import TaskData, TaskInfo, TaskState
+from .task import Task, TaskInitializationException
+from .task_dto import TaskBulkUpdateItem, TaskData, TaskInfo, TaskState
 from .task_manager import TaskManager
 from .utils.package_manager import PackageManager
 
@@ -236,6 +237,44 @@ class Magic:
         new_task.pickle_me()
 
         return new_task
+
+    def task_update_batch(self, updates: list[TaskBulkUpdateItem]) -> list[Task]:
+        """Validate every update on a copy before committing any task changes."""
+        if not updates:
+            raise TaskInitializationException(["No task updates were provided."])
+
+        task_ids = [update.task_id for update in updates]
+        if len(task_ids) != len(set(task_ids)):
+            raise TaskInitializationException(
+                ["A task can only occur once in a bulk update."]
+            )
+
+        candidates: dict[str, Task] = {}
+        for update in updates:
+            task = self.task_get(update.task_id)
+            if task is None:
+                raise TaskInitializationException(
+                    [f"Task [{update.task_id}] does not exist."]
+                )
+            if task.get_state() not in (TaskState.CREATED, TaskState.INIT):
+                raise TaskInitializationException(
+                    [
+                        f"Task [{update.task_id}] cannot be edited in state "
+                        f"{task.get_state().name}."
+                    ]
+                )
+
+            candidate = copy.deepcopy(task)
+            candidate.initialize(
+                self._loader, update.task_configuration, persist=False
+            )
+            candidates[update.task_id] = candidate
+
+        for task_id, candidate in candidates.items():
+            candidate.pickle_me()
+            self._tasks[task_id] = candidate
+
+        return list(candidates.values())
 
     def get_llm_connectors(self) -> list[ModulAPI]:
         return self._loader.get_package(PackageType.LLMConnector).get_moduls()
