@@ -10,6 +10,7 @@ from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile, We
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from fopimt import Magic
 from fopimt.loader_dto import ModulAPI, PackageType
