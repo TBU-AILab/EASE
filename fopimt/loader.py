@@ -212,6 +212,64 @@ class Loader:
                         logging.error(f"Loader:Delete modul: Error: {e}")
                         raise e
 
+
+
+    def read_module(self, short_name: str) -> str:
+        """
+        Reads and returns the source code content of a module identified by short_name.
+
+        Raises:
+            ValueError: If the module with specified short_name does not exist.
+        """
+        for package_type in PackageType:
+            target_package = self.get_package(package_type)
+            for modul in target_package.get_moduls():
+                if modul.short_name == short_name:
+                    modul_imported = target_package.get_modul_imported(short_name=short_name)
+                    file_path = os.path.join(os.path.dirname(__file__), target_package.get_directory(),
+                                             str(str(modul_imported).split('.')[2]) + '.py')
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        return f.read()
+        raise ValueError(f"Module with short_name '{short_name}' not found.")
+
+    def update_module(self, short_name: str, content: str) -> None:
+        """
+        Updates the source code of a module identified by short_name.
+        Validates Python syntax before writing. Reloads the module after update.
+
+        Raises:
+            SyntaxError: If the provided content has invalid Python syntax.
+            ValueError: If the module with specified short_name does not exist.
+        """
+        import sys
+        for package_type in PackageType:
+            target_package = self.get_package(package_type)
+            for modul in target_package.get_moduls():
+                if modul.short_name == short_name:
+                    modul_imported = target_package.get_modul_imported(short_name=short_name)
+                    module_file_base = str(str(modul_imported).split('.')[2])
+                    file_path = os.path.join(os.path.dirname(__file__), target_package.get_directory(),
+                                             module_file_base + '.py')
+
+                    try:
+                        compile(content, file_path, 'exec')
+                    except SyntaxError as e:
+                        raise SyntaxError(f"Syntax error in module content: {e}")
+
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(content)
+
+                    target_package.unregister_class(short_name=short_name)
+
+                    full_module_name = f"{target_package._app_name}.{target_package._directory}.{module_file_base}"
+                    if full_module_name in sys.modules:
+                        del sys.modules[full_module_name]
+
+                    target_package.register_class(module_file_base + '.py')
+                    logging.info(f"Loader: Updated module: {short_name}")
+                    return
+        raise ValueError(f"Module with short_name '{short_name}' not found.")
+
     def import_module(self, file: UploadFile) -> None:
         """
         Imports a module from an uploaded file (.py or .zip).
