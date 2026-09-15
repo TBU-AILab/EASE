@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Any, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 
 class PackageType(Enum):
@@ -72,9 +72,10 @@ class ModulAPI(BaseModel):
         ),
     )
     parameters: dict[str, Parameter]
+    _tags: dict = PrivateAttr()
 
     class Config:
-        # Allows assignment to fields that are not declared in the Pydantic model
+        # Allows the model to retain the legacy private tags attribute.
         arbitrary_types_allowed = True
 
     def __init__(
