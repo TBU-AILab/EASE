@@ -10,11 +10,18 @@ from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile, We
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from fopimt import Magic
 from fopimt.loader_dto import ModulAPI, PackageType
-from fopimt.task import Task
-from fopimt.task_dto import TaskConfig, TaskData, TaskFull, TaskInfo
+from fopimt.task import Task, TaskInitializationException
+from fopimt.task_dto import (
+    TaskBulkUpdateItem,
+    TaskConfig,
+    TaskData,
+    TaskFull,
+    TaskInfo,
+)
 from fopimt.utils.connector_utils import (
     read_json,
     update_all_models,
@@ -128,6 +135,40 @@ async def import_module(file: UploadFile = File(...)):
         )
 
     return {"filename": file.filename, "message": "Import successful"}
+
+
+@app.get("/system/read/{short_name}")
+async def read_module(short_name: str):
+    """
+    GET - read source code content of a system (imported) module
+    """
+    try:
+        content = magic_instance.get_loader().read_module(short_name=short_name)
+        return {"content": content}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ModuleUpdateRequest(BaseModel):
+    content: str
+
+
+@app.put("/system/update/{short_name}")
+async def update_module(short_name: str, body: ModuleUpdateRequest):
+    """
+    PUT - update source code content of a system (imported) module
+    """
+    try:
+        magic_instance.get_loader().update_module(short_name=short_name, content=body.content)
+        return {"status": "success", "message": "Module updated successfully."}
+    except SyntaxError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.delete("/system/delete/{short_name}")
@@ -391,6 +432,20 @@ def task_init(task_id: str, task_configuration: TaskConfig) -> TaskInfo:
         print(e)
         raise HTTPException(status_code=422, detail=list(e.args))
     return task.get_info()
+
+
+@app.put("/batch/task")
+def task_update_batch(updates: list[TaskBulkUpdateItem]) -> list[TaskInfo]:
+    """Validate and apply complete configurations for multiple editable tasks."""
+    try:
+        tasks = magic_instance.task_update_batch(updates)
+    except TaskInitializationException as error:
+        raise HTTPException(status_code=422, detail=[error.messages]) from error
+    except Exception as error:
+        logging.exception("Bulk task update failed.")
+        raise HTTPException(status_code=422, detail=[list(error.args)]) from error
+
+    return [task.get_info() for task in tasks]
 
 
 # POST

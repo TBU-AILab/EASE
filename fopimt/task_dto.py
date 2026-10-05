@@ -56,6 +56,13 @@ class TaskConfig(BaseModel):
     modules: Optional[list[TaskModulConfig]] = None
 
 
+class TaskBulkUpdateItem(BaseModel):
+    """A complete task configuration staged as part of an atomic bulk update."""
+
+    task_id: str
+    task_configuration: TaskConfig
+
+
 class TaskInfo(BaseModel):
     id: str | None  # uuid
     name: str | None

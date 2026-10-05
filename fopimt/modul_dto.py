@@ -16,8 +16,10 @@ class EvaluatorResult(ModulResult):
 
 
 class LLMConnectorResult(ModulResult):
-    model_config = {"arbitrary_types_allowed": True}
     response: Message
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class AnalysisResult(ModulResult):
