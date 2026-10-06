@@ -1,3 +1,5 @@
+import time
+
 import requests
 
 from ..loader_dto import Parameter, PrimitiveType
@@ -78,7 +80,9 @@ class LLMConnectorOllama(LLMConnector):
         messages = self._extract_messages(context)
         data["messages"] = messages
 
+        t_start = time.perf_counter()
         response = requests.post(self._url, headers=headers, json=data)
+        duration_s = time.perf_counter() - t_start
 
         msg = Message(
             role=self.get_role_assistant(),
@@ -87,6 +91,17 @@ class LLMConnectorOllama(LLMConnector):
         )
 
         msg.set_tokens(response.json()["eval_count"])
+
+        body = response.json()
+        self._set_usage(
+            msg,
+            input_tokens=body.get("prompt_eval_count", 0),
+            output_tokens=body.get("eval_count", 0),
+            duration_s=duration_s,
+        )
+        # Local model: keep server-side timings (ns) for compute-cost estimation
+        msg.get_usage()["server_total_duration_ns"] = body.get("total_duration")
+        msg.get_usage()["server_eval_duration_ns"] = body.get("eval_duration")
 
         return LLMConnectorResult(
             class_ref=type(self),

@@ -109,6 +109,12 @@ class Message:
     def get_metadata(self) -> dict:
         return self._metadata
 
+    def get_usage(self) -> dict | None:
+        """
+        Returns normalized token usage reported by the LLMConnector (see LLMConnector._set_usage), or None.
+        """
+        return self._metadata.get("usage", None)
+
     def update_timestamp(self) -> None:
         self._timestamp = datetime.now(timezone.utc)
 

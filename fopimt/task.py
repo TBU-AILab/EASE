@@ -1,6 +1,7 @@
 import copy
 import csv
 import io
+import json
 import logging
 import os
 import pickle
@@ -35,6 +36,7 @@ from .task_dto import (
 )
 from .tests.test import Test
 from .user import User
+from .utils.token_utils import llm_call_record
 from .utils.tools import get_zip_buffer as zip_it
 
 
@@ -243,6 +245,7 @@ class Task:
             Message
         ] = []  # History of all Messages send and received
         self._history_solution: list[Solution] = []  # History of all Solutions
+        self._usage_totals: dict = {}  # Billed token totals over all LLM calls (see _record_usage)
         self._max_context_size: int = config[
             ConfigTask.MAX_CONTEXT_SIZE
         ]  # Number of messages to be sent (messages in context)
@@ -874,7 +877,12 @@ class Task:
         """
         Returns the number of all used tokens. Will most probably contain real and expected tokens.
         """
-        # TODO add proper variable that will store the information about used tokens from LLMConnector.
+        # Billed tokens (input + output) of all LLM calls made by the Task and its modules
+        totals = getattr(self, "_usage_totals", {})
+        if totals.get("calls", 0) > 0:
+            return totals["total_tokens"]
+
+        # Legacy: tokens stored in messages
         token_count = 0
         for msg in self._history_message:
             token_count += msg.get_tokens()
@@ -1011,6 +1019,139 @@ class Task:
                 break
         return ret
 
+    def _context_breakdown(self, context: list[Message]) -> dict[str, str]:
+        """
+        Splits the context sent to the LLM into parts by kind (texts are joined per kind):
+        system, init (initial message), history (previous messages and responses), new_message (last user message).
+        """
+        parts = {"system": [], "init": [], "history": [], "new_message": []}
+        system_id = self._spec_system_message.get_id() if self._spec_system_message else None
+        init_id = self._spec_init_message.get_id() if self._spec_init_message else None
+        for i, msg in enumerate(context):
+            if i == len(context) - 1:
+                kind = "new_message"
+            elif msg.get_id() == system_id:
+                kind = "system"
+            elif msg.get_id() == init_id:
+                kind = "init"
+            else:
+                kind = "history"
+            parts[kind].append(msg.get_content())
+        return {k: "\n".join(v) for k, v in parts.items()}
+
+    USAGE_CALL_FIELDS = [
+        "iteration",
+        "valid",
+        "role",
+        "module",
+        "provider",
+        "model",
+        "input_tokens",
+        "cached_input_tokens",
+        "cache_write_input_tokens",
+        "output_tokens",
+        "reasoning_tokens",
+        "total_tokens",
+        "input_tokens_common",
+        "output_tokens_common",
+        "input_breakdown_common",
+        "calls",
+        "duration_s",
+        "estimated",
+        "extra",
+    ]
+
+    USAGE_ITERATION_FIELDS = [
+        "iteration",
+        "valid",
+        "llm_calls",
+        "generator_input_tokens",
+        "generator_cached_input_tokens",
+        "generator_output_tokens",
+        "generator_reasoning_tokens",
+        "generator_input_tokens_common",
+        "generator_new_message_tokens_common",
+        "generator_input_delta",
+        "other_input_tokens",
+        "other_output_tokens",
+        "iteration_total_tokens",
+        "cumulative_total_tokens",
+    ]
+
+    def _record_usage(self, llm_calls: list[dict], state: str) -> None:
+        """
+        Usage ledger. Updates billed token totals and, if saving to disk, appends
+        - usage_calls.csv: one row per LLM call (generator, summarizer, ...),
+        - usage_iterations.csv: one row per iteration (incl. calls made by modules during the iteration).
+        Billed counts are provider-reported (normalized conventions, see LLMConnector._set_usage),
+        *_common counts use one provider-independent tokenizer (see utils.token_utils).
+        """
+        if not getattr(self, "_usage_totals", None):
+            self._usage_totals = {
+                "calls": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "last_generator_input_tokens": None,
+            }
+        totals = self._usage_totals
+        valid = state == "OK"
+
+        generator = [c for c in llm_calls if c["role"] == "generator"]
+        other = [c for c in llm_calls if c["role"] != "generator"]
+        gen_input = sum(c["input_tokens"] for c in generator)
+        prev_gen_input = totals["last_generator_input_tokens"]
+        iteration_total = sum(c["total_tokens"] for c in llm_calls)
+
+        totals["calls"] += len(llm_calls)
+        totals["input_tokens"] += sum(c["input_tokens"] for c in llm_calls)
+        totals["output_tokens"] += sum(c["output_tokens"] for c in llm_calls)
+        totals["total_tokens"] += iteration_total
+        totals["last_generator_input_tokens"] = gen_input
+
+        if not self._spec_save_to_disk:
+            return
+
+        call_rows = []
+        for c in llm_calls:
+            row = {k: c[k] for k in self.USAGE_CALL_FIELDS if k in c}
+            row["iteration"] = self._iteration
+            row["valid"] = valid
+            row["input_breakdown_common"] = json.dumps(c.get("input_breakdown_common", {}))
+            extra = {k: v for k, v in c.items() if k not in self.USAGE_CALL_FIELDS}
+            row["extra"] = json.dumps(extra) if extra else ""
+            call_rows.append(row)
+        self._append_csv("usage_calls.csv", self.USAGE_CALL_FIELDS, call_rows)
+
+        iteration_row = {
+            "iteration": self._iteration,
+            "valid": valid,
+            "llm_calls": len(llm_calls),
+            "generator_input_tokens": gen_input,
+            "generator_cached_input_tokens": sum(c["cached_input_tokens"] for c in generator),
+            "generator_output_tokens": sum(c["output_tokens"] for c in generator),
+            "generator_reasoning_tokens": sum(c["reasoning_tokens"] for c in generator),
+            "generator_input_tokens_common": sum(c["input_tokens_common"] for c in generator),
+            "generator_new_message_tokens_common": sum(
+                c["input_breakdown_common"].get("new_message", 0) for c in generator
+            ),
+            "generator_input_delta": gen_input - prev_gen_input if prev_gen_input is not None else "",
+            "other_input_tokens": sum(c["input_tokens"] for c in other),
+            "other_output_tokens": sum(c["output_tokens"] for c in other),
+            "iteration_total_tokens": iteration_total,
+            "cumulative_total_tokens": totals["total_tokens"],
+        }
+        self._append_csv("usage_iterations.csv", self.USAGE_ITERATION_FIELDS, [iteration_row])
+
+    def _append_csv(self, file_name: str, fieldnames: list[str], rows: list[dict]) -> None:
+        _path = os.path.join(self._dir, file_name)
+        _init = os.path.isfile(_path)
+        with open(_path, "a", encoding="utf-8", newline="") as csv_file:
+            wr = csv.DictWriter(csv_file, fieldnames=fieldnames, delimiter=";")
+            if not _init:
+                wr.writeheader()
+            wr.writerows(rows)
+
     def _get_context(self) -> list[Message]:
         """
         Internal function to make context to send to LLM.
@@ -1104,6 +1245,14 @@ class Task:
             # 3) pass context to LLM & # 4) get response from LLM
             llm_connector_result = self._spec_llm.send(context)
             _add_modul_result(llm_connector_result)
+            iteration_llm_calls = [
+                llm_call_record(
+                    "generator",
+                    self._spec_llm.get_short_name(),
+                    self._context_breakdown(context),
+                    llm_connector_result.response,
+                )
+            ]
 
             # 5) create a solution
             solution = copy.deepcopy(self._spec_solution)
@@ -1146,7 +1295,13 @@ class Task:
                     solution, self._optimization_goal
                 )
                 _add_modul_result(evaluator_result)
-                if self._spec_feedback_from_solution:
+                iteration_llm_calls += evaluator_result.metadata.get("llm_calls", [])
+                # Evaluator may reject the solution (e.g. runtime failure); it then counts as an invalid iteration
+                # and its feedback (error description) is always sent, same as for failed tests
+                if evaluator_result.metadata.get("invalid", False):
+                    state = "ERROR"
+                    buffer_message.put(solution.get_feedback())
+                elif self._spec_feedback_from_solution:
                     buffer_message.put(solution.get_feedback())
 
             # save end time of the solution
@@ -1166,11 +1321,15 @@ class Task:
                         solution, self.get_execution_context(moduls_results)
                     )
                     _add_modul_result(anal_result)
+                    iteration_llm_calls += anal_result.metadata.get("llm_calls", [])
                     anal.export(path=self._dir_anal, id=f"anal_{self._iteration}")
                     buffer_message.put(anal.get_feedback())
 
             # copy so the saved solution in history does not change
             self._history_solution.append(copy.deepcopy(solution))
+
+            # usage accounting of all LLM calls of this iteration
+            self._record_usage(iteration_llm_calls, state)
 
             # 11) check stopping conditions
             self._iteration += 1

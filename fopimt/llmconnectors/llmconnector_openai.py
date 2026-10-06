@@ -1,3 +1,5 @@
+import time
+
 from openai import OpenAI
 
 from ..loader_dto import Parameter, PrimitiveType
@@ -53,9 +55,11 @@ class LLMConnectorOpenAI(LLMConnector):
     #########  Public functions
     ####################################################################
     def send(self, context: list[Message]) -> LLMConnectorResult:
+        t_start = time.perf_counter()
         completion = self._client.chat.completions.create(
             model=self._model, messages=self._extract_messages(context)
         )
+        duration_s = time.perf_counter() - t_start
 
         msg = Message(
             role=self.get_role_assistant(),
@@ -63,6 +67,18 @@ class LLMConnectorOpenAI(LLMConnector):
             message=completion.choices[0].message.content,
         )
         msg.set_tokens(completion.usage.completion_tokens)
+
+        usage = completion.usage
+        prompt_details = getattr(usage, "prompt_tokens_details", None)
+        completion_details = getattr(usage, "completion_tokens_details", None)
+        self._set_usage(
+            msg,
+            input_tokens=usage.prompt_tokens,
+            output_tokens=usage.completion_tokens,
+            cached_input_tokens=getattr(prompt_details, "cached_tokens", 0),
+            reasoning_tokens=getattr(completion_details, "reasoning_tokens", 0),
+            duration_s=duration_s,
+        )
 
         return LLMConnectorResult(
             class_ref=type(self),

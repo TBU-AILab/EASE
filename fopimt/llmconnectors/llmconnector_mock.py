@@ -278,6 +278,13 @@ def predict(X_train, y_train, X_test):
             role=self.get_role_assistant(), model_encoding=None, message=msg_text
         )
         msg.set_tokens(10)  # funny number
+        # rough estimate (~4 chars per token), marked as estimated
+        self._set_usage(
+            msg,
+            input_tokens=sum(len(m.get_content()) for m in context) // 4,
+            output_tokens=len(msg_text) // 4,
+            estimated=True,
+        )
         return LLMConnectorResult(
             class_ref=type(self),
             response=msg,

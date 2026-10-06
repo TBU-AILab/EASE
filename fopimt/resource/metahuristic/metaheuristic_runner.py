@@ -1,30 +1,33 @@
-import numpy as np
 import logging
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
+
+import numpy as np
 
 
 class MaxEvalException(Exception):
-
     def __init__(self, a, f):
-        self.text = f'Algorithm {a.__module__} tried to exceed maximum number of evaluations on function = {f}.'
+        self.text = f"Algorithm {a.__module__} tried to exceed maximum number of evaluations on function = {f}."
 
 
 class MaxTimeException(Exception):
-
     def __init__(self, a, f):
-        self.text = f'Algorithm {a.__module__} tried to exceed maximum time of evaluations on function = {f}.'
+        self.text = f"Algorithm {a.__module__} tried to exceed maximum time of evaluations on function = {f}."
+
 
 class DimException(Exception):
-
     def __init__(self, a, dim, length, f):
-        self.text = f'Algorithm {a.__module__} passed array of length = {length} for problem of dim = {dim} on function = {f}.'
+        self.text = f"Algorithm {a.__module__} passed array of length = {length} for problem of dim = {dim} on function = {f}."
 
 
-class Runner():
+class Runner:
+    def __init__(self, alg, func, dim, bounds, max_evals, max_time=None):
+        """
+        :param max_time: Wall-clock limit in seconds. If set, the algorithm is called as run(func, dim, bounds, max_time)
+                         and evaluations after the limit raise MaxTimeException. If None (legacy), the algorithm is called
+                         as run(func, dim, bounds, max_evals) without a time limit.
+        """
 
-    def __init__(self, alg, func, dim, bounds, max_evals, max_time):
-
-        self._time_delta = timedelta(seconds=max_time)
+        self._time_delta = timedelta(seconds=max_time) if max_time is not None else None
         self._max_time = max_time
         self._time_start = datetime.now()
         self._evals = 0
@@ -33,11 +36,7 @@ class Runner():
         self._bounds = bounds
         self._func = func
         # Result
-        self._best = {
-            'params': np.array([]),
-            'fitness': None,
-            'eval_num': 0
-        }
+        self._best = {"params": np.array([]), "fitness": None, "eval_num": 0}
         self._flag_OoB = False
         self._flag_MaxEval = False
         self._flag_Dim = False
@@ -47,9 +46,11 @@ class Runner():
 
     def _func_eval_helper(self, x):
 
-        _time = datetime.now() - self._time_start
         # Max time check
-        if _time >= self._time_delta:
+        if (
+            self._time_delta is not None
+            and datetime.now() - self._time_start >= self._time_delta
+        ):
             self._flag_MaxTime = True
             raise MaxTimeException(self._a, self._func)
 
@@ -77,10 +78,10 @@ class Runner():
         ret = self._func.evaluate(xx)
 
         # Logging best found value
-        if self._best['fitness'] is None or ret <= self._best['fitness']:
-            self._best['fitness'] = ret
-            self._best['params'] = xx
-            self._best['eval_num'] = self._evals
+        if self._best["fitness"] is None or ret <= self._best["fitness"]:
+            self._best["fitness"] = ret
+            self._best["params"] = xx
+            self._best["eval_num"] = self._evals
 
         self._evals += 1
 
@@ -90,25 +91,32 @@ class Runner():
         data = {}
         try:
             self._time_start = datetime.now()
-            self._a(self._func_eval_helper, self._dim, self._bounds, self._max_time)
+            budget = self._max_time if self._max_time is not None else self._max_evals
+            self._a(self._func_eval_helper, self._dim, self._bounds, budget)
         except MaxEvalException as e:
-            logging.warning(f'ResourceTask:Metaheuristic:Runner: {e.text}')
-            data['maxevalexception'] = e.text
+            logging.warning(f"ResourceTask:Metaheuristic:Runner: {e.text}")
+            data["maxevalexception"] = e.text
         except MaxTimeException as e:
-            logging.warning(f'ResourceTask:Metaheuristic:Runner: {e.text}')
-            data['maxtimeexception'] = e.text
+            logging.warning(f"ResourceTask:Metaheuristic:Runner: {e.text}")
+            data["maxtimeexception"] = e.text
         except DimException as e:
-            logging.error(f'ResourceTask:Metaheuristic:Runner: {e.text}')
-            data['dimexception'] = e.text
+            logging.error(f"ResourceTask:Metaheuristic:Runner: {e.text}")
+            data["dimexception"] = e.text
         # for checking general unexpected exceptions
         except Exception as e:
-            logging.error(f'ResourceTask:Metaheuristic:Runner: {e}')
-            data['unexpectedexception'] = f'Algorithm {self._a.__module__} raised unexpected exception {e} on function = {self._func}.'
+            logging.error(f"ResourceTask:Metaheuristic:Runner: {e}")
+            data["unexpectedexception"] = (
+                f"Algorithm {self._a.__module__} raised unexpected exception {e} on function = {self._func}."
+            )
 
         if self._flag_OoB:
-            data['outofboundsexception'] = f'ResourceTask:Metaheuristic:Runner: Algorithm {self._a.__module__} tried to evaluate out of bounds. Parameters were clipped to bounds.'
+            data["outofboundsexception"] = (
+                f"ResourceTask:Metaheuristic:Runner: Algorithm {self._a.__module__} tried to evaluate out of bounds. Parameters were clipped to bounds."
+            )
             logging.warning(
-                f'ResourceTask:Metaheuristic:Runner: Algorithm {self._a.__module__} tried to evaluate out of bounds. Parameters were clipped to bounds.')
-        data['best'] = self._best
+                f"ResourceTask:Metaheuristic:Runner: Algorithm {self._a.__module__} tried to evaluate out of bounds. Parameters were clipped to bounds."
+            )
+        data["best"] = self._best
+        data["evals"] = min(self._evals, self._max_evals)
 
         return data

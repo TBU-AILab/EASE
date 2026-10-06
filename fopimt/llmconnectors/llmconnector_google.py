@@ -1,4 +1,5 @@
 import json
+import time
 
 from google import genai
 from google.genai import types
@@ -58,6 +59,7 @@ class LLMConnectorGoogle(LLMConnector):
     ####################################################################
     def send(self, context: list[Message]) -> LLMConnectorResult:
         msgs = self._extract_messages(context)
+        t_start = time.perf_counter()
         completion = self._client.models.generate_content(
             model=self._model,
             config=types.GenerateContentConfig(system_instruction=self._system_msg),
@@ -73,6 +75,19 @@ class LLMConnectorGoogle(LLMConnector):
             and completion.usage_metadata.total_token_count is not None
         ):
             msg.set_tokens(completion.usage_metadata.total_token_count)
+
+        um = completion.usage_metadata
+        candidates_tokens = int(getattr(um, "candidates_token_count", 0) or 0)
+        thoughts_tokens = int(getattr(um, "thoughts_token_count", 0) or 0)
+        self._set_usage(
+            msg,
+            input_tokens=getattr(um, "prompt_token_count", 0),
+            # thinking tokens are billed as output
+            output_tokens=candidates_tokens + thoughts_tokens,
+            cached_input_tokens=getattr(um, "cached_content_token_count", 0),
+            reasoning_tokens=thoughts_tokens,
+            duration_s=time.perf_counter() - t_start,
+        )
 
         return LLMConnectorResult(
             class_ref=type(self),

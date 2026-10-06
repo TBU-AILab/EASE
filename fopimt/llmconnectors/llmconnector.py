@@ -1,6 +1,7 @@
 from fopimt.task_dto import TaskExecutionContext
 from fopimt.utils.render_utils import DefaultLLMConnectorRenderer
 
+from ..message import Message
 from ..modul import Modul
 from ..modul_dto import LLMConnectorResult
 
@@ -91,3 +92,44 @@ class LLMConnector(Modul):
     ####################################################################
     #########  Private functions
     ####################################################################
+    def _set_usage(
+        self,
+        msg: Message,
+        input_tokens: int | None = 0,
+        output_tokens: int | None = 0,
+        cached_input_tokens: int | None = 0,
+        cache_write_input_tokens: int | None = 0,
+        reasoning_tokens: int | None = 0,
+        duration_s: float | None = None,
+        calls: int = 1,
+        estimated: bool = False,
+    ) -> None:
+        """
+        Store normalized token usage of one send() into the response Message metadata under 'usage'.
+        :param input_tokens: All input (prompt) tokens, including cached ones.
+        :param output_tokens: All billed output tokens, including reasoning/thinking tokens.
+        :param cached_input_tokens: Input tokens served from the provider cache (subset of input_tokens).
+        :param cache_write_input_tokens: Input tokens written to the provider cache (subset of input_tokens).
+        :param reasoning_tokens: Reasoning/thinking tokens (subset of output_tokens).
+        :param duration_s: Wall-clock duration of the whole send() in seconds.
+        :param calls: Number of API calls made within send() (e.g. continuations).
+        :param estimated: True if counts are estimated rather than reported by the provider.
+        """
+        input_tokens = int(input_tokens or 0)
+        output_tokens = int(output_tokens or 0)
+        msg.set_metadata(
+            "usage",
+            {
+                "provider": self._type,
+                "model": self.get_model(),
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "cached_input_tokens": int(cached_input_tokens or 0),
+                "cache_write_input_tokens": int(cache_write_input_tokens or 0),
+                "reasoning_tokens": int(reasoning_tokens or 0),
+                "total_tokens": input_tokens + output_tokens,
+                "duration_s": duration_s,
+                "calls": calls,
+                "estimated": estimated,
+            },
+        )

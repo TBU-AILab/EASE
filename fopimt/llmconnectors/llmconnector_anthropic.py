@@ -1,3 +1,5 @@
+import time
+
 import anthropic
 
 from ..loader_dto import Parameter, PrimitiveType
@@ -86,6 +88,11 @@ class LLMConnectorAnthropic(LLMConnector):
 
         all_text_parts = []
         total_output_tokens = 0
+        total_input_tokens = 0
+        total_cache_read_tokens = 0
+        total_cache_write_tokens = 0
+        calls = 0
+        t_start = time.perf_counter()
 
         working_msgs = list(msgs)
 
@@ -104,6 +111,7 @@ class LLMConnectorAnthropic(LLMConnector):
                 final_msg = stream.get_final_message()
 
             all_text_parts.append(chunk_text)
+            calls += 1
 
             # Usage token accounting (best-effort)
             try:
@@ -113,6 +121,19 @@ class LLMConnectorAnthropic(LLMConnector):
                     and getattr(usage, "output_tokens", None) is not None
                 ):
                     total_output_tokens += int(usage.output_tokens)
+                if usage is not None:
+                    # input_tokens excludes cache reads/writes, which are reported separately
+                    cache_read = int(getattr(usage, "cache_read_input_tokens", 0) or 0)
+                    cache_write = int(
+                        getattr(usage, "cache_creation_input_tokens", 0) or 0
+                    )
+                    total_input_tokens += (
+                        int(getattr(usage, "input_tokens", 0) or 0)
+                        + cache_read
+                        + cache_write
+                    )
+                    total_cache_read_tokens += cache_read
+                    total_cache_write_tokens += cache_write
             except Exception:
                 pass
 
@@ -147,6 +168,15 @@ class LLMConnectorAnthropic(LLMConnector):
         )
         if total_output_tokens:
             msg.set_tokens(total_output_tokens)
+        self._set_usage(
+            msg,
+            input_tokens=total_input_tokens,
+            output_tokens=total_output_tokens,
+            cached_input_tokens=total_cache_read_tokens,
+            cache_write_input_tokens=total_cache_write_tokens,
+            duration_s=time.perf_counter() - t_start,
+            calls=calls,
+        )
 
         return LLMConnectorResult(
             class_ref=type(self),
