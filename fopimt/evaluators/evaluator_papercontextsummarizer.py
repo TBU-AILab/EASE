@@ -20,6 +20,7 @@ from .evaluator import Evaluator, EvaluatorResult
 CODE_CONTEXTS = ["none", "last_best", "all"]
 SUMMARY_TYPES = ["none", "free", "structured"]
 FITNESS_STATS = ["min", "mean", "median"]
+FUNCTIONS = ["resource.gnbg.f_24", "resource.cec2017.f_30", "resource.bbob.f_24"]
 
 # Family labels and feature flags follow the annotation schema of the Context paper (Viktorin et al., CSR 2027)
 FAMILIES = [
@@ -138,9 +139,11 @@ class EvaluatorPaperContextSummarizer(Evaluator):
             ),
             "function": Parameter(
                 short_name="function",
-                type=PrimitiveType.str,
+                type=PrimitiveType.enum,
                 long_name="Benchmark function",
-                description="Metabenchmark resource method returning a function dict, e.g. resource.gnbg.f_24.",
+                description="Benchmark function (D=30): GNBG-II f24, CEC 2017 F30 (Composition Function 10), "
+                "BBOB f24 (Lunacek bi-Rastrigin, instance 1).",
+                enum_options=FUNCTIONS,
                 default="resource.gnbg.f_24",
             ),
             "time": Parameter(
