@@ -8,10 +8,12 @@ Science Review 63 (2027) 101079). Branch `paper/summarizer` in EASE and frontEAS
 - Factorial design, 9 cells: **code part** {none, last_best, all} × **summary of history** {none, free, structured}.
   none × none = nocontext.
 - 11 repetitions per cell, 10 valid algorithms per repetition.
-- Phase 1: one frontier generator LLM; later a second/third model (local or frontier, depending on budget).
-- Summarizer: either the same model via a separate API call, or a local model (Ollama).
-- The summary is regenerated from scratch in every iteration over **all valid algorithms so far** (max 10).
-  The summarizer never sees fitness values; the evaluator attaches them deterministically.
+- Phase 1: one frontier generator LLM; the other two models follow (all three in the end).
+- Summarizer: scenario 1 = the same model via a separate API call; scenario 2 = a local model (Ollama).
+- The summary is regenerated from scratch in every iteration over **all valid algorithms so far** (max 10);
+  no summary is generated after the last (10th) valid algorithm.
+  The summarizer never sees the scores; the evaluator attaches them after summarization.
+- Feedback = code block first, summary block second.
 - Goals: solution quality (primary), token usage (secondary), cost (cashflow) in post-processing.
 - Functions (D=30): GNBG-II f24, CEC 2017 F30, BBOB f24 (see below).
 
@@ -19,12 +21,22 @@ Science Review 63 (2027) 101079). Branch `paper/summarizer` in EASE and frontEAS
 
 | Date | Decision | Reason |
 |---|---|---|
-| 2026-10-06 | `fitness_stat = min` (minimum over 30 runs) | Same value the LLM saw in the previous experiment (the paper defines q as the mean, but the evaluator used min). |
+| 2026-10-07 | `fitness_stat = mean` (mean over the 30 runs) – **replaces the 2026-10-06 decision `min`** | The intended idea of the previous experiment (q = mean of the runs). |
 | 2026-10-06 | `last_best` keeps both code blocks when the last algorithm is also the best | Same as the previous experiment. |
 | 2026-10-06 | Google connector sends the conversation as stringified JSON (unchanged) | Comparability with the previous experiment. |
 | 2026-10-06 | Token accounting: every LLM call is logged (`usage_calls.csv`, `usage_iterations.csv`) with provider-reported (billed) counts and counts from one common tokenizer (`o200k_base`) | Billed counts give the cost; the common tokenizer makes context sizes comparable across models. |
+| 2026-10-06 | Per run of a generated algorithm the evaluator records: final error, number of function evaluations, evaluation and time at which the best value was found, wall-clock runtime and termination reason (`returned`, `max_time`, `max_evals`, `dim_error`, `exception`) – columns `Result_*` in the solution metadata | The previous experiment did not log runtimes consistently (limitation in the paper); algorithm parameters can be read from the generated code. |
 | 2026-10-06 | CEC function: **CEC 2017 F30** (Composition Function 10), D=30 | See "Benchmark selection". |
 | 2026-10-06 | BBOB function: **f24 Lunacek bi-Rastrigin**, instance 1, D=30 | See "Benchmark selection". |
+| 2026-10-07 | The experiment description agreed in the conversation is authoritative; the paper draft is adapted to it | The first paper draft is a draft. |
+| 2026-10-07 | Prompts: taken (approximately) from the paper draft – initial prompt, feedback template (untrusted-context preamble, `<SOURCE_CODE_CONTEXT>` / `<SUMMARY_CONTEXT>` blocks, closing instruction), free and structured summary prompts; parts referring to scores are removed from the summary prompts. Final wording can be adjusted in frontEASE before the experiment. | Single source of prompts for the paper and the experiment. |
+| 2026-10-07 | Code block: complete code + development score (scientific notation `%.6e`) per algorithm; `all` = chronological, `last_best` = last then best | Paper draft serialization. |
+| 2026-10-07 | Scores are attached to the summary deterministically: free = list `A<k>: score` after the summary, structured = field `score` after `iteration` in each record | The summarizer never sees the scores. |
+| 2026-10-07 | Structured summary schema adapted from the draft without score-dependent fields (no `score`, `strengths/weaknesses_supported_by_results`; synthesis = `design_evolution`, `recurring_mechanisms`, `abandoned_mechanisms`) | Score-dependent fields cannot be filled without scores. |
+| 2026-10-07 | No length limit of summaries | Agreed. |
+| 2026-10-07 | Structured summary validated analytically (one JSON object, keys, types, ids and iterations in chronological order); at most 2 repair requests (original input + invalid summary + diagnostic); then the repetition stops (summary failure). Free summary: only non-empty. | Paper draft. |
+| 2026-10-07 | No seeding of the experiment (BBOB uses the fixed instance 1), no holdout re-evaluation, no randomized interleaving of runs, no FE budget (the limit is time), out-of-bounds clipping and `func` calls as in `Runner`, imports via `test.pimports`; baseline algorithms will be added, not decided yet | Agreed; the paper draft has to be adapted. |
+| 2026-10-07 | BBOB via the official COCO implementation `cocoex.BareProblem` (any dimension), replacing IOHexperimenter | Official implementation in D=30; identical values to ioh (max rel. diff 1e-11). |
 
 ## Benchmark selection
 
@@ -63,7 +75,8 @@ the algorithms ended:
 (values = final error f − f*)
 
 **Decision: F30.** It is the hardest function for a *typical* state-of-the-art algorithm (median error ~1950, twice
-the next function) in 2024, 2026 and pooled, and it is in the top 4 by every criterion in every edition. It is also
+the next function) in 2024, 2026 and pooled, and it is in the top 4 by every criterion in 2024, 2026 and pooled (in 2025, with a single
+algorithm, it is 6th by best run). It is also
 the most complex structure of the suite (composition of three hybrid functions). Alternative: F26 is the hardest for
 the *best* algorithm. Note: errors of composition functions are "quantized" by the component biases (100, 200, ...),
 so the fine ranking among them is indicative only.
@@ -82,17 +95,46 @@ next hardest function (f19). Two funnels, the deceptive one covers ~70% of the s
 **D=30.** BBOB is officially benchmarked at 2, 3, 5, 10, 20, 40, but the functions are scalable; D=30 keeps all
 three functions in the same dimension. f24 is the hardest at both 20D and 40D.
 
-**Implementation.** `resource.bbob.f_24` via IOHexperimenter (`ioh`), because the official `cocoex` does not provide
-D=30. `ioh` was verified against `cocoex` for all 24 functions × 3 instances at 20D and 40D (max relative difference
-≤ 1e-11). `evaluate()` returns f(x) − f(x*).
+**Implementation.** `resource.bbob.f_24` via the official COCO implementation: `cocoex.BareProblem("bbob", 24, 30, 1)`.
+`cocoex.Suite` offers only the standard dimensions, `BareProblem` instantiates the functions in any dimension
+(problem id `bbob_f024_i01_d30`). Cross-checked against IOHexperimenter for all 24 functions × 3 instances in D=30
+(and IOHexperimenter against `cocoex.Suite` at 20D/40D): max relative difference ≤ 1e-11, f24 i1 bit-identical.
+f* is taken from `best_value()`. `evaluate()` returns f(x) − f(x*).
 
 ### Protocol notes
 
-- Evaluation speed differs a lot (BBOB f24 ~5 µs, CEC F30 ~300 µs per evaluation in Python), so with the 30 s time
-  limit the number of function evaluations differs per function (cap 10^6 for all). Competition difficulty was
-  measured with other budgets (CEC: 3·10^5 FEs).
+- The limit of a run is time (30 s), not a number of function evaluations. Evaluation speed differs (BBOB f24
+  ~5 µs, CEC F30 ~300 µs per evaluation in Python), so the number of evaluations differs per function; it is
+  recorded per run.
+- The 30 s limit is **not a hard limit**: it is enforced only when the algorithm evaluates the function after the
+  limit (MaxTimeException). An algorithm that keeps computing without evaluations after the limit is not stopped;
+  this is visible in `Result_runtime_s` (> time) with termination `returned`.
 - Error scales differ (random search: ~10^2 on GNBG f24, ~10^8 on CEC F30); cross-function analysis needs
   normalization or ranks.
+
+## Paper draft – required changes (first draft, 2026-10-07)
+
+Done in the draft (sent 2026-10-07): empirical-difficulty paragraph + Table `tab:cec-difficulty` (CEC 2024–2026
+results, COCO best09-16 ERT); BBOB D=30 via `cocoex.BareProblem`; bib entries `hansen2021coco`, `suganthan2026cec`.
+
+Still to change so that the draft matches the experiment:
+- Summary inputs and prompts: the summarizer does **not** see scores (draft: records contain scores, free prompt asks
+  about score-associated mechanisms, structured schema has `score`, `strengths/weaknesses_supported_by_results`,
+  `best_score`, ...); scores are attached by the evaluator afterwards; use the adapted prompts/schema from the code.
+- Structured-summary validation: no "scores equal to the serialized input scores" check.
+- `last_best`: the same algorithm is sent twice when last = best (draft: one record `role="last_and_best"`).
+- Remove the holdout re-evaluation (R_test, q_test, 26,730 / 294,030 executions); the primary outcome is based on
+  the development runs.
+- Remove seeding (seed banks, externally seeded generators in the initial prompt, OS-entropy rule).
+- Remove the randomized interleaved block order.
+- Time limit: not a hard watchdog/isolated process – the evaluator stops a run when the algorithm evaluates the
+  function after the limit; runtimes are recorded.
+- Out-of-bounds candidates are clipped to the bounds (as in the previous study), not +inf; vectorized calls are not
+  supported.
+- Imports: no strict allowlist (imports handled by `test.pimports`).
+- Summarizer: add scenario 2 with a local model; models run step by step (one generator first).
+- Baseline algorithms: not decided yet.
+- Summary calls: 9 per repetition (no summary after the 10th algorithm) – consistent with the draft.
 
 ## Open TODOs
 

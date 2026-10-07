@@ -5,9 +5,10 @@ from ...modul import Modul
 
 class BBOBfunction:
     """
-    Noiseless BBOB function (COCO) via IOHexperimenter, which reproduces the COCO bbob suite and, unlike COCO,
-    supports any dimension. evaluate() returns the error f(x) - f(x*).
-    The ioh problem cannot be pickled or deep-copied, it is therefore created lazily and dropped from the state.
+    Noiseless BBOB function from the official COCO implementation. cocoex.BareProblem is used because, unlike
+    cocoex.Suite, it allows any dimension (e.g. D=30). evaluate() returns the error f(x) - f(x*).
+    The search domain is the bbob region of interest [-5, 5]^D.
+    The COCO problem cannot be pickled or deep-copied, it is therefore created lazily and dropped from the state.
     """
 
     def __init__(self, funcNum: int, dim: int, instance: int = 1):
@@ -15,17 +16,14 @@ class BBOBfunction:
         self.dim = dim
         self.instance = instance
         self._problem = None
-        self.optimum_value = self._get_problem().optimum.y
+        self.optimum_value = self._get_problem().best_value()
 
     def _get_problem(self):
         if self._problem is None:
-            import ioh
+            import cocoex
 
-            self._problem = ioh.get_problem(
-                self.func,
-                instance=self.instance,
-                dimension=self.dim,
-                problem_class=ioh.ProblemClass.BBOB,
+            self._problem = cocoex.BareProblem(
+                "bbob", self.func, self.dim, self.instance
             )
         return self._problem
 
@@ -35,14 +33,13 @@ class BBOBfunction:
         return state
 
     def get_bounds(self):
-        problem = self._get_problem()
-        return np.array([problem.bounds.lb, problem.bounds.ub]).T
+        return np.array([[-5.0, 5.0]] * self.dim)
 
     def evaluate(self, x) -> float:
         return self._get_problem()(np.asarray(x, dtype=float)) - self.optimum_value
 
     def __str__(self) -> str:
-        return f"BBOB-f{self.func}-i{self.instance}-D{self.dim}"
+        return f"bbob_f{self.func:03d}_i{self.instance:02d}_d{self.dim}"
 
 
 class BBOB(Modul):
@@ -57,8 +54,8 @@ class BBOB(Modul):
     @classmethod
     def get_description(cls) -> str:
         return (
-            "COCO BBOB noiseless benchmark (https://coco-platform.org/testsuites/bbob/overview.html) via IOHexperimenter. "
-            "Options:\n"
+            "COCO BBOB noiseless benchmark (https://coco-platform.org/testsuites/bbob/overview.html), official COCO "
+            "implementation (cocoex). Options:\n"
             "f_24 - Lunacek bi-Rastrigin, instance 1, D=30"
         )
 

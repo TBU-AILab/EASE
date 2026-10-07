@@ -1,4 +1,5 @@
 import logging
+import time
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -36,7 +37,13 @@ class Runner:
         self._bounds = bounds
         self._func = func
         # Result
-        self._best = {"params": np.array([]), "fitness": None, "eval_num": 0}
+        self._best = {
+            "params": np.array([]),
+            "fitness": None,
+            "eval_num": 0,
+            "time_s": None,
+        }
+        self._perf_start = time.perf_counter()
         self._flag_OoB = False
         self._flag_MaxEval = False
         self._flag_Dim = False
@@ -82,6 +89,7 @@ class Runner:
             self._best["fitness"] = ret
             self._best["params"] = xx
             self._best["eval_num"] = self._evals
+            self._best["time_s"] = time.perf_counter() - self._perf_start
 
         self._evals += 1
 
@@ -89,25 +97,35 @@ class Runner:
 
     def run(self) -> dict:
         data = {}
+        termination = "returned"  # the algorithm returned on its own
         try:
             self._time_start = datetime.now()
+            self._perf_start = time.perf_counter()
             budget = self._max_time if self._max_time is not None else self._max_evals
             self._a(self._func_eval_helper, self._dim, self._bounds, budget)
         except MaxEvalException as e:
             logging.warning(f"ResourceTask:Metaheuristic:Runner: {e.text}")
             data["maxevalexception"] = e.text
+            termination = "max_evals"
         except MaxTimeException as e:
             logging.warning(f"ResourceTask:Metaheuristic:Runner: {e.text}")
             data["maxtimeexception"] = e.text
+            termination = "max_time"
         except DimException as e:
             logging.error(f"ResourceTask:Metaheuristic:Runner: {e.text}")
             data["dimexception"] = e.text
+            termination = "dim_error"
         # for checking general unexpected exceptions
         except Exception as e:
             logging.error(f"ResourceTask:Metaheuristic:Runner: {e}")
             data["unexpectedexception"] = (
                 f"Algorithm {self._a.__module__} raised unexpected exception {e} on function = {self._func}."
             )
+            termination = "exception"
+        # Wall-clock duration of the run. The time limit is enforced only when the algorithm evaluates the function,
+        # so the duration may exceed max_time (e.g. computation without evaluations after the limit).
+        data["runtime_s"] = time.perf_counter() - self._perf_start
+        data["termination"] = termination
 
         if self._flag_OoB:
             data["outofboundsexception"] = (
