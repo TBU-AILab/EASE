@@ -177,8 +177,10 @@ Still to change so that the draft matches the experiment:
 
 ## Open TODOs
 
-- [ ] CERIT: verify that the service honours `cache: {no-cache: true}` (two identical requests must give different
-      responses / normal response times).
+- [x] CERIT: the service honours `cache: {no-cache: true}` – verified 2026-10-08 by a `nocontext` smoke run: identical
+      requests in iterations 2 and 3 produced different algorithms (normal response times, different token counts).
+      `cached_input_tokens` still appear: this is the prompt-prefix (KV) cache of the inference server, not a cached
+      response. The same run confirms P0 is sent once (first request 495 instead of 927 input tokens).
 - [x] The first request of every repetition contained the initial message (P0) twice – fixed 2026-10-08 (see the
       decision table).
 
