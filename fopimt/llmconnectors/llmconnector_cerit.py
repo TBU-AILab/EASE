@@ -64,6 +64,14 @@ class LLMConnectorCerit(LLMConnector):
                 description="Request timeout in seconds (the service limits non-streaming requests to 30 minutes).",
                 default=1800,
             ),
+            "disable_cache": Parameter(
+                short_name="disable_cache",
+                type=PrimitiveType.bool,
+                long_name="Disable response cache",
+                description="The service (LiteLLM proxy) may return a cached response for an identical request. "
+                "If set, every request is generated anew and its response is not stored in the cache.",
+                default=True,
+            ),
         }
 
     def _init_params(self):
@@ -73,6 +81,9 @@ class LLMConnectorCerit(LLMConnector):
         self._model = self.parameters.get("model", defaults["model"].default)
         self._base_url = self.parameters.get("base_url", defaults["base_url"].default)
         self._timeout = int(self.parameters.get("timeout", defaults["timeout"].default))
+        self._disable_cache = bool(
+            self.parameters.get("disable_cache", defaults["disable_cache"].default)
+        )
 
         self._type = "CERIT"
         if self._token:
@@ -84,7 +95,12 @@ class LLMConnectorCerit(LLMConnector):
     def send(self, context: list[Message]) -> LLMConnectorResult:
         t_start = time.perf_counter()
         completion = self._client.chat.completions.create(
-            model=self._model, messages=self._extract_messages(context)
+            model=self._model,
+            messages=self._extract_messages(context),
+            # LiteLLM per-request cache control: do not read a cached response, do not store this one
+            extra_body={"cache": {"no-cache": True, "no-store": True}}
+            if self._disable_cache
+            else None,
         )
         duration_s = time.perf_counter() - t_start
 

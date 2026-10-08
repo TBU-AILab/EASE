@@ -1028,12 +1028,12 @@ class Task:
         system_id = self._spec_system_message.get_id() if self._spec_system_message else None
         init_id = self._spec_init_message.get_id() if self._spec_init_message else None
         for i, msg in enumerate(context):
-            if i == len(context) - 1:
-                kind = "new_message"
-            elif msg.get_id() == system_id:
+            if msg.get_id() == system_id:
                 kind = "system"
             elif msg.get_id() == init_id:
                 kind = "init"
+            elif i == len(context) - 1:
+                kind = "new_message"
             else:
                 kind = "history"
             parts[kind].append(msg.get_content())
@@ -1152,6 +1152,17 @@ class Task:
                 wr.writeheader()
             wr.writerows(rows)
 
+    @staticmethod
+    def _unique_messages(context: list[Message]) -> list[Message]:
+        """Removes repeated occurrences of the same message (same id), keeping the first one and the order."""
+        seen = set()
+        unique = []
+        for msg in context:
+            if msg.get_id() not in seen:
+                seen.add(msg.get_id())
+                unique.append(msg)
+        return unique
+
     def _get_context(self) -> list[Message]:
         """
         Internal function to make context to send to LLM.
@@ -1240,6 +1251,9 @@ class Task:
             # And save the message to disk
             msg = self._get_message(state, buffer_message)
             context.append(msg)
+            # the same message must not be sent twice (e.g. the initial message at the first iteration with
+            # max_context_size = 0, or the system message when the history window reaches its beginning)
+            context = self._unique_messages(context)
             self._add_to_history(msg)
 
             # 3) pass context to LLM & # 4) get response from LLM

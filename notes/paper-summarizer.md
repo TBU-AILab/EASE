@@ -41,6 +41,8 @@ Science Review 63 (2027) 101079). Branch `paper/summarizer` in EASE and frontEAS
 | 2026-10-08 | Smoke Tasks are created through the core REST API by `tools/create_smoke_tasks.py` (run inside the core container, API keys from environment variables; all 9 cells available, default 3 cells × 3 valid iterations × 3 runs × 5 s); frontEASE imports them by `InitialTaskSyncJob` (author = e-mail of the frontEASE user) | Reproducible smoke test without pickled files or keys in files. |
 | 2026-10-08 | Usage of the LLM calls of an iteration is recorded even when the analysis fails (summary failure) | The failed calls were paid for. |
 | 2026-10-08 | Duplicate stopping condition `stop.condmaxvaliditers` removed; the existing `stop.condvaliditers` is used | Same behaviour already existed in the core. |
+| 2026-10-08 | `llm.cerit`: response cache of the service (LiteLLM proxy) disabled per request (`cache: {no-cache, no-store}`, parameter `disable_cache`, default on) | Smoke test: in `nocontext` iterations 2 and 3 got a byte-identical algorithm (identical tokens, 0.1 s response) – identical requests were answered from the cache, which would make repetitions dependent. |
+| 2026-10-08 | Task: the same message is never sent twice in one request. Fixes P0 sent twice in the first request (no system message, `max_context_size` = 0; ~400 input tokens per repetition) and the system message sent twice when the history window reaches the beginning (system message with `max_context_size` 1–3). Verified on all combinations of system message × `max_context_size` ∈ {0, 1, 2, 3, unlimited}: only the duplicates were removed. | Requested; differs from the previous experiment only by the removed duplicate. |
 | 2026-10-07 | BBOB via the official COCO implementation `cocoex.BareProblem` (any dimension), replacing IOHexperimenter | Official implementation in D=30; identical values to ioh (max rel. diff 1e-11). |
 
 ## EASE setup of one experiment cell (2026-10-07)
@@ -174,6 +176,11 @@ Still to change so that the draft matches the experiment:
 - Summary calls: 9 per repetition (no summary after the 10th algorithm) – consistent with the draft.
 
 ## Open TODOs
+
+- [ ] CERIT: verify that the service honours `cache: {no-cache: true}` (two identical requests must give different
+      responses / normal response times).
+- [x] The first request of every repetition contained the initial message (P0) twice – fixed 2026-10-08 (see the
+      decision table).
 
 - [ ] Smoke test against real LLM APIs (OpenAI, Anthropic, Google, Ollama) to verify provider usage fields and the
       usage ledger – waiting for API keys.
