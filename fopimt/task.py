@@ -1317,9 +1317,15 @@ class Task:
                     self._spec_analysis, key=lambda x: x.get_order()
                 )
                 for anal in sorted_analysis:
-                    anal_result = anal.evaluate_analysis(
-                        solution, self.get_execution_context(moduls_results)
-                    )
+                    try:
+                        anal_result = anal.evaluate_analysis(
+                            solution, self.get_execution_context(moduls_results)
+                        )
+                    except Exception as e:
+                        # keep the usage of the LLM calls made before the failure (they were paid for)
+                        iteration_llm_calls += getattr(e, "llm_calls", [])
+                        self._record_usage(iteration_llm_calls, "ERROR")
+                        raise
                     _add_modul_result(anal_result)
                     iteration_llm_calls += anal_result.metadata.get("llm_calls", [])
                     anal.export(path=self._dir_anal, id=f"anal_{self._iteration}")

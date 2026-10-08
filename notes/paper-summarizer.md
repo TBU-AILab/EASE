@@ -38,6 +38,9 @@ Science Review 63 (2027) 101079). Branch `paper/summarizer` in EASE and frontEAS
 | 2026-10-07 | No seeding of the experiment (BBOB uses the fixed instance 1), no holdout re-evaluation, no randomized interleaving of runs, no FE budget (the limit is time), out-of-bounds clipping and `func` calls as in `Runner`, imports via `test.pimports`; baseline algorithms will be added, not decided yet | Agreed; the paper draft has to be adapted. |
 | 2026-10-07 | Summary moved from the evaluator to the Analysis module `anal.historysummary`; all texts (prompts, templates, schema, formats) are module parameters editable in frontEASE; preamble and closing instruction moved to the repeated message | Modular setup (summarizer configured as an analysis with its own LLM); experiment texts not hard-coded. |
 | 2026-10-08 | Local models via the CERIT-SC AI-as-a-Service API (e-INFRA CZ, OpenAI compatible, `https://llm.ai.e-infra.cz/v1`): new connector `llm.cerit` = copy of `llm.openai` with `base_url` and `timeout` (1800 s, the service limits non-streaming requests to 30 min) parameters; models in `available_models.json` (editable in frontEASE) | Same library as OpenAI, different base URL and models. |
+| 2026-10-08 | Smoke Tasks are created through the core REST API by `tools/create_smoke_tasks.py` (run inside the core container, API keys from environment variables; all 9 cells available, default 3 cells × 3 valid iterations × 3 runs × 5 s); frontEASE imports them by `InitialTaskSyncJob` (author = e-mail of the frontEASE user) | Reproducible smoke test without pickled files or keys in files. |
+| 2026-10-08 | Usage of the LLM calls of an iteration is recorded even when the analysis fails (summary failure) | The failed calls were paid for. |
+| 2026-10-08 | Duplicate stopping condition `stop.condmaxvaliditers` removed; the existing `stop.condvaliditers` is used | Same behaviour already existed in the core. |
 | 2026-10-07 | BBOB via the official COCO implementation `cocoex.BareProblem` (any dimension), replacing IOHexperimenter | Official implementation in D=30; identical values to ioh (max rel. diff 1e-11). |
 
 ## EASE setup of one experiment cell (2026-10-07)
@@ -52,7 +55,7 @@ parameters (defaults = adapted paper-draft prompts) and can be overwritten in fr
 | Tests | `test.psyntax`, `test.pimports` (+ `test.meta`) |
 | Evaluator | `eval.papercontextsummarizer`: `code_context` none / last_best / all, `function`, `time`=30, `fitness_stat`=mean; texts `code_block`, `code_record`, `error_msg`, `id_format`, `score_format`, `escape_tags` |
 | Analysis | `anal.historysummary` (only in the 6 summary cells): `summary_type` free / structured, `llm` = summarizer (same model or local), `iterations`=10, `repairs`=2; texts `prompt_free`, `prompt_structured`, `structured_schema` (JSON field types, used for the prompt and the validation), `history_record`, `repair_prompt_*`, `summary_block_*`, `score_line`, `score_field`, `id_format`, `score_format`, `escape_tags` |
-| Stopping | `stop.condmaxvaliditers`=10, `stop.condconsecutiveinvalid` |
+| Stopping | `stop.condvaliditers`=10, `stop.condconsinvaliditers` |
 | Task | `max_context_size`=0, no system message, initial message = P0, feedback from solution on |
 
 Message to the generator = repeated message + evaluator feedback (code block) + analysis feedback (summary block).

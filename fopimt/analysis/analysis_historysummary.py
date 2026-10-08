@@ -156,6 +156,12 @@ DEFAULT_BLOCK_STRUCTURED = """<SUMMARY_CONTEXT format="structured_json">
 class SummaryFailure(Exception):
     """The summarizer did not produce a valid summary even after the permitted repair attempts."""
 
+    def __init__(self, message: str, llm_calls: list[dict] | None = None):
+        super().__init__(message)
+        self.llm_calls = (
+            llm_calls or []
+        )  # usage of the failed attempts, recorded by the Task
+
 
 class AnalysisHistorySummary(Analysis):
     """
@@ -212,7 +218,7 @@ class AnalysisHistorySummary(Analysis):
             "iterations": txt(
                 "iterations",
                 "Valid iterations",
-                "Number of valid algorithms per repetition (same as stop.condmaxvaliditers). No summary is generated "
+                "Number of valid algorithms per repetition (same as stop.condvaliditers). No summary is generated "
                 "after the last one, because it would never be used.",
                 10,
                 PrimitiveType.int,
@@ -488,7 +494,8 @@ class AnalysisHistorySummary(Analysis):
         else:
             raise SummaryFailure(
                 f"Summary failure ({self._summary_type}) after {self._repairs} repair attempts: "
-                + " | ".join(diagnostics)
+                + " | ".join(diagnostics),
+                llm_calls,
             )
 
         scores = [format_score(score, self._score_format) for _, score in self._history]
