@@ -37,6 +37,7 @@ Science Review 63 (2027) 101079). Branch `paper/summarizer` in EASE and frontEAS
 | 2026-10-07 | Structured summary validated analytically (one JSON object, keys, types, ids and iterations in chronological order); at most 2 repair requests (original input + invalid summary + diagnostic); then the repetition stops (summary failure). Free summary: only non-empty. | Paper draft. |
 | 2026-10-07 | No seeding of the experiment (BBOB uses the fixed instance 1), no holdout re-evaluation, no randomized interleaving of runs, no FE budget (the limit is time), out-of-bounds clipping and `func` calls as in `Runner`, imports via `test.pimports`; baseline algorithms will be added, not decided yet | Agreed; the paper draft has to be adapted. |
 | 2026-10-07 | Summary moved from the evaluator to the Analysis module `anal.historysummary`; all texts (prompts, templates, schema, formats) are module parameters editable in frontEASE; preamble and closing instruction moved to the repeated message | Modular setup (summarizer configured as an analysis with its own LLM); experiment texts not hard-coded. |
+| 2026-10-08 | Local models via the CERIT-SC AI-as-a-Service API (e-INFRA CZ, OpenAI compatible, `https://llm.ai.e-infra.cz/v1`): new connector `llm.cerit` = copy of `llm.openai` with `base_url` and `timeout` (1800 s, the service limits non-streaming requests to 30 min) parameters; models in `available_models.json` (editable in frontEASE) | Same library as OpenAI, different base URL and models. |
 | 2026-10-07 | BBOB via the official COCO implementation `cocoex.BareProblem` (any dimension), replacing IOHexperimenter | Official implementation in D=30; identical values to ioh (max rel. diff 1e-11). |
 
 ## EASE setup of one experiment cell (2026-10-07)
@@ -173,3 +174,9 @@ Still to change so that the draft matches the experiment:
 
 - [ ] Smoke test against real LLM APIs (OpenAI, Anthropic, Google, Ollama) to verify provider usage fields and the
       usage ledger – waiting for API keys.
+- [x] CERIT (`llm.cerit`): real model IDs checked 2026-10-08 via `GET /v1/models`; `available_models.json` lists the
+      concrete chat models only (no embeddings, rerankers, Whisper, and no aliases such as `mini`, `coder`,
+      `thinker`, `glm`, `kimi`, `deepseek`, `auto-llm`, which may point to different models over time).
+- [x] CERIT: chat completion responses contain `usage` (checked 2026-10-08: prompt/completion tokens, cached and
+      created cache tokens). `reasoning_tokens` is reported as 0 even for reasoning models; the reasoning is included
+      in `completion_tokens`, so the billed output is correct but the reasoning share is not available.

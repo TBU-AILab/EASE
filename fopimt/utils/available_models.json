@@ -73,5 +73,25 @@
         "gemini-2.5-pro"
       ]
     }
+  ],
+  "llm.cerit": [
+    {
+      "url": "https://llm.ai.e-infra.cz/v1/models",
+      "models": [
+        "gpt-oss-120b",
+        "deepseek-v4.1-flash",
+        "deepseek-v4.1-flash-thinking",
+        "glm-5.3",
+        "glm-5",
+        "kimi-k3",
+        "qwen3.8-27b",
+        "qwen3.8-flash-next",
+        "qwen3.5",
+        "qwen3.5-int4",
+        "mistral-medium-3.5",
+        "command-a",
+        "gemma4"
+      ]
+    }
   ]
 }
