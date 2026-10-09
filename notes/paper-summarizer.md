@@ -43,6 +43,8 @@ Science Review 63 (2027) 101079). Branch `paper/summarizer` in EASE and frontEAS
 | 2026-10-08 | Duplicate stopping condition `stop.condmaxvaliditers` removed; the existing `stop.condvaliditers` is used | Same behaviour already existed in the core. |
 | 2026-10-08 | `llm.cerit`: response cache of the service (LiteLLM proxy) disabled per request (`cache: {no-cache, no-store}`, parameter `disable_cache`, default on) | Smoke test: in `nocontext` iterations 2 and 3 got a byte-identical algorithm (identical tokens, 0.1 s response) – identical requests were answered from the cache, which would make repetitions dependent. |
 | 2026-10-08 | Task: the same message is never sent twice in one request. Fixes P0 sent twice in the first request (no system message, `max_context_size` = 0; ~400 input tokens per repetition) and the system message sent twice when the history window reaches the beginning (system message with `max_context_size` 1–3). Verified on all combinations of system message × `max_context_size` ∈ {0, 1, 2, 3, unlimited}: only the duplicates were removed. | Requested; differs from the previous experiment only by the removed duplicate. |
+| 2026-10-09 | Generators: **G1 = `claude-opus-5-5`** (Anthropic, phase 1; $4/$20 per 1M tokens), **G2 = `gpt-6.1-sol`** (OpenAI; $2/$10), **G3 = `gemini-3.8-flash`** (Google; $0.75/$3.75 until 2026-12-31, then $1.50/$7.50). S2 local summarizer = `llm.cerit` / `kimi-k3` (Moonshot Kimi K3, 2.8T MoE, 1M context, 48k output, fp8). Exact model names, no aliases. Provider defaults for all inference settings (Opus 5.5: adaptive thinking always on, effort `medium`; no server-side `fallbacks`, so a refusal is an invalid attempt and the model never changes). | Chosen by the user. Note: CERIT exact names are retired when a model is replaced – a replacement during the experiment would require a decision (aliases are not used because they would change the model silently). |
+| 2026-10-09 | Model lists in `available_models.json` updated to the current offers (OpenAI GPT-6 family, Anthropic Claude 5.x, Gemini 3.x, CERIT exact names without aliases); default model of the connectors = first model of the list | Lists were outdated (e.g. `gemini-3-pro-preview` of the previous experiment is shut down). |
 | 2026-10-07 | BBOB via the official COCO implementation `cocoex.BareProblem` (any dimension), replacing IOHexperimenter | Official implementation in D=30; identical values to ioh (max rel. diff 1e-11). |
 
 ## EASE setup of one experiment cell (2026-10-07)
@@ -76,6 +78,34 @@ complete Python source code, without Markdown or explanation.*
 The structured-summary check is part of the analysis module (with the repair loop), not a Test module: Tests check
 the generated code before evaluation and a failure makes the algorithm invalid and is reported to the generator,
 whereas a summary failure is not an invalid algorithm and must be repaired by the summarizer.
+
+## Cost estimate (2026-10-09)
+
+Order-of-magnitude estimate of the API cost of **one generator** (45 configurations × 11 repetitions = 495 Tasks),
+including the S1 summarizer (the same model). S2 (CERIT `kimi-k3`) is free of API charges.
+
+Assumptions (from the sizes observed in the smoke tests):
+- generator: ~5 200 calls (4 950 valid algorithms + ~5 % invalid attempts), on average ~5k input and ~5k output tokens
+  per call (output includes reasoning; the `all` context grows to ~15k input tokens at the 10th algorithm);
+- S1 summarizer: 1 782 calls (6 summary configurations × 3 functions × 11 repetitions × 9 summaries), on average
+  ~8k input and ~1.5k output tokens;
+- total ≈ 40M input + 29M output tokens per generator; list prices, no prompt-caching or batch discount.
+Frontier models with long reasoning may produce more output tokens – treat the numbers as an order of magnitude.
+
+| Provider | Model | Price per 1M tokens (input / output) | Estimate per generator |
+|---|---|---|---|
+| OpenAI | `gpt-6-astra` | $10 / $50 | ~$1 840 |
+| OpenAI | **`gpt-6.1-sol` (G2)** | $2 / $10 | ~$370 |
+| OpenAI | `gpt-6-luna` | $0.10 / $0.50 | ~$20 |
+| Anthropic | `claude-fable-5-1` | $10 / $50 | ~$1 840 |
+| Anthropic | **`claude-opus-5-5` (G1)** | $4 / $20 | ~$740 |
+| Anthropic | `claude-sonnet-5-5` | $2 / $10 | ~$370 |
+| Google | **`gemini-3.8-flash` (G3)** | $0.75 / $3.75 (until 2026-12-31), $1.50 / $7.50 (from 2027-01-01) | ~$140 (2026), ~$280 (2027) |
+| Google | `gemini-3.1-pro-preview` | $2 / $12 (prompts ≤ 200k tokens) | ~$430 |
+| CERIT | **`kimi-k3` (S2)** | – | $0 |
+
+Chosen set (G1 + G2 + G3): ≈ **$1 250** (G3 run in 2026) to ≈ $1 390 (G3 run in 2027). Phase 1 (G1 only): ≈ $740.
+Actual costs will be computed from `usage_calls.csv` (billed tokens per call) with the price list valid at the run date.
 
 ## Benchmark selection
 

@@ -38,7 +38,9 @@ class LLMConnectorGoogle(LLMConnector):
                 long_name="LLM model",
                 enum_options=av_models["model_names"],
                 enum_descriptions=av_models["model_longnames"],
-                default="gpt-4o-mini",
+                default=av_models["model_names"][0]
+                if av_models["model_names"]
+                else None,
             ),
         }
 

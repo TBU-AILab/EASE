@@ -41,7 +41,9 @@ class LLMConnectorAnthropic(LLMConnector):
                 long_name="LLM model",
                 enum_options=av_models["model_names"],
                 enum_descriptions=av_models["model_longnames"],
-                default="claude-3-haiku-20240307",
+                default=av_models["model_names"][0]
+                if av_models["model_names"]
+                else None,
             ),
         }
 
