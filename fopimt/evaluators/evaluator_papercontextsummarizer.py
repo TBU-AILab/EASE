@@ -58,35 +58,42 @@ Contract and restrictions:
 - bounds is an array-like object of shape (dim, 2), with one [lower, upper]
   pair per variable.
 - max_time is the maximum permitted wall-clock time in seconds.
-- Access the objective only by calling func. Do not inspect, identify, or
-  make assumptions about its implementation, benchmark name, optimum,
-  gradients, or analytical properties.
+- Access the objective only by calling func.
 - Evaluate only finite vectors inside the supplied bounds.
 - Return the best finite objective value that the algorithm has actually
   observed before max_time expires.
-- Use only NumPy and the Python standard library. Do not use files, the
-  network, subprocesses, or multiprocessing.
-- Do not include benchmark functions, tests, statistical analyses, example
-  executions, Markdown fences, or explanatory prose in the response.
+- The only permitted imports are numpy, math, random, and time. Do not use
+  files, the network, subprocesses, multiprocessing, package installation,
+  operating-system entropy, or any other external state.
+- Use the module-level numpy.random and random generators, which are seeded
+  externally by the evaluator. Do not reseed them or create an unseeded
+  generator.
+- Comment the code: briefly explain the purpose of each main part of the
+  algorithm, the idea behind each mechanism, and the role of its key
+  parameters.
 
 The following minimal random-search example illustrates the required
-interface, not the expected algorithmic quality:
+interface and commenting style, not the expected algorithmic quality:
 
 import time
 import numpy as np
 
 def run(func, dim, bounds, max_time):
+    # Random search: sample uniformly inside the bounds and keep the best value.
     start = time.perf_counter()
-    bounds = np.asarray(bounds, dtype=float)
-    best = float("inf")
+    bounds = np.asarray(bounds, dtype=float)  # shape (dim, 2): [lower, upper]
+    best = float("inf")  # best objective value observed so far
+    # Main loop: run until the time budget is exhausted.
     while time.perf_counter() - start < max_time:
+        # Candidate generation: one uniformly random point inside the box.
         x = np.random.uniform(bounds[:, 0], bounds[:, 1], size=dim)
         value = float(func(x))
+        # Selection: keep the candidate only if it improves the best value.
         if np.isfinite(value) and value < best:
             best = value
     return best
 
-Now produce a substantially more capable optimizer under the same interface
+Now produce an optimizer under the same interface
 and restrictions. Return only its complete Python source code."""
 
 

@@ -13,7 +13,7 @@ finished repetitions (`0/11`) and the Task ids / notes on the line. Decisions an
 | Development score | mean over the 30 runs (`fitness_stat` = mean) |
 | Dimension | D = 30 |
 | Task | `max_context_size` = 0, no system message, initial message = P0 (evaluator default), feedback from solution on |
-| Repeated message | C1: `Generate another optimizer independently.` + closing; other cells: `Improve the optimizer using the evidence below.` + preamble + closing |
+| Repeated message | C1: `Generate an algorithm.`; other cells: `Improve.` (as in the previous experiment) |
 | Tests | `test.psyntax`, `test.pimports` |
 | Summary (`anal.historysummary`) | `iterations` = 10, `repairs` = 2; no summary after the 10th algorithm |
 | CERIT connector | `disable_cache` = on |
