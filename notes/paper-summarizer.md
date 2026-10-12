@@ -12,7 +12,9 @@ Science Review 63 (2027) 101079). Branch `paper/summarizer` in EASE and frontEAS
 - Summarizer: scenario 1 = the same model via a separate API call; scenario 2 = a local model (Ollama).
 - The summary is regenerated from scratch in every iteration over **all valid algorithms so far** (max 10);
   no summary is generated after the last (10th) valid algorithm.
-  The summarizer never sees the scores; the evaluator attaches them after summarization.
+  The summarizer gets the code **and the development score** of every algorithm (since 2026-10-12; before, the
+  scores were attached after summarization). The free-form summarizer decides itself whether and how it reports
+  the scores; the structured one copies them into the field `development_score`.
 - Feedback = code block first, summary block second.
 - Goals: solution quality (primary), token usage (secondary), cost (cashflow) in post-processing.
 - Functions (D=30): GNBG-II f24, CEC 2017 F30, BBOB f24 (see below).
@@ -31,7 +33,7 @@ Science Review 63 (2027) 101079). Branch `paper/summarizer` in EASE and frontEAS
 | 2026-10-07 | The experiment description agreed in the conversation is authoritative; the paper draft is adapted to it | The first paper draft is a draft. |
 | 2026-10-07 | Prompts: taken (approximately) from the paper draft – initial prompt, feedback template (untrusted-context preamble, `<SOURCE_CODE_CONTEXT>` / `<SUMMARY_CONTEXT>` blocks, closing instruction), free and structured summary prompts; parts referring to scores are removed from the summary prompts. Final wording can be adjusted in frontEASE before the experiment. | Single source of prompts for the paper and the experiment. |
 | 2026-10-07 | Code block: complete code + development score (scientific notation `%.6e`) per algorithm; `all` = chronological, `last_best` = last then best | Paper draft serialization. |
-| 2026-10-07 | Scores are attached to the summary deterministically: free = list `A<k>: score` after the summary, structured = field `score` after `iteration` in each record | The summarizer never sees the scores. |
+| 2026-10-07 | ~~Scores are attached to the summary deterministically: free = list `A<k>: score` after the summary, structured = field `score` after `iteration` in each record~~ – **replaced 2026-10-12** (scores go into the summarizer) | The summarizer never sees the scores. |
 | 2026-10-07 | Structured summary schema adapted from the draft without score-dependent fields (no `score`, `strengths/weaknesses_supported_by_results`; synthesis = `design_evolution`, `recurring_mechanisms`, `abandoned_mechanisms`) | Score-dependent fields cannot be filled without scores. |
 | 2026-10-07 | No length limit of summaries | Agreed. |
 | 2026-10-07 | Structured summary validated analytically (one JSON object, keys, types, ids and iterations in chronological order); at most 2 repair requests (original input + invalid summary + diagnostic); then the repetition stops (summary failure). Free summary: only non-empty. | Paper draft. |
@@ -47,7 +49,8 @@ Science Review 63 (2027) 101079). Branch `paper/summarizer` in EASE and frontEAS
 | 2026-10-09 | Model lists in `available_models.json` updated to the current offers (OpenAI GPT-6 family, Anthropic Claude 5.x, Gemini 3.x, CERIT exact names without aliases); default model of the connectors = first model of the list | Lists were outdated (e.g. `gemini-3-pro-preview` of the previous experiment is shut down). |
 | 2026-10-12 | New initial prompt P0 (default of `init_msg_template`, used by the smoke script): text by the user – explicit import allowlist (numpy, math, random, time), externally seeded module-level generators, shorter black-box rule, "Now produce an optimizer …" – plus an instruction to comment the code and a commented random-search example | Requested by the user. Open: the evaluator does not seed the generators and the import allowlist is not enforced (`test.pimports` installs any import). |
 | 2026-10-12 | Repeated message as in the previous experiment: C1 (nocontext) `Generate an algorithm.`, other cells `Improve.`; the untrusted-context preamble and the closing instruction are no longer used | Requested by the user; nocontext has no context, its requests are only P0 + the instruction. |
-| 2026-10-12 | Free summary prompt loosened: no list of required topics (the draft asked to cover the same content as the structured summary), the summarizer decides what to keep, how to present it and how long it is; kept: untrusted-data rule, no scores, refer to the algorithms by their identifiers, no invented performance, no copied code, no new algorithm | The free summary was too similar to the structured one (smoke test); the two conditions should differ in content freedom, not only in format. |
+| 2026-10-12 | Free summary prompt loosened: no list of required topics (the draft asked to cover the same content as the structured summary), the summarizer decides what to keep, how to present it and how long it is; kept: untrusted-data rule, no scores (changed 2026-10-12, see below), refer to the algorithms by their identifiers, no invented performance, no copied code, no new algorithm | The free summary was too similar to the structured one (smoke test); the two conditions should differ in content freedom, not only in format. |
+| 2026-10-12 | **Development scores go into the summarizer** – replaces the 2026-10-07 attachment of scores after summarization. The history sent to the summarizer has `<DEVELOPMENT_SCORE>` in every record (same serialization `%.6e` as in the code block). Free: the summarizer decides whether and how it uses or reports the scores; no score list is appended to the summary (`summary_block_free` = summary only; parameter `score_line` removed). Structured: new schema field type `score`, field `"development_score": "<string>"` directly after `algorithm_id`; the validator requires the exact input string (wrong or missing score → repair request); parameter `score_field` removed. Logged only: `scores_verbatim` = number of scores copied verbatim into a free summary. The other schema fields are unchanged (no score-dependent fields such as strengths/weaknesses). | Requested by the user: the summarizer sees the same evidence as the generator in the code block (code + score as one unit) and the free form keeps full freedom including the scores. Consequence: in `sum` (no code block) the generator may get no scores at all if the free summary omits them – part of the summary policy, measurable via `scores_verbatim`; a summarizer may also misreport a score in the free form (cannot be validated). |
 | 2026-10-07 | BBOB via the official COCO implementation `cocoex.BareProblem` (any dimension), replacing IOHexperimenter | Official implementation in D=30; identical values to ioh (max rel. diff 1e-11). |
 
 ## EASE setup of one experiment cell (2026-10-07)
@@ -61,7 +64,7 @@ parameters (defaults = adapted paper-draft prompts) and can be overwritten in fr
 | Solution | `sol.codepython` |
 | Tests | `test.psyntax`, `test.pimports` (+ `test.meta`) |
 | Evaluator | `eval.papercontextsummarizer`: `code_context` none / last_best / all, `function`, `time`=30, `fitness_stat`=mean; texts `code_block`, `code_record`, `error_msg`, `id_format`, `score_format`, `escape_tags` |
-| Analysis | `anal.historysummary` (only in the 6 summary cells): `summary_type` free / structured, `llm` = summarizer (same model or local), `iterations`=10, `repairs`=2; texts `prompt_free`, `prompt_structured`, `structured_schema` (JSON field types, used for the prompt and the validation), `history_record`, `repair_prompt_*`, `summary_block_*`, `score_line`, `score_field`, `id_format`, `score_format`, `escape_tags` |
+| Analysis | `anal.historysummary` (only in the 6 summary cells): `summary_type` free / structured, `llm` = summarizer (same model or local), `iterations`=10, `repairs`=2; texts `prompt_free`, `prompt_structured`, `structured_schema` (JSON field types, used for the prompt and the validation), `history_record` (with the development score), `repair_prompt_*`, `summary_block_*`, `id_format`, `score_format`, `escape_tags` |
 | Stopping | `stop.condvaliditers`=10, `stop.condconsinvaliditers` |
 | Task | `max_context_size`=0, no system message, initial message = P0, feedback from solution on |
 
@@ -194,6 +197,10 @@ records, FE cap 10^6), repetition-best score as the primary outcome, token accou
 removed: holdout, preregistration, randomized interleaving, seed banks, watchdog/isolated process, +inf for
 out-of-bounds, vectorized calls, model-identity and finish-reason checks, compatibility pilot, sensitivity analysis,
 named baselines (CMA-ES, jSO, DE); workflow figure without holdout.
+
+2026-10-12: examples of assembled feedback messages added (Boxes 1–4, as Box 3 of the previous paper); then the
+paper was switched to development scores in the summarizer input (no attached score list; structured field
+`development_score`; Boxes regenerated from the module defaults).
 
 Still open in the paper: P0 says the generators are "seeded externally by the evaluator" and lists an import
 allowlist, while the evaluator does not seed and does not enforce the allowlist (`test.pimports`); the statistical

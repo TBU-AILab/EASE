@@ -8,6 +8,7 @@ import json
 # Field types of a structured-summary schema
 #   "id"        algorithm identifier (string, must match the input record)
 #   "iteration" iteration number (integer, must match the input record)
+#   "score"     development score (string, must match the input record exactly)
 #   "string"    string
 #   "integer"   integer
 #   "list"      list of strings
@@ -17,6 +18,7 @@ import json
 FIELD_PLACEHOLDERS = {
     "id": "<string>",
     "iteration": 0,
+    "score": "<string>",
     "string": "<string>",
     "integer": 0,
     "list": ["<string>"],
@@ -116,7 +118,7 @@ def _check_fields(obj, fields: dict, where: str) -> str:
             err = _check_fields(value, kind, f'{where}["{key}"]')
             if err:
                 return err
-        elif kind in ("string", "id") and not isinstance(value, str):
+        elif kind in ("string", "id", "score") and not isinstance(value, str):
             return f'{where}["{key}"] must be a string.'
         elif kind in ("integer", "iteration") and (
             not isinstance(value, int) or isinstance(value, bool)
@@ -130,13 +132,13 @@ def _check_fields(obj, fields: dict, where: str) -> str:
 
 
 def validate_structured_summary(
-    content: str, schema: dict, records: list[tuple[str, int]]
+    content: str, schema: dict, records: list[tuple[str, int, str]]
 ) -> tuple[dict | None, str]:
     """
     Deterministic validation of a structured summary against the schema.
     :param content: Raw summarizer response.
     :param schema: Parsed schema (parse_schema).
-    :param records: Expected (algorithm_id, iteration) pairs in chronological order.
+    :param records: Expected (algorithm_id, iteration, development score) in chronological order.
     :return: (parsed summary, "") if valid, otherwise (None, diagnostic).
     """
     text = content.strip()
@@ -176,7 +178,8 @@ def validate_structured_summary(
             )
         id_key = next(k for k, v in fields.items() if v == "id")
         it_key = next((k for k, v in fields.items() if v == "iteration"), None)
-        for i, (item, (alg_id, iteration)) in enumerate(zip(items, records)):
+        score_key = next((k for k, v in fields.items() if v == "score"), None)
+        for i, (item, (alg_id, iteration, score)) in enumerate(zip(items, records)):
             err = _check_fields(item, fields, f'"{key}"[{i}]')
             if err:
                 return None, err
@@ -187,25 +190,10 @@ def validate_structured_summary(
                     f'"{key}"[{i}] must describe algorithm "{alg_id}" (iteration {iteration}); '
                     "one item per input record, in chronological order."
                 )
+            if score_key is not None and item[score_key] != score:
+                return None, (
+                    f'"{key}"[{i}]["{score_key}"] must be "{score}", the development score of algorithm '
+                    f'"{alg_id}" copied exactly from the input.'
+                )
     return data, ""
 
-
-def attach_scores(
-    data: dict, schema: dict, scores: list[str], score_field: str
-) -> dict:
-    """Inserts the scores into the per-algorithm records, right after the iteration (or id) field."""
-    for key, fields in schema.items():
-        if not _is_record_list(fields):
-            continue
-        anchor = next((k for k, v in fields.items() if v == "iteration"), None) or next(
-            k for k, v in fields.items() if v == "id"
-        )
-        for item, score in zip(data[key], scores):
-            ordered = {}
-            for k, v in item.items():
-                ordered[k] = v
-                if k == anchor:
-                    ordered[score_field] = score
-            item.clear()
-            item.update(ordered)
-    return data
