@@ -181,29 +181,24 @@ f* is taken from `best_value()`. `evaluate()` returns f(x) − f(x*).
 - Error scales differ (random search: ~10^2 on GNBG f24, ~10^8 on CEC F30); cross-function analysis needs
   normalization or ranks.
 
-## Paper draft – required changes (first draft, 2026-10-07)
+## Paper draft – status
 
-Done in the draft (sent 2026-10-07): empirical-difficulty paragraph + Table `tab:cec-difficulty` (CEC 2024–2026
-results, COCO best09-16 ERT); BBOB D=30 via `cocoex.BareProblem`; bib entries `hansen2021coco`, `suganthan2026cec`.
+2026-10-12: the draft (`Paper_Context_Summarizer (2).zip`) was updated to the experiment as implemented
+(`Paper_Context_Summarizer (3).zip`): models (Opus 5.5, GPT-6.1 Sol, Gemini 3.8 Flash; Kimi K3 for S2), summarizer
+scenarios S1/S2 (abstract, highlights, introduction, RQ4, design, counts: 1 485 chains, 14 850 algorithms,
+10 692 summary calls, 445 500 runs), current prompts (P0, `Generate an algorithm.` / `Improve.`, code and summary
+blocks, free and structured summary prompts without scores), scores attached after summarization, summary validation
+as implemented, invalid-algorithm handling as implemented (syntax/import/execution, diagnostic to the model), `last_best`
+duplicates, evaluation as implemented (no seeds, time limit enforced by the objective wrapper, clipping, run-level
+records, FE cap 10^6), repetition-best score as the primary outcome, token accounting, benchmark verification;
+removed: holdout, preregistration, randomized interleaving, seed banks, watchdog/isolated process, +inf for
+out-of-bounds, vectorized calls, model-identity and finish-reason checks, compatibility pilot, sensitivity analysis,
+named baselines (CMA-ES, jSO, DE); workflow figure without holdout.
 
-Still to change so that the draft matches the experiment:
-- Summary inputs and prompts: the summarizer does **not** see scores (draft: records contain scores, free prompt asks
-  about score-associated mechanisms, structured schema has `score`, `strengths/weaknesses_supported_by_results`,
-  `best_score`, ...); scores are attached by the evaluator afterwards; use the adapted prompts/schema from the code.
-- Structured-summary validation: no "scores equal to the serialized input scores" check.
-- `last_best`: the same algorithm is sent twice when last = best (draft: one record `role="last_and_best"`).
-- Remove the holdout re-evaluation (R_test, q_test, 26,730 / 294,030 executions); the primary outcome is based on
-  the development runs.
-- Remove seeding (seed banks, externally seeded generators in the initial prompt, OS-entropy rule).
-- Remove the randomized interleaved block order.
-- Time limit: not a hard watchdog/isolated process – the evaluator stops a run when the algorithm evaluates the
-  function after the limit; runtimes are recorded.
-- Out-of-bounds candidates are clipped to the bounds (as in the previous study), not +inf; vectorized calls are not
-  supported.
-- Imports: no strict allowlist (imports handled by `test.pimports`).
-- Summarizer: add scenario 2 with a local model; models run step by step (one generator first).
-- Baseline algorithms: not decided yet.
-- Summary calls: 9 per repetition (no summary after the 10th algorithm) – consistent with the draft.
+Still open in the paper: P0 says the generators are "seeded externally by the evaluator" and lists an import
+allowlist, while the evaluator does not seed and does not enforce the allowlist (`test.pimports`); the statistical
+plan (primary outcome = repetition-best score, planned contrasts, Holm) and the human summary audit were kept from
+the draft and need the authors' confirmation; baselines are not decided.
 
 ## Open TODOs
 
