@@ -1,5 +1,6 @@
 import copy
 import logging
+import math
 
 import numpy as np
 import pandas as pd
@@ -23,6 +24,10 @@ from .evaluator import Evaluator, EvaluatorResult
 CODE_CONTEXTS = ["none", "last_best", "all"]
 FITNESS_STATS = ["mean", "min", "median"]
 FUNCTIONS = ["resource.gnbg.f_24", "resource.cec2017.f_30", "resource.bbob.f_24"]
+# file name of the evaluated code in tracebacks (used to point the error feedback to a line of the solution)
+SOLUTION_FILE = "solution_to_evaluate.py"
+# run terminations that make the algorithm invalid (an error of the generated code)
+FAILED_TERMINATIONS = ("exception", "dim_error")
 
 DEFAULT_ESCAPE_TAGS = (
     "SOURCE_CODE_CONTEXT, SOURCE_CODE, DEVELOPMENT_SCORE, ALGORITHM_HISTORY, ALGORITHM, SUMMARY_CONTEXT, "
@@ -145,6 +150,14 @@ class EvaluatorPaperContextSummarizer(Evaluator):
                 description="Number of independent runs per algorithm. 0 = use the value of the benchmark resource.",
                 default=0,
             ),
+            "max_fes": Parameter(
+                short_name="max_fes",
+                type=PrimitiveType.int,
+                long_name="Max evaluations",
+                description="Maximum number of objective-function evaluations per run. 0 = unlimited (only the time "
+                "limit applies; the cap of the benchmark resource is not used).",
+                default=0,
+            ),
             "fitness_stat": Parameter(
                 short_name="fitness_stat",
                 type=PrimitiveType.enum,
@@ -236,6 +249,7 @@ class EvaluatorPaperContextSummarizer(Evaluator):
         self._fitness_stat = param("fitness_stat")
         self._max_time = int(param("time"))
         self._runs = int(param("runs"))
+        self._max_fes = int(param("max_fes"))
         self._code_block = param("code_block")
         self._code_record = param("code_record")
         self._id_format = param("id_format")
@@ -267,11 +281,15 @@ class EvaluatorPaperContextSummarizer(Evaluator):
     ) -> EvaluatorResult:
         """
         Evaluates the algorithm on the benchmark function and composes the source-code context.
-        Solutions that cannot be executed are marked as invalid (metadata 'invalid') and not added to the history.
+        Solutions that cannot be executed are marked as invalid (metadata 'invalid') and not added to the history:
+        the code cannot be loaded, a run raises an exception (or passes a vector of a wrong dimension), or a run
+        does not evaluate the function at all. The remaining runs are skipped after the first failed run.
         """
         try:
             algorithm = self._load_algorithm(solution)
-            new_row, exceptions = self._process_function(self.function, algorithm)
+            new_row, exceptions, failure = self._process_function(
+                self.function, algorithm, solution.get_input()
+            )
         except Exception as e:
             logging.error(
                 "Evaluator:PaperContextSummarizer: Error during solution evaluation: "
@@ -279,14 +297,11 @@ class EvaluatorPaperContextSummarizer(Evaluator):
             )
             return self._invalid(solution, repr(e))
 
-        if any(f is None for f in new_row["Result_fitness"]):
-            # At least one run did not evaluate the function at all (e.g. crashed immediately)
-            reasons = [v for exc in exceptions[1] for v in exc.values() if v]
-            return self._invalid(
-                solution,
-                "; ".join(map(str, reasons))
-                or "Algorithm did not evaluate the function.",
+        if failure is not None:
+            logging.error(
+                "Evaluator:PaperContextSummarizer: Invalid algorithm: " + failure
             )
+            return self._invalid(solution, failure)
 
         fitness = float(new_row[self._fitness_stat.capitalize()])
         solution.set_fitness(fitness)
@@ -362,8 +377,8 @@ class EvaluatorPaperContextSummarizer(Evaluator):
             for module_name, specific_part, alias in solution.get_metadata()["modules"]:
                 dynamic_import(module_name, specific_part, alias, exec_globals)
 
-        compile(solution.get_input(), "solution_to_evaluate.py", "exec")
-        exec(solution.get_input(), exec_globals, local_scope)
+        code = compile(solution.get_input(), SOLUTION_FILE, "exec")
+        exec(code, exec_globals, local_scope)
 
         # Merge exec_globals and exec_locals to ensure functions can access each other
         combined_scope = {**exec_globals, **local_scope}
@@ -431,22 +446,35 @@ class EvaluatorPaperContextSummarizer(Evaluator):
         best["evals_total"] = result.get("evals")
         best["runtime_s"] = result.get("runtime_s")
         best["termination"] = result.get("termination")
+        best["error"] = result.get("error")
+        best["error_frames"] = result.get("error_frames")
+        best["dimexception"] = result.get("dimexception")
+        best["unexpectedexception"] = result.get("unexpectedexception")
         return best, exception_array
 
-    def _process_function(self, fdict, algorithm):
+    def _process_function(self, fdict, algorithm, source: str = ""):
+        """
+        Runs the algorithm; stops after the first failed run.
+        :return: (results row, exceptions, failure description or None)
+        """
         func = fdict["func"]
         dim = fdict["dim"]
         runs = fdict["runs"]
-        max_fes = fdict["max_fes"]
+        # 0 = unlimited evaluations, only the time limit applies
+        max_fes = self._max_fes if self._max_fes > 0 else math.inf
 
         result_array = []
         exception_array = []
+        failure = None
         for run in range(runs):
             result, exceptions_a = self._process_run(
                 algorithm, run, func, dim, max_fes, self._max_time
             )
             result_array.append(result)
             exception_array.extend(exceptions_a)
+            failure = self._run_failure(result, run, runs, source)
+            if failure is not None:
+                break
 
         fitness = [res["fitness"] for res in result_array]
         valid = [f for f in fitness if f is not None]
@@ -454,7 +482,7 @@ class EvaluatorPaperContextSummarizer(Evaluator):
             "Function": str(func),
             "Dimension": dim,
             "Runs": runs,
-            "Max_fes": max_fes,
+            "Max_fes": self._max_fes if self._max_fes > 0 else None,
             "Max_time": self._max_time,
             "Result_fitness": fitness,
             "Result_params": [res["params"] for res in result_array],
@@ -469,7 +497,28 @@ class EvaluatorPaperContextSummarizer(Evaluator):
             "Median": float(np.median(valid)) if valid else None,
             "STD": float(np.std(valid)) if valid else None,
         }
-        return new_row, [str(func), exception_array]
+        return new_row, [str(func), exception_array], failure
+
+    @staticmethod
+    def _run_failure(result: dict, run: int, runs: int, source: str) -> str | None:
+        """Description of a failed run (an error of the generated code) for the error feedback, None if it is OK."""
+        termination = result.get("termination")
+        if termination in FAILED_TERMINATIONS:
+            if termination == "dim_error":
+                reason = result.get("dimexception") or "wrong dimension of the evaluated vector"
+            else:
+                reason = result.get("error") or result.get("unexpectedexception")
+                # the deepest frame inside the generated code: line number and its source
+                lines = source.splitlines()
+                frames = [f for f in result.get("error_frames", []) if f[0] == SOLUTION_FILE]
+                if frames:
+                    _, lineno, name = frames[-1]
+                    code_line = lines[lineno - 1].strip() if 0 < lineno <= len(lines) else ""
+                    reason += f" (line {lineno}, in {name}: {code_line})"
+            return f"Run {run + 1} of {runs} failed: {reason}"
+        if result.get("fitness") is None:
+            return f"Run {run + 1} of {runs}: the algorithm did not evaluate the function."
+        return None
 
     def _check_if_best(self, solution: Solution) -> bool:
         """

@@ -9,7 +9,7 @@ finished repetitions (`0/11`) and the Task ids / notes on the line. Decisions an
 |---|---|
 | Repetitions per configuration | 11 |
 | Valid algorithms per repetition | 10 (`stop.condvaliditers` = 10, `stop.condconsinvaliditers` = 5) |
-| Runs per algorithm / time limit | 30 runs × 30 s (`runs` = 0 → resource default 30, `time` = 30) |
+| Runs per algorithm / time limit | 30 runs × 30 s (`runs` = 0 → resource default 30, `time` = 30), no evaluation cap (`max_fes` = 0) |
 | Development score | mean over the 30 runs (`fitness_stat` = mean) |
 | Dimension | D = 30 |
 | Task | `max_context_size` = 0, no system message, initial message = P0 (evaluator default), feedback from solution on |

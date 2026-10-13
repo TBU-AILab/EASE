@@ -1,5 +1,6 @@
 import logging
 import time
+import traceback
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -121,6 +122,12 @@ class Runner:
             data["unexpectedexception"] = (
                 f"Algorithm {self._a.__module__} raised unexpected exception {e} on function = {self._func}."
             )
+            # exception type and message + traceback frames (file, line, function) for the error feedback
+            data["error"] = f"{type(e).__name__}: {e}"
+            data["error_frames"] = [
+                (fr.filename, fr.lineno, fr.name)
+                for fr in traceback.extract_tb(e.__traceback__)
+            ]
             termination = "exception"
         # Wall-clock duration of the run. The time limit is enforced only when the algorithm evaluates the function,
         # so the duration may exceed max_time (e.g. computation without evaluations after the limit).
