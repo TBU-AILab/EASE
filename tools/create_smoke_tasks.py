@@ -138,6 +138,7 @@ def task_config(args, cell: str, tokens=None) -> dict:
                 "function": args.function,
                 "time": args.time,
                 "runs": args.runs,
+                "max_fes": getattr(args, "max_fes", 0),
                 "fitness_stat": "mean",
             },
         },
@@ -252,6 +253,12 @@ def main(argv=None) -> list[str]:
     parser.add_argument("--runs", type=int, default=3, help="Runs per algorithm.")
     parser.add_argument(
         "--time", type=int, default=5, help="Time limit of one run [s]."
+    )
+    parser.add_argument(
+        "--max-fes",
+        type=int,
+        default=0,
+        help="Maximum objective-function evaluations per run (0 = unlimited).",
     )
     parser.add_argument("--name-prefix", default="SMOKE")
     parser.add_argument(
