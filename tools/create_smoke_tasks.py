@@ -123,7 +123,7 @@ def connector(
     }
 
 
-def task_config(args, cell: str, tokens=None) -> dict:
+def task_config(args, cell: str, tokens=None, name: str | None = None) -> dict:
     code_context, summary_type = CELLS[cell]
     generator = connector(args.provider, args.model, tokens, args.token)
     modules = [
@@ -174,7 +174,8 @@ def task_config(args, cell: str, tokens=None) -> dict:
         "response"
     )
     return {
-        "name": f"{args.name_prefix} {cell} | {args.provider}:{model_name} | {args.function}",
+        "name": name
+        or f"{args.name_prefix} {cell} | {args.provider}:{model_name} | {args.function}",
         "author": args.author,
         "max_context_size": 0,
         "feedback_from_solution": True,

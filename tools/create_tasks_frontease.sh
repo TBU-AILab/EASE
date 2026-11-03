@@ -29,11 +29,5 @@ fi
 # one line per token and connector type: connector_type<TAB>name<TAB>token (by priority)
 docker compose exec -T postgres sh -c \
     'psql -U "$POSTGRES_USER" -d FrontEASE -X -q -A -t -F "$(printf "\t")" -v ON_ERROR_STOP=1 -v email="$1" -f -' \
-    sh "$EMAIL" <<'SQL' | docker compose exec -T backend-core python "tools/$SCRIPT" --tokens-stdin --author "$EMAIL" "$@"
-SELECT ct."ConnectorType", t."Name", t."Token"
-FROM "Data"."UserPreferenceTokens" t
-JOIN "Data"."UserPreferenceTokenConnectorTypes" ct ON ct."TokenOptionID" = t."ID"
-JOIN "Auth"."Users" u ON u."UserPreferencesID" = t."UserPreferencesID"
-WHERE u."NormalizedEmail" = upper(:'email')
-ORDER BY ct."ConnectorType", t."Priority", t."Name";
-SQL
+    sh "$EMAIL" < "$(dirname "$0")/frontease_tokens.sql" |
+    docker compose exec -T backend-core python "tools/$SCRIPT" --tokens-stdin --author "$EMAIL" "$@"

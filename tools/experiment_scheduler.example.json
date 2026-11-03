@@ -1,0 +1,20 @@
+{
+  "author": "you@utb.cz",
+  "max_concurrent": 4,
+  "max_retries": 2,
+  "stuck_hours": 4,
+  "report_time": "08:00",
+  "timezone": "Europe/Prague",
+  "alert_interval_minutes": 60,
+  "archive_dir": "experiment/archive",
+  "archive_target": "/mnt/nas/PaperSummarizer/tasks",
+  "smtp": {
+    "host": "smtp.example.com",
+    "port": 587,
+    "security": "starttls",
+    "username": "user",
+    "password": "secret",
+    "from": "ease-scheduler@example.com"
+  },
+  "recipients": ["you@utb.cz"]
+}

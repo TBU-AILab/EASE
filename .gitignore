@@ -526,3 +526,5 @@ FodyWeavers.xsd
 *.sln.iml
 
 # End of merged .gitignore
+# Runtime files of tools/experiment_scheduler.py (state, configuration with SMTP password, archive, logs)
+experiment/

@@ -1,0 +1,34 @@
+{
+  "name": "context-summarizer",
+  "description": "Catalog of the experiment of the context-summarizer paper (notes/experiment-checklist.md). Work is started in batches with `experiment_scheduler.py enqueue`.",
+  "task_name": "SUM | {generator} | {function} | {cell} | {scenario} | rep {rep:02d}",
+  "repetitions": 11,
+  "iterations": 10,
+  "runs": 30,
+  "time": 30,
+  "generators": {
+    "G1": {"provider": "anthropic", "model": "claude-opus-5-5", "token": null},
+    "G2": {"provider": "openai", "model": "gpt-6.1-sol", "token": null},
+    "G3": {"provider": "google", "model": "gemini-3.8-flash", "token": null}
+  },
+  "functions": {
+    "F1": "resource.gnbg.f_24",
+    "F2": "resource.cec2017.f_30",
+    "F3": "resource.bbob.f_24"
+  },
+  "cells": {
+    "C1": "nocontext",
+    "C2": "sum",
+    "C3": "sum_structured",
+    "C4": "all",
+    "C5": "all+sum",
+    "C6": "all+sum_structured",
+    "C7": "last_best",
+    "C8": "last_best+sum",
+    "C9": "last_best+sum_structured"
+  },
+  "scenarios": {
+    "S1": null,
+    "S2": {"provider": "cerit", "model": "kimi-k3", "token": null}
+  }
+}
