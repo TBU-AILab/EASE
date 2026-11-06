@@ -7,7 +7,7 @@
   "runs": 30,
   "time": 30,
   "generators": {
-    "G1": {"provider": "anthropic", "model": "claude-opus-5-5", "token": null},
+    "G1": {"provider": "anthropic", "model": "claude-opus-5-5", "token": "Claude"},
     "G2": {"provider": "openai", "model": "gpt-6.1-sol", "token": null},
     "G3": {"provider": "google", "model": "gemini-3.8-flash", "token": null}
   },
