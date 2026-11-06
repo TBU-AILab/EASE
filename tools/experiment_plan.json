@@ -29,6 +29,6 @@
   },
   "scenarios": {
     "S1": null,
-    "S2": {"provider": "cerit", "model": "kimi-k3", "token": null}
+    "S2": {"provider": "cerit", "model": "kimi-k3.1-pro", "token": null}
   }
 }

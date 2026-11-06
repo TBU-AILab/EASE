@@ -26,9 +26,10 @@ Task name pattern: `SUM | <G> | <F> | <cell> | <S> | rep <nn>` (e.g. `SUM | G1 |
 - [x] G2 = `llm.openai` / `gpt-6.1-sol` (GPT-6.1 Sol)
 - [x] G3 = `llm.google` / `gemini-3.8-flash` (Gemini 3.8 Flash)
 - [x] S1 summarizer = the generator model itself (G1 → `claude-opus-5-5`, G2 → `gpt-6.1-sol`, G3 → `gemini-3.8-flash`), separate API call
-- [x] S2 local summarizer = `llm.cerit` / `kimi-k3` (Kimi K3, CERIT-SC; `disable_cache` on)
+- [x] S2 local summarizer = `llm.cerit` / `kimi-k3.1-pro` (Kimi K3.1 Pro, CERIT-SC; `disable_cache` on)
 
-Summarizer scenarios: **S1** = the same model as the generator (separate API call), **S2** = local model `kimi-k3` (CERIT).
+Summarizer scenarios: **S1** = the same model as the generator (separate API call), **S2** = local model
+`kimi-k3.1-pro` (CERIT).
 Cells without a summary (C1, C4, C7) are run only once (they do not depend on the summarizer).
 
 ## Size
@@ -48,7 +49,7 @@ Cells without a summary (C1, C4, C7) are run only once (they do not depend on th
 - [ ] Smoke test of G1 `claude-opus-5-5` (API key, usage fields in `usage_calls.csv`)
 - [ ] Smoke test of G2 `gpt-6.1-sol`
 - [ ] Smoke test of G3 `gemini-3.8-flash`
-- [ ] Smoke test of the S2 summarizer `kimi-k3` (structured summary validates)
+- [ ] Smoke test of the S2 summarizer `kimi-k3.1-pro` (structured summary validates)
 - [ ] Core image rebuilt from the current `requirements.txt` (`coco-experiment`)
 - [ ] All three functions evaluated once on the server (GNBG, CEC 2017 F30, BBOB)
 - [ ] Final texts (prompts, repeated messages) frozen in frontEASE and recorded in the decision log

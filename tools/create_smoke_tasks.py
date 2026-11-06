@@ -33,7 +33,7 @@ from fopimt.evaluators.evaluator_papercontextsummarizer import DEFAULT_INIT_MSG 
 
 PROVIDERS = {
     # name: (connector short name, environment variable with the API key, default model)
-    "cerit": ("llm.cerit", "CERIT_API_KEY", "kimi-k3"),
+    "cerit": ("llm.cerit", "CERIT_API_KEY", "kimi-k3.1-pro"),
     "openai": ("llm.openai", "OPENAI_API_KEY", "gpt-6.1-sol"),
     "anthropic": ("llm.anthropic", "ANTHROPIC_API_KEY", "claude-opus-5-5"),
     "google": ("llm.google", "GOOGLE_API_KEY", "gemini-3.8-flash"),

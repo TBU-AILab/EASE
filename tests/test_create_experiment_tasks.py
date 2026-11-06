@@ -1,3 +1,5 @@
+import json
+import os
 import unittest
 
 from tools.create_experiment_tasks import (
@@ -79,8 +81,23 @@ class ExperimentTaskPlanTests(unittest.TestCase):
             analysis = _module(item["config"], "anal.historysummary")
             self.assertEqual("llm.cerit", analysis["parameters"]["llm"]["short_name"])
             self.assertEqual(
-                "kimi-k3", analysis["parameters"]["llm"]["parameters"]["model"]
+                "kimi-k3.1-pro",
+                analysis["parameters"]["llm"]["parameters"]["model"],
             )
+
+    def test_scheduler_plan_uses_exact_kimi_model(self):
+        plan_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "tools",
+            "experiment_plan.json",
+        )
+        with open(plan_path, encoding="utf-8") as stream:
+            scheduler_plan = json.load(stream)
+
+        self.assertEqual(
+            "kimi-k3.1-pro",
+            scheduler_plan["scenarios"]["S2"]["model"],
+        )
 
     def test_s1_uses_the_generator_as_summarizer(self):
         summarized = [

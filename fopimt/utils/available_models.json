@@ -83,7 +83,7 @@
     {
       "url": "https://llm.ai.e-infra.cz/v1/models",
       "models": [
-        "kimi-k3",
+        "kimi-k3.1-pro",
         "gpt-oss-120b",
         "deepseek-v4.1-flash",
         "deepseek-v4.1-flash-thinking",
